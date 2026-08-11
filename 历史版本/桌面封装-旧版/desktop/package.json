@@ -1,0 +1,82 @@
+{
+  "name": "steel-frontline-desktop",
+  "version": "1.1.0",
+  "description": "Steel Frontline desktop edition",
+  "private": true,
+  "author": "PGCS",
+  "license": "UNLICENSED",
+  "main": "main.cjs",
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sync": "node scripts/sync-html.cjs",
+    "start": "pnpm sync && electron .",
+    "build:mac": "pnpm sync && electron-builder --mac",
+    "build:mac:dir": "pnpm sync && electron-builder --mac --dir",
+    "build:mac:x64": "pnpm sync && electron-builder --mac --x64",
+    "build:mac:arm64": "pnpm sync && electron-builder --mac --arm64",
+    "build:mac:universal": "pnpm sync && electron-builder --mac --universal",
+    "build:win": "pnpm sync && electron-builder --win --x64",
+    "build:win:dir": "pnpm sync && electron-builder --win --x64 --dir",
+    "build:win:arm64": "pnpm sync && electron-builder --win --arm64",
+    "build": "pnpm build:mac"
+  },
+  "devDependencies": {
+    "electron": "43.3.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.pgcs.steelfrontline",
+    "productName": "Steel Frontline",
+    "artifactName": "Steel-Frontline-${version}-${os}-${arch}.${ext}",
+    "asar": true,
+    "compression": "normal",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "app/**/*",
+      "!app/**/*.map"
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Steel Frontline"
+    },
+    "portable": {
+      "artifactName": "Steel-Frontline-${version}-portable.exe"
+    }
+  }
+}
