@@ -34,6 +34,16 @@ Current release: `v1.2`
 
 For the complete change history, see [更新记录.md](更新记录.md).
 
+## 在线试玩 / Play Online
+
+GitHub Pages 会在 `main` 分支更新后自动部署最新版：
+
+<https://sunsharebay-lgtm.github.io/TK/>
+
+GitHub Pages automatically publishes the latest version after every update to the `main` branch:
+
+<https://sunsharebay-lgtm.github.io/TK/>
+
 ## 项目内容 / Project Contents
 
 - `坦克大战.html`：最新可运行的网页版游戏源码 / Latest playable web game source
