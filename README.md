@@ -26,9 +26,9 @@ If this project interests you, please follow **大海的科技宝箱** on YouTub
 
 ## 当前版本 / Current Version
 
-当前正式版本：`v1.3`
+当前正式版本：`v1.4`
 
-Current release: `v1.3`
+Current release: `v1.4`
 
 详细更新内容见 [更新记录.md](更新记录.md)。
 
