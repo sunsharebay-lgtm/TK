@@ -262,19 +262,6 @@ kbd{
   position:fixed;bottom:8px;left:0;width:100%;text-align:center;z-index:3;
   font-size:9.5px;letter-spacing:.24em;color:rgba(120,145,185,.42);pointer-events:none;
 }
-#rotate{
-  position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;
-  background:var(--bg0);color:var(--ink-dim);font-size:12px;letter-spacing:.2em;text-align:center;padding:30px;
-}
-#rotate .rot-btns{display:flex;gap:12px;margin-top:20px}
-#rotate button{
-  min-width:104px;padding:10px 14px;border:1px solid rgba(67,232,255,.5);border-radius:9px;
-  background:linear-gradient(180deg,#72eafa,#2ebedb);color:#07141b;
-  font:700 11px var(--font);letter-spacing:.12em;cursor:pointer;pointer-events:auto;
-  box-shadow:0 8px 24px rgba(18,170,205,.28);
-}
-#rotate button.secondary{background:rgba(24,38,58,.85);color:var(--ink);border-color:var(--line);box-shadow:none}
-#rotate .rot-note{margin-top:18px;font-size:9px;color:var(--ink-faint);letter-spacing:.14em;line-height:1.8}
 @media (max-width:900px){ #footer{display:none} }
 @media (max-height:500px) and (orientation:landscape){
   .panel{padding:10px;gap:8px}
@@ -402,13 +389,6 @@ kbd{
 
 <div id="footer">钢铁防线 v1.4 · 单文件画布引擎 · 程序化像素美术 · 原创芯片音源</div>
 
-<div id="rotate">
-  <div>请 横 屏 游 玩<br><span style="font-size:10px;opacity:.6">请旋转设备，或使用下方按钮</span></div>
-  <div class="rot-btns">
-    <button id="rotLand">强制横屏</button>
-  </div>
-  <div class="rot-note">提示：建议使用浏览器菜单“添加到主屏幕”获得更好的体验。</div>
-</div>
 <output id="diagnostics" hidden></output>
 
 <script>
@@ -574,16 +554,8 @@ const PadUI = {
 };
 
 const MobileUI = {
-  manualLandscape:false,
-  // 物理横屏时手动旋转必须取消，否则会“二次旋转”导致方向错乱
-  syncPhysicalOrientation(){
-    const nativeLandscape = innerWidth > innerHeight ||
-      !!(screen.orientation && screen.orientation.type && screen.orientation.type.startsWith("landscape"));
-    if(nativeLandscape && document.documentElement.classList.contains("tk-rotated")){
-      document.documentElement.classList.remove("tk-rotated");
-      this.manualLandscape = false;
-    }
-  },
+  // true=横屏，false=竖屏；方向只由按钮切换，不受手机陀螺仪/物理方向影响
+  landscapeMode:false,
   async lockOrientation(type){
     if(!screen.orientation || !screen.orientation.lock) return false;
     try{
@@ -595,40 +567,38 @@ const MobileUI = {
       return !!(screen.orientation && screen.orientation.type && screen.orientation.type.startsWith(want));
     }catch(e){ return false; }
   },
+  saveMode(){
+    try{ localStorage.setItem("tk_landscape_mode", this.landscapeMode ? "1" : "0"); }catch(e){}
+  },
+  loadMode(){
+    try{ this.landscapeMode = localStorage.getItem("tk_landscape_mode") === "1"; }catch(e){ this.landscapeMode = false; }
+  },
+  applyOrientation(){
+    // 只有“选了横屏 + 当前视口是竖屏”时才需要旋转画面；横竖屏选择永远跟随按钮
+    const viewportLandscape = innerWidth > innerHeight;
+    document.documentElement.classList.toggle("tk-rotated", this.landscapeMode && !viewportLandscape);
+    this.syncButtons();
+  },
   async toggleLandscape(){
-    const nativeLandscape = !!(screen.orientation && screen.orientation.type && screen.orientation.type.startsWith("landscape"));
-    if(this.manualLandscape || nativeLandscape){
-      document.documentElement.classList.remove("tk-rotated");
-      this.manualLandscape = false;
-      await this.lockOrientation("portrait");
-      Game.resize();
-      this.syncButtons();
-      Game.toast("已恢复竖屏");
-      return;
-    }
-    const locked = await this.lockOrientation("landscape");
-    if(!locked){
-      this.manualLandscape = true;
-      document.documentElement.classList.add("tk-rotated");
-    }
+    this.landscapeMode = !this.landscapeMode;
+    this.saveMode();
+    await this.lockOrientation(this.landscapeMode ? "landscape" : "portrait");
     Game.resize();
     this.syncButtons();
-    Game.toast(locked ? "已切换横屏" : "已切换手动横屏（旋转适配）");
-    Snd.sfx(locked ? "levelUp" : "menu");
+    Game.toast(this.landscapeMode ? "已切换横屏" : "已恢复竖屏");
+    Snd.sfx(this.landscapeMode ? "levelUp" : "menu");
   },
   syncButtons(){
-    const land = this.manualLandscape || (screen.orientation && screen.orientation.type && screen.orientation.type.startsWith("landscape"));
-    for(const id of ["tLand","rotLand"]){
-      const b = document.getElementById(id);
-      if(b) b.textContent = land ? "恢复竖屏" : "横屏";
-    }
+    const b = document.getElementById("tLand");
+    if(b) b.textContent = this.landscapeMode ? "恢复竖屏" : "横屏";
   },
   init(){
-    const land = document.getElementById("tLand"), rotLand = document.getElementById("rotLand");
+    this.loadMode();
+    const land = document.getElementById("tLand");
     if(land) land.addEventListener("click", ()=>this.toggleLandscape());
-    if(rotLand) rotLand.addEventListener("click", ()=>this.toggleLandscape());
-    addEventListener("orientationchange", ()=>{ this.syncPhysicalOrientation(); this.syncButtons(); Game.resize(); });
-    this.syncButtons();
+    addEventListener("orientationchange", ()=>{ this.applyOrientation(); Game.resize(); });
+    this.applyOrientation();
+    Game.resize();
   }
 };
 
@@ -4337,7 +4307,7 @@ const Game = {
   },
 
   resize(){
-    if(typeof MobileUI !== "undefined") MobileUI.syncPhysicalOrientation();
+    if(typeof MobileUI !== "undefined") MobileUI.applyOrientation();
     const pad = this.useTouch ? 8 : 46;
     const rotated = document.documentElement.classList.contains("tk-rotated");
     const vw = rotated ? innerHeight : innerWidth;
@@ -4347,8 +4317,6 @@ const Game = {
     this.scale = s;
     cv.style.width  = Math.round(VW*s) + "px";
     cv.style.height = Math.round(VH*s) + "px";
-    const rot = document.getElementById("rotate");
-    if(rot) rot.style.display = (innerWidth < 480 && innerHeight > innerWidth && !rotated) ? "flex" : "none";
     if(PadUI.el){ PadUI.syncOrientation(); PadUI.clamp(); }
   }
 };
