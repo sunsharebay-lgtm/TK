@@ -208,7 +208,7 @@ kbd{
 .shutter.top{top:0}.shutter.bot{bottom:0}
 
 /* ---------- 触屏控制 ---------- */
-#touch{position:absolute;inset:0;z-index:40;display:none;pointer-events:none}
+#touch{position:fixed;inset:0;z-index:40;display:none;pointer-events:none}
 #touch.on{display:block}
 .tpad{
   position:absolute;bottom:26px;left:22px;width:150px;height:150px;pointer-events:auto;
@@ -232,8 +232,7 @@ kbd{
 #tPause{right:22px;top:22px;width:44px;height:44px;font-size:11px}
 #tSuper{left:22px;top:22px;width:54px;height:44px;border-radius:12px;font-size:10px}
 #tArrange{left:22px;top:168px;width:54px;height:30px;border-radius:9px;font-size:9px}
-#tLand{right:130px;top:22px;width:44px;height:44px;font-size:9px}
-#tFull{right:76px;top:22px;width:44px;height:44px;font-size:9px}
+#tLand{right:76px;top:22px;width:44px;height:44px;font-size:9px}
 #touch.arranging #tPad{
   outline:2px dashed rgba(67,232,255,.75);outline-offset:3px;
   box-shadow:0 0 28px rgba(67,232,255,.45),inset 0 0 22px rgba(67,232,255,.18);
@@ -299,8 +298,7 @@ kbd{
   #tCheats{left:12px;top:60px;grid-template-columns:repeat(2,52px);gap:5px}
   .tcheat{height:30px;font-size:9px}
   #tArrange{left:auto;right:174px;top:12px;width:50px;height:28px}
-  #tLand{right:112px;top:12px;width:40px;height:40px;font-size:8px}
-  #tFull{right:64px;top:12px;width:40px;height:40px;font-size:8px}
+  #tLand{right:64px;top:12px;width:40px;height:40px;font-size:8px}
   #tFire{right:14px;bottom:20px;width:78px;height:78px;font-size:12px}
   #tPause{right:12px;top:12px;width:40px;height:40px;font-size:10px}
 }
@@ -385,6 +383,7 @@ kbd{
     </div>
   </div>
 </div>
+</div>
 
 <div id="touch">
   <div class="tpad" id="tPad"><div class="nub" id="tNub"></div></div>
@@ -398,20 +397,17 @@ kbd{
   <div class="tbtn" id="tFire">开火</div>
   <div class="tbtn" id="tArrange">摆位</div>
   <div class="tbtn" id="tLand">横屏</div>
-  <div class="tbtn" id="tFull">全屏</div>
   <div class="tbtn" id="tPause">暂停</div>
 </div>
 
 <div id="footer">钢铁防线 v1.4 · 单文件画布引擎 · 程序化像素美术 · 原创芯片音源</div>
-</div>
 
 <div id="rotate">
   <div>请 横 屏 游 玩<br><span style="font-size:10px;opacity:.6">请旋转设备，或使用下方按钮</span></div>
   <div class="rot-btns">
     <button id="rotLand">强制横屏</button>
-    <button id="rotFull" class="secondary">全屏</button>
   </div>
-  <div class="rot-note">提示：部分浏览器不支持网页全屏，可用浏览器菜单“添加到主屏幕”获得更好的体验。</div>
+  <div class="rot-note">提示：建议使用浏览器菜单“添加到主屏幕”获得更好的体验。</div>
 </div>
 <output id="diagnostics" hidden></output>
 
@@ -477,52 +473,59 @@ const Save = {
 };
 Save.load();
 
-/* ---------------- 移动端工具：摇杆摆位 / 全屏 / 手动横屏 ---------------- */
-const PAD_POS_KEY = "tk_pad_pos_v1";
-
-function viewportToAppLocal(x, y){
-  const app = document.getElementById("app");
-  if(!app) return {x, y};
-  const ts = getComputedStyle(app).transform;
-  if(!ts || ts === "none") return {x, y};
-  try{
-    const inv = new DOMMatrixReadOnly(ts).inverse();
-    const p = inv.transformPoint({x, y});
-    return {x: p.x, y: p.y};
-  }catch(e){ return {x, y}; }
-}
+/* ---------------- 移动端工具：摇杆摆位 / 手动横屏 ---------------- */
+const PAD_POS_KEY = "tk_pad_pos_v2";
 
 const PadUI = {
   el:null,
   arranging:false,
   drag:null,
+  _ori:null,
+  // 摇杆是屏幕覆盖层，始终按“视口坐标”摆放；按画面方向分桶记忆位置
+  ori(){
+    if(document.documentElement.classList.contains("tk-rotated")) return "rotated";
+    return innerWidth > innerHeight ? "landscape" : "portrait";
+  },
+  readSaved(){
+    try{ return JSON.parse(localStorage.getItem(PAD_POS_KEY)) || {}; }catch(e){ return {}; }
+  },
   init(){
     this.el = document.getElementById("tPad");
     if(!this.el) return;
-    try{
-      const raw = localStorage.getItem(PAD_POS_KEY);
-      if(raw){
-        const p = JSON.parse(raw);
-        this.el.style.left = p.x + "px";
-        this.el.style.top  = p.y + "px";
-        this.el.style.right  = "auto";
-        this.el.style.bottom = "auto";
-      }
-    }catch(e){}
+    try{ localStorage.removeItem("tk_pad_pos_v1"); }catch(e){}
+    this._ori = this.ori();
+    const p = this.readSaved()[this._ori];
+    if(p && Number.isFinite(p.x) && Number.isFinite(p.y)){
+      this.el.style.left  = p.x + "px";
+      this.el.style.top   = p.y + "px";
+      this.el.style.right  = "auto";
+      this.el.style.bottom = "auto";
+    }
     this.clamp();
   },
   clamp(){
-    if(!this.el) return;
-    if(!this.el.style.left) return;
+    if(!this.el || !this.el.style.left) return;
     const w = this.el.offsetWidth, h = this.el.offsetHeight;
-    const rotated = document.documentElement.classList.contains("tk-rotated");
-    const vw = rotated ? innerHeight : innerWidth;
-    const vh = rotated ? innerWidth  : innerHeight;
-    const maxX = Math.max(8, vw - w - 8), maxY = Math.max(8, vh - h - 8);
+    const maxX = Math.max(8, innerWidth  - w - 8);
+    const maxY = Math.max(8, innerHeight - h - 8);
     const x = clamp(parseFloat(this.el.style.left) || 8, 8, maxX);
     const y = clamp(parseFloat(this.el.style.top)  || 8, 8, maxY);
     this.el.style.left = x + "px";
     this.el.style.top  = y + "px";
+  },
+  syncOrientation(){
+    if(!this.el) return;
+    const ori = this.ori();
+    if(ori === this._ori) return;
+    this._ori = ori;
+    const p = this.readSaved()[ori];
+    if(p && Number.isFinite(p.x) && Number.isFinite(p.y)){
+      this.el.style.left  = p.x + "px";
+      this.el.style.top   = p.y + "px";
+      this.el.style.right  = "auto";
+      this.el.style.bottom = "auto";
+    }
+    this.clamp();
   },
   toggle(){
     this.arranging = !this.arranging;
@@ -531,6 +534,7 @@ const PadUI = {
     const btn = document.getElementById("tArrange");
     if(btn) btn.textContent = this.arranging ? "锁定" : "摆位";
     if(this.arranging){
+      this.drag = null;
       Game.toast("拖动摇杆圆盘，再点“锁定”保存位置");
       Snd.sfx("menu");
     }else{
@@ -541,31 +545,26 @@ const PadUI = {
     }
   },
   save(){
-    if(!this.el || !this.el.style.left) return;
-    try{
-      localStorage.setItem(PAD_POS_KEY, JSON.stringify({
-        x: parseFloat(this.el.style.left),
-        y: parseFloat(this.el.style.top)
-      }));
-    }catch(e){}
+    if(!this.el) return;
+    const x = parseFloat(this.el.style.left), y = parseFloat(this.el.style.top);
+    if(!Number.isFinite(x) || !Number.isFinite(y)) return;
+    const data = this.readSaved();
+    data[this.ori()] = {x, y};
+    try{ localStorage.setItem(PAD_POS_KEY, JSON.stringify(data)); }catch(e){}
   },
   startArrange(clientX, clientY){
     if(!this.el) return;
     const r = this.el.getBoundingClientRect();
-    const p = viewportToAppLocal(clientX, clientY);
-    const c = viewportToAppLocal(r.left + r.width/2, r.top + r.height/2);
-    this.drag = {dx: c.x - p.x, dy: c.y - p.y};
+    this.drag = {
+      dx: r.left + r.width/2 - clientX,
+      dy: r.top  + r.height/2 - clientY
+    };
   },
   moveArrange(clientX, clientY){
     if(!this.el || !this.drag) return;
-    const p = viewportToAppLocal(clientX, clientY);
     const w = this.el.offsetWidth, h = this.el.offsetHeight;
-    const rotated = document.documentElement.classList.contains("tk-rotated");
-    const vw = rotated ? innerHeight : innerWidth;
-    const vh = rotated ? innerWidth  : innerHeight;
-    const maxX = Math.max(8, vw - w - 8), maxY = Math.max(8, vh - h - 8);
-    const x = clamp(p.x + this.drag.dx - w/2, 8, maxX);
-    const y = clamp(p.y + this.drag.dy - h/2, 8, maxY);
+    const x = clamp(clientX + this.drag.dx - w/2, 8, Math.max(8, innerWidth  - w - 8));
+    const y = clamp(clientY + this.drag.dy - h/2, 8, Math.max(8, innerHeight - h - 8));
     this.el.style.left  = x + "px";
     this.el.style.top   = y + "px";
     this.el.style.right  = "auto";
@@ -576,47 +575,38 @@ const PadUI = {
 
 const MobileUI = {
   manualLandscape:false,
-  isFull(){
-    return !!(document.fullscreenElement || document.webkitFullscreenElement);
-  },
-  async toggleFullscreen(){
-    const el = document.documentElement;
-    try{
-      if(this.isFull()){
-        if(document.exitFullscreen) await document.exitFullscreen();
-        else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-        return;
-      }
-      if(el.requestFullscreen){ await el.requestFullscreen(); return; }
-      if(el.webkitRequestFullscreen){ el.webkitRequestFullscreen(); return; }
-      throw new Error("unsupported");
-    }catch(e){
-      Game.toast("此浏览器不支持网页全屏，可添加到主屏幕体验");
+  // 物理横屏时手动旋转必须取消，否则会“二次旋转”导致方向错乱
+  syncPhysicalOrientation(){
+    const nativeLandscape = innerWidth > innerHeight ||
+      !!(screen.orientation && screen.orientation.type && screen.orientation.type.startsWith("landscape"));
+    if(nativeLandscape && document.documentElement.classList.contains("tk-rotated")){
+      document.documentElement.classList.remove("tk-rotated");
+      this.manualLandscape = false;
     }
+  },
+  async lockOrientation(type){
+    if(!screen.orientation || !screen.orientation.lock) return false;
+    try{
+      await Promise.race([
+        screen.orientation.lock(type),
+        new Promise(res => setTimeout(res, 800))
+      ]);
+      const want = type.slice(0, 4);
+      return !!(screen.orientation && screen.orientation.type && screen.orientation.type.startsWith(want));
+    }catch(e){ return false; }
   },
   async toggleLandscape(){
     const nativeLandscape = !!(screen.orientation && screen.orientation.type && screen.orientation.type.startsWith("landscape"));
     if(this.manualLandscape || nativeLandscape){
       document.documentElement.classList.remove("tk-rotated");
       this.manualLandscape = false;
-      try{ if(screen.orientation && screen.orientation.lock) await screen.orientation.lock("portrait"); }catch(e){}
+      await this.lockOrientation("portrait");
       Game.resize();
       this.syncButtons();
       Game.toast("已恢复竖屏");
       return;
     }
-    let locked = false;
-    if(screen.orientation && screen.orientation.lock){
-      try{
-        const el = document.documentElement;
-        if(!this.isFull() && (el.requestFullscreen || el.webkitRequestFullscreen)){
-          if(el.requestFullscreen) await el.requestFullscreen();
-          else el.webkitRequestFullscreen();
-        }
-        await screen.orientation.lock("landscape");
-        locked = true;
-      }catch(e){ locked = false; }
-    }
+    const locked = await this.lockOrientation("landscape");
     if(!locked){
       this.manualLandscape = true;
       document.documentElement.classList.add("tk-rotated");
@@ -627,11 +617,6 @@ const MobileUI = {
     Snd.sfx(locked ? "levelUp" : "menu");
   },
   syncButtons(){
-    const fs = this.isFull();
-    for(const id of ["tFull","rotFull"]){
-      const b = document.getElementById(id);
-      if(b) b.textContent = fs ? "退出全屏" : "全屏";
-    }
     const land = this.manualLandscape || (screen.orientation && screen.orientation.type && screen.orientation.type.startsWith("landscape"));
     for(const id of ["tLand","rotLand"]){
       const b = document.getElementById(id);
@@ -639,15 +624,10 @@ const MobileUI = {
     }
   },
   init(){
-    const full = document.getElementById("tFull"), land = document.getElementById("tLand");
-    const rotFull = document.getElementById("rotFull"), rotLand = document.getElementById("rotLand");
-    if(full) full.addEventListener("click", ()=>this.toggleFullscreen());
+    const land = document.getElementById("tLand"), rotLand = document.getElementById("rotLand");
     if(land) land.addEventListener("click", ()=>this.toggleLandscape());
-    if(rotFull) rotFull.addEventListener("click", ()=>this.toggleFullscreen());
     if(rotLand) rotLand.addEventListener("click", ()=>this.toggleLandscape());
-    addEventListener("fullscreenchange", ()=>this.syncButtons());
-    addEventListener("webkitfullscreenchange", ()=>this.syncButtons());
-    addEventListener("orientationchange", ()=>{ this.syncButtons(); Game.resize(); });
+    addEventListener("orientationchange", ()=>{ this.syncPhysicalOrientation(); this.syncButtons(); Game.resize(); });
     this.syncButtons();
   }
 };
@@ -802,9 +782,14 @@ const Input = {
       fp   = this.hit("Space")||this.hit("KeyJ")||this.hit("KeyK")||p.gpFirePressed;
       if(useTouch){
         const t = this.touch;
+        let tx = t.dx, ty = t.dy;
+        if(document.documentElement.classList.contains("tk-rotated")){
+          // 手动横屏：游戏画面相对视口旋转了 90°，把摇杆方向映射回游戏坐标
+          tx = t.dy; ty = -t.dx;
+        }
         if(t.active){
-          if(Math.abs(t.dx) > Math.abs(t.dy)){ if(t.dx>0) rt=1; else lf=1; }
-          else { if(t.dy>0) dn=1; else up=1; }
+          if(Math.abs(tx) > Math.abs(ty)){ if(tx>0) rt=1; else lf=1; }
+          else { if(ty>0) dn=1; else up=1; }
         }
         fire = fire || t.fire; fp = fp || t.firePressed;
       }
@@ -4352,6 +4337,7 @@ const Game = {
   },
 
   resize(){
+    if(typeof MobileUI !== "undefined") MobileUI.syncPhysicalOrientation();
     const pad = this.useTouch ? 8 : 46;
     const rotated = document.documentElement.classList.contains("tk-rotated");
     const vw = rotated ? innerHeight : innerWidth;
@@ -4363,7 +4349,7 @@ const Game = {
     cv.style.height = Math.round(VH*s) + "px";
     const rot = document.getElementById("rotate");
     if(rot) rot.style.display = (innerWidth < 480 && innerHeight > innerWidth && !rotated) ? "flex" : "none";
-    if(PadUI.el) PadUI.clamp();
+    if(PadUI.el){ PadUI.syncOrientation(); PadUI.clamp(); }
   }
 };
 
