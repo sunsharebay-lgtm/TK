@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
 <meta name="theme-color" content="#0a0e17">
 <link rel="icon" href="data:,">
-<title>钢铁防线 · 坦克大战 v1.6</title>
+<title>钢铁防线 · 坦克大战 v1.5</title>
 <style>
 /* ============================================================
    钢铁防线 — 现代化坦克大战
@@ -100,14 +100,11 @@ canvas#game{display:block;image-rendering:auto;background:#0b1018}
 /* ---------- 覆盖面板 ---------- */
 .panel{
   position:absolute;inset:0;z-index:20;display:none;
-  flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;
   background:radial-gradient(ellipse at 50% 40%,rgba(12,18,32,.90),rgba(4,6,11,.97));
   backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
   padding:22px;gap:14px;animation:panelIn .3s cubic-bezier(.2,.9,.3,1);
-  overflow-y:auto;overscroll-behavior:contain;
 }
-/* 内容居中且超高时可滚动（用伪元素 margin:auto 吸收留白，兼容各浏览器） */
-.panel::before,.panel::after{content:"";margin:auto;flex:none;height:0}
 .panel.on{display:flex}
 @keyframes panelIn{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
 
@@ -184,22 +181,6 @@ kbd{
 .help-grid .pw i{width:14px;height:14px;border-radius:3px;display:inline-block;flex:none;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
 
-/* 游戏说明（可滚动） */
-.intro-scroll{
-  flex:0 1 auto;min-height:0;
-  max-width:560px;max-height:min(56vh, 380px);overflow-y:auto;text-align:left;
-  font-size:11px;color:var(--ink-dim);letter-spacing:.07em;line-height:2.0;
-  background:rgba(10,16,28,.55);border:1px solid var(--line);border-radius:12px;padding:16px 22px;
-  scrollbar-width:thin;scrollbar-color:rgba(120,170,230,.35) transparent;
-}
-.intro-scroll h3{color:var(--cyan);font-size:11px;letter-spacing:.3em;margin:12px 0 3px;font-weight:600}
-.intro-scroll b{color:var(--ink)}
-.intro-scroll .gold{color:var(--amber-hot)}
-.intro-scroll .guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;margin:3px 0 8px;font-size:10.5px;color:var(--ink-dim);line-height:1.85}
-.intro-scroll .guide-grid h4{color:var(--cyan);font-size:10px;letter-spacing:.22em;margin:5px 0 0;font-weight:600}
-.intro-scroll .guide-grid .pw{display:flex;align-items:center;gap:7px}
-.intro-scroll .guide-grid .pw i{width:13px;height:13px;border-radius:3px;flex:none;display:inline-block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
-
 /* 超级按键口令 */
 .super-title{font-size:13px;letter-spacing:.38em;color:var(--amber-hot);text-shadow:0 0 16px rgba(255,179,71,.35)}
 .super-input{width:min(260px,80vw);padding:11px 13px;border:1px solid rgba(67,232,255,.42);border-radius:8px;
@@ -257,11 +238,7 @@ kbd{
 #tSuper{left:22px;top:22px;width:54px;height:44px;border-radius:12px;font-size:10px}
 #tArrange{left:22px;top:168px;width:54px;height:30px;border-radius:9px;font-size:9px}
 #tLand{right:76px;top:22px;width:44px;height:44px;font-size:9px}
-#touch.arranging #tPad,
-#touch.arranging #tFire,
-#touch.arranging #tPause,
-#touch.arranging #tSuper,
-#touch.arranging #tLand{
+#touch.arranging #tPad{
   outline:2px dashed rgba(67,232,255,.75);outline-offset:3px;
   box-shadow:0 0 28px rgba(67,232,255,.45),inset 0 0 22px rgba(67,232,255,.18);
 }
@@ -283,7 +260,6 @@ kbd{
   letter-spacing:.14em;cursor:pointer;pointer-events:auto;box-shadow:0 7px 24px rgba(18,170,205,.18);
 }
 .panel-action.secondary{background:rgba(24,38,58,.82);color:var(--ink);border-color:var(--line);box-shadow:none}
-.panel-action.sel{outline:2px solid rgba(67,232,255,.8);outline-offset:2px;box-shadow:0 0 18px rgba(67,232,255,.35)}
 .panel-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:7px}
 
 /* ---------- 底部信息条 ---------- */
@@ -318,16 +294,6 @@ kbd{
   #tFire{right:14px;bottom:20px;width:78px;height:78px;font-size:12px}
   #tPause{right:12px;top:12px;width:40px;height:40px;font-size:10px}
 }
-/* 小屏手机竖屏：压缩标题/菜单，保证可读且不溢出 */
-@media (max-width:420px) and (orientation:portrait){
-  .panel{padding:16px;gap:8px}
-  .logo .l1{font-size:11px;letter-spacing:.42em}
-  .logo .l2{font-size:32px}
-  .logo .l3{font-size:9px;letter-spacing:.3em}
-  .menu{min-width:200px;max-height:32vh;overflow-y:auto}
-  .intro-scroll{max-height:min(48vh,300px)}
-  .super-input{width:min(230px,74vw)}
-}
 </style>
 </head>
 <body>
@@ -352,15 +318,14 @@ kbd{
         </div>
         <div class="menu" id="menu"></div>
         <div class="hint">
-          <kbd>↑</kbd><kbd>↓</kbd> 选择 &nbsp; <kbd>Enter</kbd> 确定 &nbsp; <kbd>H</kbd> 玩法说明 &nbsp; <kbd>Q</kbd> 超级按键
+          <kbd>↑</kbd><kbd>↓</kbd> 选择 &nbsp; <kbd>Enter</kbd> 确定 &nbsp; <kbd>H</kbd> 帮助 &nbsp; <kbd>Q</kbd> 超级按键
         </div>
       </div>
 
-      <!-- 玩法说明（操作+道具+成长+战役整合） -->
-      <div class="panel" id="pIntro">
-        <div class="l1" style="font-size:12px;letter-spacing:.4em;color:var(--cyan)">玩 法 说 明</div>
-        <div class="intro-scroll" id="introBody"></div>
-        <div class="panel-actions"><button class="panel-action secondary" id="introBackBtn">返 回</button></div>
+      <!-- 帮助 -->
+      <div class="panel" id="pHelp">
+        <div class="l1" style="font-size:12px;letter-spacing:.4em;color:var(--cyan)">操 作 说 明</div>
+        <div class="help-grid" id="helpGrid"></div>
         <div class="hint"><kbd>Esc</kbd> / <kbd>H</kbd> 返回</div>
       </div>
 
@@ -372,34 +337,6 @@ kbd{
         <div class="super-actions"><button class="primary" id="superSubmit">解 锁</button><button id="superCancel">取 消</button></div>
         <div class="super-status" id="superStatus"></div>
         <div class="hint"><kbd>Enter</kbd> 确认 &nbsp; <kbd>Esc</kbd> 返回</div>
-      </div>
-
-      <!-- 测试模式（标题界面输入 cscscs 进入；开启后 C 键随时呼出） -->
-      <div class="panel" id="pTest">
-        <div class="super-title">测 试 模 式</div>
-        <div class="hint">超级按键已解锁 · <kbd>V</kbd> 一键胜利 · <kbd>C</kbd> 呼出/关闭</div>
-        <div class="panel-actions" id="testModes">
-          <button class="panel-action" id="testModeCamp">主线战役</button>
-          <button class="panel-action secondary" id="testModeHell">地狱绝境</button>
-          <button class="panel-action secondary" id="testModeMap">所有地图</button>
-        </div>
-        <div class="panel-actions" id="testLoopRow" style="display:none">
-          <button class="panel-action secondary" id="testLoopL">◀</button>
-          <span id="testLoopLabel" style="min-width:150px;font-size:12px;letter-spacing:.1em">第 1 周目</span>
-          <button class="panel-action secondary" id="testLoopR">▶</button>
-        </div>
-        <div class="panel-actions">
-          <button class="panel-action secondary" id="testSelL">◀</button>
-          <span id="testSelLabel" style="min-width:180px;font-size:12px;letter-spacing:.1em">第 1 关</span>
-          <button class="panel-action secondary" id="testSelR">▶</button>
-        </div>
-        <div class="help-grid" id="testInfo" style="max-width:430px"></div>
-        <div class="panel-actions">
-          <button class="panel-action" id="testStart">进 入 关 卡</button>
-          <button class="panel-action secondary" id="testBack">返 回</button>
-        </div>
-        <div class="panel-actions"><button class="panel-action secondary" id="testExit">退出测试模式</button></div>
-        <div class="hint"><kbd>←</kbd><kbd>→</kbd> 切换 &nbsp; <kbd>↑</kbd><kbd>↓</kbd> 周目 &nbsp; <kbd>Enter</kbd> 进入 &nbsp; <kbd>Esc</kbd> 返回</div>
       </div>
 
       <!-- 暂停 -->
@@ -455,7 +392,7 @@ kbd{
   <div class="tbtn" id="tPause">暂停</div>
 </div>
 
-<div id="footer">钢铁防线 v1.6 · 单文件画布引擎 · 程序化像素美术 · 原创芯片音源</div>
+<div id="footer">钢铁防线 v1.5 · 单文件画布引擎 · 程序化像素美术 · 原创芯片音源</div>
 
 <output id="diagnostics" hidden></output>
 
@@ -464,11 +401,9 @@ kbd{
 /* ============================================================
    P1 · 常量 / 工具 / 输入
    ============================================================ */
-const GAME_VERSION = "1.6";
-// 每个周目走 6 关，每关都有独特「关卡特性」，让手感差异明显：
-// 序章(标准) → 冰原(滑行) → 沙漠(减速) → 熔岩(灼烧) → 密林(隐蔽) → 最终防线(浴血)。
-// 保留 16 张地图作为素材，其余地图可在测试模式与地狱绝境中使用。
-const CAMPAIGN_STAGE_IDS = [0, 4, 15, 13, 3, 11];
+const GAME_VERSION = "1.5";
+// 每个周目只走 5 关；保留 12 张地图作为素材，挑选五张代表地图组成主线。
+const CAMPAIGN_STAGE_IDS = [0, 3, 6, 9, 11];
 const CAMPAIGN_STAGE_COUNT = CAMPAIGN_STAGE_IDS.length;
 const VW = 576, VH = 448;          // 逻辑分辨率
 const G  = 16;                      // 地形格边长(半格,原版 quarter*2)
@@ -480,7 +415,7 @@ const TS = 32;                      // 坦克尺寸 2x2 格
 const STEP = 1 / 60;
 
 // 地形
-const TE = { EMPTY:0, BRICK:1, STEEL:2, WATER:3, TREE:4, ICE:5, BASE:6, BORDER:7, SAND:8 };
+const TE = { EMPTY:0, BRICK:1, STEEL:2, WATER:3, TREE:4, ICE:5, BASE:6, BORDER:7 };
 
 // 方向 0上 1右 2下 3左
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
@@ -536,131 +471,102 @@ const Save = {
 };
 Save.load();
 
-/* ---------------- 移动端工具：触控按键摆位 / 手动横屏 ---------------- */
-const CTL_POS_KEY = "tk_ctl_pos_v3";
-/* 可自由摆位的触控控件（默认尺寸用于越界保护） */
-const CTL_DEFS = [
-  {id:"tPad",   w:150, h:150},
-  {id:"tFire",  w:92,  h:92},
-  {id:"tPause", w:44,  h:44},
-  {id:"tSuper", w:54,  h:44},
-  {id:"tLand",  w:44,  h:44}
-];
+/* ---------------- 移动端工具：摇杆摆位 / 手动横屏 ---------------- */
+const PAD_POS_KEY = "tk_pad_pos_v2";
 
 const PadUI = {
   el:null,
   arranging:false,
   drag:null,
   _ori:null,
-  // 触控控件是屏幕覆盖层，始终按“视口坐标”摆放；按画面方向分桶记忆位置
+  // 摇杆是屏幕覆盖层，始终按“视口坐标”摆放；按画面方向分桶记忆位置
   ori(){
     if(document.documentElement.classList.contains("tk-rotated")) return "rotated";
     return innerWidth > innerHeight ? "landscape" : "portrait";
   },
   readSaved(){
-    try{ return JSON.parse(localStorage.getItem(CTL_POS_KEY)) || {}; }catch(e){ return {}; }
+    try{ return JSON.parse(localStorage.getItem(PAD_POS_KEY)) || {}; }catch(e){ return {}; }
   },
-  get(id){ return document.getElementById(id); },
-  isDraggable(el){ return !!el && CTL_DEFS.some(d=>d.id===el.id); },
   init(){
-    this.el = this.get("tPad");
-    // 迁移旧版摇杆位置存档（tk_pad_pos_v1 / v2）
-    try{
-      const old = JSON.parse(localStorage.getItem("tk_pad_pos_v2") || "null");
-      if(old && typeof old === "object"){
-        const cur = this.readSaved();
-        for(const ori of ["portrait","landscape","rotated"]){
-          if(old[ori] && Number.isFinite(old[ori].x) && !(cur[ori] && cur[ori].tPad)){
-            cur[ori] = Object.assign(cur[ori]||{}, {tPad:{x:old[ori].x, y:old[ori].y}});
-          }
-        }
-        try{ localStorage.setItem(CTL_POS_KEY, JSON.stringify(cur)); }catch(_){}
-      }
-    }catch(_){}
-    try{ localStorage.removeItem("tk_pad_pos_v1"); }catch(_){}
-    try{ localStorage.removeItem("tk_pad_pos_v2"); }catch(_){}
+    this.el = document.getElementById("tPad");
+    if(!this.el) return;
+    try{ localStorage.removeItem("tk_pad_pos_v1"); }catch(e){}
     this._ori = this.ori();
-    this.applyLayout(false);
+    const p = this.readSaved()[this._ori];
+    if(p && Number.isFinite(p.x) && Number.isFinite(p.y)){
+      this.el.style.left  = p.x + "px";
+      this.el.style.top   = p.y + "px";
+      this.el.style.right  = "auto";
+      this.el.style.bottom = "auto";
+    }
     this.clamp();
   },
-  /* 按当前方向恢复保存的位置；reset=true 时未保存的控件还原 CSS 默认布局 */
-  applyLayout(reset){
-    const saved = this.readSaved()[this._ori] || {};
-    for(const d of CTL_DEFS){
-      const el = this.get(d.id);
-      if(!el) continue;
-      const p = saved[d.id];
-      if(p && Number.isFinite(p.x) && Number.isFinite(p.y)){
-        el.style.left = p.x+"px"; el.style.top = p.y+"px";
-        el.style.right = "auto"; el.style.bottom = "auto";
-      } else if(reset){
-        el.style.left = ""; el.style.top = ""; el.style.right = ""; el.style.bottom = "";
-      }
-    }
-  },
   clamp(){
-    for(const d of CTL_DEFS){
-      const el = this.get(d.id);
-      if(!el || !el.style.left) continue;     // 未自定义过的控件保持 CSS 默认
-      const w = el.offsetWidth || d.w, h = el.offsetHeight || d.h;
-      const maxX = Math.max(6, innerWidth  - w - 6);
-      const maxY = Math.max(6, innerHeight - h - 6);
-      const x = clamp(parseFloat(el.style.left) || 6, 6, maxX);
-      const y = clamp(parseFloat(el.style.top)  || 6, 6, maxY);
-      el.style.left = x+"px"; el.style.top = y+"px";
-    }
+    if(!this.el || !this.el.style.left) return;
+    const w = this.el.offsetWidth, h = this.el.offsetHeight;
+    const maxX = Math.max(8, innerWidth  - w - 8);
+    const maxY = Math.max(8, innerHeight - h - 8);
+    const x = clamp(parseFloat(this.el.style.left) || 8, 8, maxX);
+    const y = clamp(parseFloat(this.el.style.top)  || 8, 8, maxY);
+    this.el.style.left = x + "px";
+    this.el.style.top  = y + "px";
   },
   syncOrientation(){
+    if(!this.el) return;
     const ori = this.ori();
     if(ori === this._ori) return;
     this._ori = ori;
-    this.applyLayout(true);
+    const p = this.readSaved()[ori];
+    if(p && Number.isFinite(p.x) && Number.isFinite(p.y)){
+      this.el.style.left  = p.x + "px";
+      this.el.style.top   = p.y + "px";
+      this.el.style.right  = "auto";
+      this.el.style.bottom = "auto";
+    }
     this.clamp();
   },
   toggle(){
     this.arranging = !this.arranging;
     const touch = document.getElementById("touch");
     if(touch) touch.classList.toggle("arranging", this.arranging);
-    const btn = this.get("tArrange");
+    const btn = document.getElementById("tArrange");
     if(btn) btn.textContent = this.arranging ? "锁定" : "摆位";
     if(this.arranging){
       this.drag = null;
-      Game.toast("拖动摇杆或开火键调整位置，点“锁定”保存");
+      Game.toast("拖动摇杆圆盘，再点“锁定”保存位置");
       Snd.sfx("menu");
     }else{
       this.save();
       this.clamp();
-      Game.toast("按键位置已保存");
+      Game.toast("摇杆位置已保存");
       Snd.sfx("levelUp");
     }
   },
   save(){
+    if(!this.el) return;
+    const x = parseFloat(this.el.style.left), y = parseFloat(this.el.style.top);
+    if(!Number.isFinite(x) || !Number.isFinite(y)) return;
     const data = this.readSaved();
-    const bucket = data[this.ori()] || (data[this.ori()] = {});
-    for(const d of CTL_DEFS){
-      const el = this.get(d.id);
-      if(!el || !el.style.left) continue;
-      const x = parseFloat(el.style.left), y = parseFloat(el.style.top);
-      if(Number.isFinite(x) && Number.isFinite(y)) bucket[d.id] = {x, y};
-    }
-    try{ localStorage.setItem(CTL_POS_KEY, JSON.stringify(data)); }catch(_){}
+    data[this.ori()] = {x, y};
+    try{ localStorage.setItem(PAD_POS_KEY, JSON.stringify(data)); }catch(e){}
   },
-  startArrange(id, clientX, clientY){
-    const el = this.get(id);
-    if(!el) return;
-    const r = el.getBoundingClientRect();
-    this.drag = { id, dx: r.left + r.width/2 - clientX, dy: r.top + r.height/2 - clientY };
+  startArrange(clientX, clientY){
+    if(!this.el) return;
+    const r = this.el.getBoundingClientRect();
+    this.drag = {
+      dx: r.left + r.width/2 - clientX,
+      dy: r.top  + r.height/2 - clientY
+    };
   },
   moveArrange(clientX, clientY){
-    if(!this.drag) return;
-    const d = CTL_DEFS.find(x=>x.id===this.drag.id);
-    const el = this.get(this.drag.id);
-    if(!el || !d) return;
-    const w = el.offsetWidth || d.w, h = el.offsetHeight || d.h;
-    const x = clamp(clientX + this.drag.dx - w/2, 6, Math.max(6, innerWidth  - w - 6));
-    const y = clamp(clientY + this.drag.dy - h/2, 6, Math.max(6, innerHeight - h - 6));
-    el.style.left = x+"px"; el.style.top = y+"px";
-    el.style.right = "auto"; el.style.bottom = "auto";
+    if(!this.el || !this.drag) return;
+    const w = this.el.offsetWidth, h = this.el.offsetHeight;
+    const x = clamp(clientX + this.drag.dx - w/2, 8, Math.max(8, innerWidth  - w - 8));
+    const y = clamp(clientY + this.drag.dy - h/2, 8, Math.max(8, innerHeight - h - 8));
+    this.el.style.left  = x + "px";
+    this.el.style.top   = y + "px";
+    this.el.style.right  = "auto";
+    this.el.style.bottom = "auto";
   },
   endArrange(){ this.drag = null; }
 };
@@ -719,13 +625,11 @@ const Input = {
   keys:Object.create(null), pressed:Object.create(null),
   // 两位玩家的方向/开火状态
   pads:[
-    {up:0,dn:0,lf:0,rt:0,fire:0,firePressed:0,gpOkPressed:0},
-    {up:0,dn:0,lf:0,rt:0,fire:0,firePressed:0,gpOkPressed:0}
+    {up:0,dn:0,lf:0,rt:0,fire:0,firePressed:0},
+    {up:0,dn:0,lf:0,rt:0,fire:0,firePressed:0}
   ],
   touch:{active:false, dx:0, dy:0, fire:0, firePressed:0},
   anyPressed:false,
-  ui:{up:0,dn:0,lf:0,rt:0,ok:0,back:0,pause:0},   // 手柄界面操作（边缘触发）
-  _uiHold:{up:0,dn:0,lf:0,rt:0},                  // 手柄方向按住时长（用于菜单自动连发）
   _prevGP:[{},{}],
 
   init(){
@@ -760,7 +664,7 @@ const Input = {
       const t = e.changedTouches ? e.changedTouches[0] : e;
       pid = t.identifier !== undefined ? t.identifier : "m";
       if(PadUI.arranging){
-        PadUI.startArrange("tPad", t.clientX, t.clientY);
+        PadUI.startArrange(t.clientX, t.clientY);
         e.preventDefault();
         return;
       }
@@ -804,33 +708,12 @@ const Input = {
     padEl.addEventListener("mouseleave",   e=>{ if(e.pointerType === "mouse") end(e); });
 
     const bind = (el, on, off)=>{
-      const begin = e=>{
-        // 摆位模式下：可拖动控件改为拖动定位，不再触发功能
-        if(PadUI.arranging && PadUI.isDraggable(el)){
-          const t = e.changedTouches ? e.changedTouches[0] : e;
-          PadUI.startArrange(el.id, t.clientX, t.clientY);
-          e.preventDefault();
-          return;
-        }
-        on(); el.classList.add("hit"); e.preventDefault();
-      };
-      const move = e=>{
-        if(PadUI.arranging && PadUI.drag){
-          const t = e.changedTouches ? e.changedTouches[0] : e;
-          if(t) PadUI.moveArrange(t.clientX, t.clientY);
-          e.preventDefault();
-        }
-      };
-      const finish = e=>{
-        if(PadUI.arranging) PadUI.endArrange();
-        off&&off(); el.classList.remove("hit");
-      };
+      const begin = e=>{ on(); el.classList.add("hit"); e.preventDefault(); };
+      const finish = e=>{ off&&off(); el.classList.remove("hit"); };
       el.addEventListener("touchstart", begin, {passive:false});
-      el.addEventListener("touchmove",  move,  {passive:false});
       el.addEventListener("touchend",   finish);
       el.addEventListener("touchcancel",finish);
       el.addEventListener("pointerdown", e=>{ if(e.pointerType === "mouse") begin(e); }, {passive:false});
-      el.addEventListener("pointermove", e=>{ if(e.pointerType === "mouse") move(e); }, {passive:false});
       el.addEventListener("pointerup",   e=>{ if(e.pointerType === "mouse") finish(e); });
       el.addEventListener("pointercancel",e=>{ if(e.pointerType === "mouse") finish(e); });
     };
@@ -849,16 +732,13 @@ const Input = {
   },
 
   // 手柄
-  pollGamepads(dt){
-    this.ui = { up:0, dn:0, lf:0, rt:0, ok:0, back:0, pause:0 };
+  pollGamepads(){
     if(!navigator.getGamepads) return;
     const gps = navigator.getGamepads();
     for(let i=0;i<2;i++){
       const gp = gps[i];
       const p  = this.pads[i];
       p.gpUp=p.gpDn=p.gpLf=p.gpRt=0; p.gpFire=0;
-      p.gpUpPressed=p.gpDnPressed=p.gpLfPressed=p.gpRtPressed=0;
-      p.gpBackPressed=p.gpStartPressed=0;
       if(!gp) continue;
       const ax = gp.axes[0]||0, ay = gp.axes[1]||0, DZ=0.4;
       const b = (n)=> gp.buttons[n] && gp.buttons[n].pressed;
@@ -868,43 +748,11 @@ const Input = {
       p.gpRt = (ax> DZ || b(15))?1:0;
       const f = (b(0)||b(1)||b(2)||b(3)||b(7))?1:0;
       p.gpFire = f;
-      // 边缘检测（界面操作需要单次触发）
-      const prev = this._prevGP[i];
-      if(p.gpUp && !prev.u) p.gpUpPressed = 1;
-      if(p.gpDn && !prev.d) p.gpDnPressed = 1;
-      if(p.gpLf && !prev.l) p.gpLfPressed = 1;
-      if(p.gpRt && !prev.r) p.gpRtPressed = 1;
-      if(f && !prev.f) p.gpFirePressed = 1;
-      const ok = b(0) || b(3);                       // A / Y：界面确认（不含 B）
-      if(ok && !prev.ok) p.gpOkPressed = 1;
-      const back = b(8) || b(1);                     // Select 或 B：返回
-      if(back && !prev.b) p.gpBackPressed = 1;
-      if(b(9) && !prev.s){                          // Start：暂停
-        p.gpStartPressed = 1;
-        this.pressed["KeyP"] = 1;
-      }
-      prev.u=p.gpUp; prev.d=p.gpDn; prev.l=p.gpLf; prev.r=p.gpRt; prev.f=f; prev.ok=ok?1:0; prev.b=back?1:0; prev.s=b(9)?1:0;
+      if(f && !this._prevGP[i].f) p.gpFirePressed = 1;
+      this._prevGP[i].f = f;
+      if(b(9) && !this._prevGP[i].s) this.pressed["KeyP"] = 1;
+      this._prevGP[i].s = b(9);
     }
-    // 主手柄(0)同时驱动界面操作：方向=上下左右、A/B/X/Y=确认、Select/B=返回、Start=暂停
-    const u = this.pads[0];
-    const acc = dt || STEP;
-    const hold = this._uiHold;
-    // 按住方向 0.5s 后每 0.15s 自动重复，方便快速滚动长菜单
-    const repeat = (key, held, pressed)=>{
-      if(pressed) return true;
-      if(!held){ hold[key] = 0; return false; }
-      hold[key] += acc;
-      if(hold[key] < 0.5) return false;
-      hold[key] = Math.max(0.35, hold[key] - 0.15);
-      return true;
-    };
-    this.ui = {
-      up:   repeat("up",  u.gpUp,  !!u.gpUpPressed),
-      dn:   repeat("dn",  u.gpDn,  !!u.gpDnPressed),
-      lf:   repeat("lf",  u.gpLf,  !!u.gpLfPressed),
-      rt:   repeat("rt",  u.gpRt,  !!u.gpRtPressed),
-      ok: u.gpOkPressed||0, back: u.gpBackPressed||0, pause: u.gpStartPressed||0
-    };
   },
 
   // 汇总玩家输入 (idx 0/1)
@@ -948,11 +796,7 @@ const Input = {
     this.pressed = Object.create(null);
     this.touch.firePressed = 0;
     this.anyPressed = false;
-    for(const p of this.pads){
-      p.gpFirePressed = 0; p.gpUpPressed=0; p.gpDnPressed=0; p.gpLfPressed=0; p.gpRtPressed=0;
-      p.gpOkPressed=0; p.gpBackPressed=0; p.gpStartPressed=0;
-    }
-    this.ui = { up:0, dn:0, lf:0, rt:0, ok:0, back:0, pause:0 };
+    for(const p of this.pads) p.gpFirePressed = 0;
   }
 };
 
@@ -1396,25 +1240,6 @@ function drawUiTextC(x, s, CX, Y, col, sc, sp){
   const w = uiTextWidth(x, s, sc, sp);
   return drawUiText(x, s, Math.round(CX - w/2), Y, col, sc, sp);
 }
-// 窄栏内自动换行的中文文本绘制（用于 HUD 关卡特性说明）
-function drawWrappedUi(x, s, X, Y, maxW, col, sc, lineH, maxY){
-  sc = sc||1; lineH = lineH||12;
-  x.save();
-  x.font = `${Math.max(8, Math.round(9*sc))}px "PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif`;
-  x.fillStyle = col;
-  x.textBaseline = "top";
-  let line = "", cy = Y;
-  for(const ch of String(s)){
-    if(cy + lineH > maxY) break;
-    const test = line + ch;
-    if(x.measureText(test).width > maxW && line){
-      x.fillText(line, X, cy); cy += lineH; line = ch;
-    } else line = test;
-  }
-  if(line && cy <= maxY) x.fillText(line, X, cy);
-  x.restore();
-  return cy + lineH;
-}
 
 /* ---------------- 坦克配色 ---------------- */
 const TANK_SKINS = {
@@ -1611,50 +1436,6 @@ function buildTerrain(){
       x.fillStyle = "rgba(0,0,0,.18)"; x.fillRect(0,G-1,G,1);
       SPR.terrain.water.push(c);
     }
-  }
-
-  /* --- 熔岩 3 帧（熔岩地图的“水”格） --- */
-  {
-    SPR.terrain.lava = [];
-    for(let f=0;f<3;f++){
-      const {c,x} = mkCanvas(G,G);
-      const g = x.createLinearGradient(0,0,0,G);
-      g.addColorStop(0,"#8a2606"); g.addColorStop(0.5,"#c8420a"); g.addColorStop(1,"#5c1603");
-      x.fillStyle = g; x.fillRect(0,0,G,G);
-      for(let i=0;i<4;i++){
-        const y = (i*4 + f*1.4) % G;
-        x.fillStyle = "rgba(255,170,60,.45)";
-        x.fillRect((i%2? 1:8) + f, Math.round(y), 6, 1);
-        x.fillStyle = "rgba(255,235,150,.7)";
-        x.fillRect((i%2? 2:9) + f, Math.round(y), 3, 1);
-      }
-      // 浮动的暗色熔渣
-      x.fillStyle = "rgba(36,7,2,.34)";
-      x.fillRect((f*5)%14, (f*7)%12, 4, 2);
-      x.fillStyle = "rgba(0,0,0,.24)"; x.fillRect(0,G-1,G,1);
-      SPR.terrain.lava.push(c);
-    }
-  }
-
-  /* --- 沙地（可通行的沙色地面，用于沙漠关） --- */
-  {
-    const {c,x} = mkCanvas(G,G);
-    const g = x.createLinearGradient(0,0,0,G);
-    g.addColorStop(0,"#dcb46c"); g.addColorStop(0.5,"#c69c52"); g.addColorStop(1,"#a87f3e");
-    x.fillStyle = g; x.fillRect(0,0,G,G);
-    // 沙纹
-    x.strokeStyle = "rgba(130,92,38,.4)"; x.lineWidth = 1;
-    x.beginPath(); x.moveTo(1,4); x.quadraticCurveTo(4,6,8,4); x.stroke();
-    x.beginPath(); x.moveTo(8,11); x.quadraticCurveTo(12,13,16,11); x.stroke();
-    x.strokeStyle = "rgba(255,225,160,.3)"; x.lineWidth = 1;
-    x.beginPath(); x.moveTo(2,8); x.quadraticCurveTo(6,9,11,7); x.stroke();
-    // 颗粒
-    for(let i=0;i<6;i++){
-      x.fillStyle = "rgba(255,228,170,.3)";
-      x.fillRect((i*5+3)%G, (i*7+2)%G, 1, 1);
-    }
-    x.fillStyle = "rgba(0,0,0,.16)"; x.fillRect(0,G-1,G,1);
-    SPR.terrain.sand = c;
   }
 
   /* --- 树 --- */
@@ -1890,29 +1671,6 @@ function buildItems(){
     x.beginPath(); x.arc(14,17,3.6,0,TAU); x.fillStyle = "#9dc086"; x.fill();
     x.fillStyle = "#6b8459"; x.fillRect(13,6,2,8);
     x.fillStyle = "rgba(255,255,255,.35)"; x.fillRect(10,14,8,1);
-  });
-
-  mk("twin", "#7fd8ff", (x)=>{
-    // 双炮：并排双管 + 炮口焰
-    x.fillStyle = "#2b3241"; x.fillRect(4,4,22,16);
-    x.fillStyle = "#4a5568"; x.fillRect(6,6,18,12);
-    x.fillStyle = "#8b9bb0"; x.fillRect(7,8,6,3); x.fillRect(16,8,6,3);
-    x.fillStyle = "rgba(255,255,255,.35)"; x.fillRect(7,8,6,1); x.fillRect(16,8,6,1);
-    x.fillStyle = "#ffd88a"; x.fillRect(6,5,7,1); x.fillRect(15,5,7,1);
-    x.fillStyle = "#2f3a2b"; x.fillRect(5,16,20,3);
-    x.fillStyle = "#4e6a52"; x.fillRect(7,17,4,1); x.fillRect(13,17,4,1);
-  });
-
-  mk("field", "#9adcff", (x)=>{
-    // 静电磁场：同心环 + 闪电
-    x.strokeStyle = "#7fd8ff"; x.lineWidth = 1.6;
-    x.beginPath(); x.arc(14,14,9,0,TAU); x.stroke();
-    x.strokeStyle = "rgba(127,216,255,.55)";
-    x.beginPath(); x.arc(14,14,5.5,0,TAU); x.stroke();
-    x.strokeStyle = "#fff2c4"; x.lineWidth = 1.4;
-    x.beginPath();
-    x.moveTo(17,5); x.lineTo(10,14); x.lineTo(14,14); x.lineTo(9,24); x.lineTo(19,13); x.lineTo(15,13); x.lineTo(19,5);
-    x.stroke();
   });
 
 }
@@ -2281,155 +2039,8 @@ const STAGES = [
 "..........................",
 "..BB..BB......BB..BB......",
 "..........................",
-".........................."]},
-
-{ name:"废 墟", en:"废墟", enemies:[6,5,6,2], rows:[
-"..........................",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BBBB....BB..",
-"..BB..BB..BB..BBBB....BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"......BBSSBB..BBSSBB......",
-"......BBSSBB..BBSSBB......",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"....BB..BBBBBBBB..BB......",
-"....BB..BBBBBBBB..BB......",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"....BBBB........BBBB......",
-"....BBBB........BBBB......",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"......SSSS..SSSS..........",
-"......SSSS..SSSS..........",
-"..BB..BB..BB..BB..BB..BB..",
-"..BB..BB..BB..BB..BB..BB..",
-"..........................",
-"..........................",
-".........................."]},
-
-{ name:"熔 岩", en:"熔岩", lava:true, enemies:[4,6,7,3], rows:[
-"..........................",
-"..WW..WWWWWW..WWWWWW..WW..",
-"..WW..WWWWWW..WWWWWW..WW..",
-"..BB..WWWWWW..WWWWWW..BB..",
-"..BB..WWWWWW..WWWWWW..BB..",
-"..........................",
-"..WW..WWWWWW..WWWWWW..WW..",
-"..WW..WWWWWW..WWWWWW..WW..",
-"..BB..BBBBBB..BBBBBB..BB..",
-"..BB..BBBBBB..BBBBBB..BB..",
-"...........BB............",
-"...........BB............",
-"..........................",
-"BB..WWWW..WWWWWW..WWWW..BB",
-"BB..WWWW..WWWWWW..WWWW..BB",
-"..WW..WW..WWWW..WW..WW....",
-"..WW..WW..WWWW..WW..WW....",
-"..BB..BB..BBBB..BB..BB....",
-"..BB..BB..BBBB..BB..BB....",
-"..........................",
-"..SS..SS..SSSS..SS..SS....",
-"..SS..SS..SSSS..SS..SS....",
-"..........................",
-"..BB..BB......BB..BB......",
-"..........................",
-".........................."]},
-
-{ name:"地 下 工 厂", en:"地下工厂", enemies:[3,6,8,3], rows:[
-"..........................",
-"..SS..BBBB..SS..BBBB..SS..",
-"..SS..BBBB..SS..BBBB..SS..",
-"..BB..SSSS..BB..SSSS..BB..",
-"..BB..SSSS..BB..SSSS..BB..",
-"..........................",
-"..WW..BBBB..WW..BBBB..WW..",
-"..WW..BBBB..WW..BBBB..WW..",
-"..BB..WWWW..BB..WWWW..BB..",
-"..BB..WWWW..BB..WWWW..BB..",
-"SS..BB..SS..BB..SS..BB..SS",
-"SS..BB..SS..BB..SS..BB..SS",
-"..........................",
-"..BBBB..SS..BBBB..SS......",
-"..BBBB..SS..BBBB..SS......",
-"..SS..BBBB..SS..BBBB......",
-"..SS..BBBB..SS..BBBB......",
-"..........................",
-"..BB..WW..BB..WW..BB..BB..",
-"..BB..WW..BB..WW..BB..BB..",
-"..SS..BB..SS..BB..SS..SS..",
-"..SS..BB..SS..BB..SS..SS..",
-"..........................",
-"..BB..BB..BB..BB..BB..BB..",
-"..........................",
-".........................."]},
-
-{ name:"沙 漠", en:"沙漠", enemies:[5,6,7,2], rows:[
-"..........................",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DDDD....DD..",
-"..DD..DD..DD..DDDD....DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"......DDSSDD..DDSSDD......",
-"......DDSSDD..DDSSDD......",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"....DD..DDDDDDDD..DD......",
-"....DD..DDDDDDDD..DD......",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"WWWW..DDDD..DDDD..WWWW....",
-"WWWW..DDDD..DDDD..WWWW....",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"......SSSS..SSSS..........",
-"......SSSS..SSSS..........",
-"..DD..DD..DD..DD..DD..DD..",
-"..DD..DD..DD..DD..DD..DD..",
-"..........................",
-"..........................",
 ".........................."]}
 ];
-
-/* ============================================================
-   P5b · 关卡特性：每张地图一个独特机制（让手感差异明显）
-   ============================================================ */
-const STAGE_FX = {
-  none:  { name:"标准战场", desc:"无特殊规则，专注基础作战。", playerSpeed:1, enemySpeed:1, fire:1, hp:0, spawnGap:1 },
-  ice:   { name:"极寒冰原", desc:"冰面移动提速，松开方向后继续向前滑行。", ice:true },
-  sand:  { name:"沙地减速", desc:"沙地阻力大，你的坦克行动速度降低。", sand:true, playerSpeed:0.82 },
-  lava:  { name:"熔岩灼烧", desc:"贴近熔岩停留 5 秒会受到 1 点伤害，请勿久留！", lava:true },
-  jungle:{ name:"丛林迷彩", desc:"树丛提供隐蔽：树中的坦克更不易被瞄准。", jungle:true },
-  steel: { name:"铁壁防线", desc:"基地护墙开场即为钢墙，更耐轰击。", baseSteel:true },
-  frenzy:{ name:"钢铁弹幕", desc:"敌军火力全开，射速大幅提升。", fire:1.25 },
-  valley:{ name:"河谷急流", desc:"敌军顺流而行，移动速度提升。", enemySpeed:1.15 },
-  siege: { name:"围城攻势", desc:"敌军集中攻打基地，请速回防。", siege:true, fire:1.08 },
-  blood: { name:"浴血奋战", desc:"敌军耐久提升，战斗更加残酷。", hp:1 },
-  snow:  { name:"雪原严寒", desc:"你的坦克行动迟缓，冰面滑行距离更远。", ice:true, playerSpeed:0.90 },
-  rush:  { name:"十字车流", desc:"敌军增援更快、移动更迅速。", enemySpeed:1.10, spawnGap:0.75 }
-};
-const STAGE_FX_INDEX = [
-  "none","steel","valley","jungle","ice","frenzy","siege","rush",
-  "valley","snow","frenzy","blood","sand","lava","rush","sand"
-];
-/* 复用机制的关卡可覆盖名称与说明，让关卡名与体验一致 */
-const STAGE_FX_OVERRIDES = {
-  8:  { name:"双河急流", desc:"两岸敌军顺流而行，移动速度提升。" },
-  10: { name:"钢铁弹幕", desc:"敌军火力全开，射速大幅提升。" },
-  12: { name:"沙尘废墟", desc:"废墟扬起沙尘，你的坦克行动速度降低。" },
-  14: { name:"车间流水线", desc:"敌军流水线生产，增援更快、移动更迅速。" }
-};
-function stageFxInfo(mapIndex){
-  const key = STAGE_FX_INDEX[mapIndex] || "none";
-  const cfg = STAGE_FX[key] || STAGE_FX.none;
-  const o = STAGE_FX_OVERRIDES[mapIndex] || {};
-  return { key, cfg, name:o.name || cfg.name, desc:o.desc || cfg.desc };
-}
 
 /* 出生点（格坐标，坦克占 2x2 格） */
 const ENEMY_SPAWNS  = [[0,0],[12,0],[24,0]];
@@ -2453,7 +2064,7 @@ function normalizeStage(rows){
   }
   return out;
 }
-const CH2TE = { ".":TE.EMPTY, "B":TE.BRICK, "S":TE.STEEL, "W":TE.WATER, "T":TE.TREE, "I":TE.ICE, "D":TE.SAND };
+const CH2TE = { ".":TE.EMPTY, "B":TE.BRICK, "S":TE.STEEL, "W":TE.WATER, "T":TE.TREE, "I":TE.ICE };
 
 /* 轻量地图预检：只把不可穿越地形当作硬障碍，砖块通路会被单独标记。 */
 function validateStages(){
@@ -2523,9 +2134,6 @@ class Field {
     this.grid = new Uint8Array(GN*GN);
     this.mask = new Uint8Array(GN*GN);   // 砖块 8x8 子块位掩码
     this.baseAlive = true;
-    this.baseSteel = false;               // 铁壁防线：护墙开局即钢
-    this.eaglePower = 0;                  // 老鹰自卫火力 0-5
-    this.baseArmor = 0;                   // 老鹰围墙护甲 0-5（每层抵消一次攻击）
     this.shovelT = 0;                     // 铁锹剩余时间
     this.waterT = 0;
   }
@@ -2553,7 +2161,6 @@ class Field {
     this.buildWall(TE.BRICK);
     this.ensureSpawnExits();
     this.baseAlive = true; this.shovelT = 0;
-    this.eaglePower = 0; this.baseArmor = 0;
   }
   clearRect(gx,gy,w,h){
     for(let y=gy;y<gy+h;y++) for(let x=gx;x<gx+w;x++){
@@ -2643,11 +2250,6 @@ class Field {
     if(t === TE.BRICK){
       const bit = ((sy&1)<<1) | (sx&1);
       if(!(this.mask[i] & (1<<bit))) return {hit:false};
-      // 老鹰围墙护甲：抵消本次攻击，不破坏砖块
-      if(this.baseArmor > 0 && this.isBaseWall(gx,gy)){
-        this.baseArmor--;
-        return {hit:true, kind:"baseArmor", gx, gy};
-      }
       // 破坏迎面整列/整行（2 个子块），贯穿感更接近原版
       let m = this.mask[i];
       if(dir === 0 || dir === 2){      // 垂直：破坏该子块所在行
@@ -2665,14 +2267,8 @@ class Field {
       if(power >= 3){ this.grid[i] = TE.EMPTY; this.mask[i] = 0; return {hit:true, kind:"steelBreak", gx, gy}; }
       return {hit:true, kind:"steel", gx, gy};
     }
-    if(t === TE.BASE){
-      if(this.baseArmor > 0){ this.baseArmor--; return {hit:true, kind:"baseArmor", gx, gy}; }
-      return {hit:true, kind:"base", gx, gy};
-    }
+    if(t === TE.BASE){ return {hit:true, kind:"base", gx, gy}; }
     return {hit:false};
-  }
-  isBaseWall(gx,gy){
-    return BASE_WALL.some(([x,y])=> x===gx && y===gy);
   }
   applyShovel(sec){
     this.shovelT = sec;
@@ -2682,17 +2278,8 @@ class Field {
     this.waterT += dt;
     if(this.shovelT > 0){
       this.shovelT -= dt;
-      if(this.shovelT <= 0){ this.shovelT = 0; this.buildWall(this.baseSteel ? TE.STEEL : TE.BRICK); }
+      if(this.shovelT <= 0){ this.shovelT = 0; this.buildWall(TE.BRICK); }
     }
-  }
-  /* 坦克矩形四周 1 格外是否存在水面/熔岩（用于灼烧机制） */
-  nearWater(x,y,w,h){
-    const x0 = Math.floor(x/G)-1, y0 = Math.floor(y/G)-1;
-    const x1 = Math.floor((x+w-1)/G)+1, y1 = Math.floor((y+h-1)/G)+1;
-    for(let gy=y0; gy<=y1; gy++) for(let gx=x0; gx<=x1; gx++){
-      if(this.at(gx,gy) === TE.WATER) return true;
-    }
-    return false;
   }
 }
 
@@ -2858,8 +2445,6 @@ class Bullet {
     this.dead = false;
     this.trail = [];
     this.age = 0;
-    this.dmgMul = 1;   // 弹道强化(双炮)/削弱(电磁场)倍率
-    this.fromBase = owner === world.baseOwner;   // 老鹰自卫炮弹可穿透自家围墙
   }
   get bx(){ return this.x - 2; }
   get by(){ return this.y - 2; }
@@ -2905,11 +2490,6 @@ class Bullet {
       const key = sx+","+sy;
       if(seen[key]) continue; seen[key] = 1;
       if(!f.subBlockBullet(sx,sy)) continue;
-      // 老鹰自卫炮弹穿透自家基地区域（基地+围墙），避免开火即被挡下
-      if(this.fromBase){
-        const gx = sx>>1, gy = sy>>1;
-        if(gy >= BASE_GY-1 && gy <= BASE_GY+1 && gx >= BASE_GX-1 && gx <= BASE_GX+1) continue;
-      }
       const r = f.damageAt(sx, sy, this.dir, this.power);
       if(r.hit) struck = r;
     }
@@ -2965,8 +2545,6 @@ class Tank {
     this.flash = false;
     this.hitFlash = 0;
     this.wobble = 0;
-    this.twin = 0;         // 双炮等级 0-3（玩家专用）
-    this._dmgAcc = 0;      // 电磁场削弱造成的分数伤害累计
   }
   get cx(){ return this.x + TS/2; }
   get cy(){ return this.y + TS/2; }
@@ -3025,37 +2603,21 @@ class Tank {
     return moved > 0;
   }
   tryFire(){
-    if(this.fireCool > 0) return false;
-    const shots = this.twin > 0 ? 2 : 1;      // 双炮双发并行
-    const cap = this.twin > 0 ? Math.max(2, this.maxBullets) : this.maxBullets;
-    if(this.bulletsOut + shots > cap) return false;
-    const dmgMul = this.twin >= 3 ? 2 : (this.twin >= 2 ? 1.5 : 1);   // 双炮强化
-    if(shots === 2){
-      this.fireOne(this.dir, -9, dmgMul);
-      this.fireOne(this.dir,  9, dmgMul);
-      this.bulletsOut += 2;
-    } else {
-      this.fireOne(this.dir, 0, dmgMul);
-      this.bulletsOut += 1;
-    }
+    if(this.fireCool > 0 || this.bulletsOut >= this.maxBullets) return false;
+    const b = new Bullet(this.w, this, this.dir, this.bulletSpeed, this.power);
+    this.w.bullets.push(b);
+    this.bulletsOut++;
     this.fireCool = this.isPlayer ? 0.10 : 0.18;
     this.wobble = 1;
-    Snd.sfx(this.power>=3 ? "shootBig" : "shoot");
-    return true;
-  }
-  fireOne(dir, perp, dmgMul){
-    const b = new Bullet(this.w, this, dir, this.bulletSpeed, this.power);
-    if(dir === 0 || dir === 2) b.x += perp; else b.y += perp;
-    b.dmgMul = dmgMul;
-    // 电磁场内敌人开火：攻击强度降低
-    if(!this.isPlayer && this.w.fieldLevel > 0) b.dmgMul *= this.w.fieldMul(this.cx, this.cy);
-    this.w.bullets.push(b);
-    const mx = this.cx + DX[dir]*(TS/2), my = this.cy + DY[dir]*(TS/2);
+    // 炮口火光
+    const mx = this.cx + DX[this.dir]*(TS/2), my = this.cy + DY[this.dir]*(TS/2);
     this.w.fx.push(new Ripple(mx,my, this.isPlayer?"#ffd88a":"#cfe0f7", 9, 0.2));
-    for(let i=0;i<2;i++){
-      const a = Math.atan2(DY[dir],DX[dir]) + (rnd()-0.5)*0.9;
+    for(let i=0;i<3;i++){
+      const a = Math.atan2(DY[this.dir],DX[this.dir]) + (rnd()-0.5)*0.9;
       this.w.fx.push(new Spark(mx,my,a, 40+rnd()*70, this.isPlayer?"#ffe9a8":"#dfe7f2", 0.16));
     }
+    Snd.sfx(this.power>=3 ? "shootBig" : "shoot");
+    return true;
   }
   onBulletGone(){ this.bulletsOut = Math.max(0, this.bulletsOut-1); }
 
@@ -3072,28 +2634,9 @@ class Tank {
       Snd.sfx("steel");
       return "armored";
     }
-    // 伤害计算：基础伤害（火力3=2倍、火力5=3倍）× 弹道强化/削弱倍率
-    let dmg = 1;
-    if(bullet){
-      if(!this.isPlayer){
-        if(bullet.power >= 5) dmg = 3;
-        else if(bullet.power >= 3) dmg = 2;
-      }
-      dmg *= (bullet.dmgMul || 1);
-    }
-    // 电磁场削弱：玩家受到的 <1 伤害先累计，攒满 1 点才结算
-    if(this.isPlayer && dmg > 0 && dmg < 1){
-      this._dmgAcc = (this._dmgAcc || 0) + dmg;
-      this.hitFlash = 0.14;
-      for(let i=0;i<5;i++){
-        const a = Math.atan2(-DY[bullet.dir],-DX[bullet.dir]) + (rnd()-0.5)*1.6;
-        this.w.fx.push(new Spark(bullet.x,bullet.y,a, 40+rnd()*70, "#cfe0f7", 0.2));
-      }
-      Snd.sfx("hitArmor");
-      if(this._dmgAcc < 1) return "blocked";
-      this._dmgAcc -= 1; dmg = 1;
-    }
-    this.hp -= Math.max(1, Math.round(dmg));
+    // 最高火力对坦克造成双倍伤害，让火力成长与周目耐久形成明确对抗。
+    const damage = !this.isPlayer && bullet && bullet.power >= 3 ? 2 : 1;
+    this.hp -= damage;
     this.hitFlash = 0.14;
     if(this.hp <= 0){ this.destroy(); return "killed"; }
     Snd.sfx("hitArmor");
@@ -3128,7 +2671,6 @@ class Tank {
   /* 冰面滑行处理，返回是否发生了移动 */
   applyMotion(dt, wantMove, wantDir){
     const onIce = this.w.field.onIce(this.x, this.y, TS, TS);
-    const iceFx = !!this.w.fxIce;   // 冰面关：冰上提速，滑行更远
     let moved = false;
     if(wantMove){
       if(wantDir !== this.dir && !this.setDir(wantDir)){
@@ -3136,15 +2678,15 @@ class Tank {
         this.slideV = 0;
         return false;
       }
-      moved = this.advance(this.speed * (onIce && iceFx ? 1.35 : 1));
-      if(onIce){ this.slideV = this.speed * (iceFx ? 1.5 : 1); this.slideDir = this.dir; }
+      moved = this.advance(this.speed);
+      if(onIce){ this.slideV = this.speed; this.slideDir = this.dir; }
       else this.slideV = 0;
     } else if(onIce && this.slideV > 0.02){
       const keep = this.dir;
       this.dir = this.slideDir;
       moved = this.advance(this.slideV);
       this.dir = keep;
-      this.slideV *= iceFx ? 0.985 : 0.955;
+      this.slideV *= 0.955;
       if(!moved) this.slideV = 0;
     } else {
       this.slideV = 0;
@@ -3266,7 +2808,6 @@ class Player extends Tank {
     this.index = index;
     this.level = 0;
     this.armor = 0;
-    this.lavaT = 0; this._lavaWarned = false;
     this.lives = 3;
     this.score = 0;
     this.kills = [0,0,0,0,0];
@@ -3280,76 +2821,29 @@ class Player extends Tank {
   }
   skinKey(){ return this.index === 0 ? "p1" : "p2"; }
   applyLevel(){
-    this.speed = PLAYER_SPEED * (this.w.fxPlayerSpeed || 1);
+    this.speed = PLAYER_SPEED;
     this.maxBullets = this.level >= 2 ? 2 : 1;
-    this.bulletSpeed = this.level >= 4 ? 8.0 : (this.level >= 1 ? 6.5 : 4.0);
-    // 火力：3级穿透钢板、5级伤害翻三倍
-    this.power = this.level >= 5 ? 5 : (this.level >= 3 ? 3 : 1);
+    this.bulletSpeed = this.level >= 1 ? 6.5 : 4.0;
+    this.power = this.level >= 3 ? 3 : 1;
     this.hp = 1;
   }
   levelUp(){
-    if(this.level < 5){ this.level++; this.applyLevel(); Snd.sfx("levelUp"); }
+    if(this.level < 3){ this.level++; this.applyLevel(); Snd.sfx("levelUp"); }
     else { this.score += 500; }
   }
   levelDown(){
     if(this.level > 0){ this.level--; this.applyLevel(); }
   }
-  takeLavaBurn(){
-    if(this.dead || this.gone || this.spawnT > 0) return;
-    this.w.fx.push(new Ripple(this.cx, this.cy, "#ff7a3c", 18, 0.4));
-    for(let i=0;i<6;i++) this.w.fx.push(new Spark(this.cx, this.cy, rnd()*TAU, 60+rnd()*90, "#ffb347", 0.3));
-    if(this.shield > 0){
-      this.shield = 0;
-      this.w.game.toast("熔岩灼烧 · 护盾耗尽");
-    } else if(this.armor > 0){
-      this.armor--;
-      this.hitFlash = 0.14;
-      this.w.game.toast("熔岩灼烧 · 护甲 -1");
-    } else {
-      this.hp -= 1; this.hitFlash = 0.2;
-      if(this.hp <= 0){ this.w.game.toast("熔岩灼烧 · 坦克损毁"); this.destroy(); }
-      else this.w.game.toast("熔岩灼烧 · 生命 -1");
-    }
-    Snd.sfx("freeze");
-  }
   respawn(){
     const [gx,gy] = PLAYER_SPAWNS[this.index];
-    let px = gx*G, py = gy*G;
-    // 出生点被其他坦克占据时，就近寻找空闲位置，避免复活重叠卡死
-    if(!this.spotFree(px,py)){
-      const spot = this.findRespawnSpot(gx,gy);
-      if(spot){ px = spot.x; py = spot.y; }
-    }
-    this.x = px; this.y = py;
+    this.x = gx*G; this.y = gy*G;
     this.dir = 0; this.dead = false;
     this.spawnT = this.spawnDur; this.shield = 5.0;
     this.bulletsOut = 0; this.fireCool = 0;
     this.slideV = 0; this.moving = false;
-    this._dmgAcc = 0;                 // 重生清除电磁场伤害累计
     // 死亡只掉一级火力，跨关继承的等级不会被直接清空。
     this.level = Math.max(0, this.level - 1);
     this.applyLevel();
-  }
-  spotFree(px,py){
-    if(!this.w.field.freeForTank(px,py,TS,TS)) return false;
-    for(const t of this.w.allTanks()){
-      if(t === this || t.dead) continue;
-      if(rectHit(px,py,TS,TS, t.x,t.y,TS,TS)) return false;
-    }
-    return true;
-  }
-  findRespawnSpot(gx,gy){
-    const field = this.w.field;
-    for(let r=1; r<=6; r++){
-      for(let dy=-r; dy<=r; dy++) for(let dx=-r; dx<=r; dx++){
-        if(Math.max(Math.abs(dx),Math.abs(dy)) !== r) continue;
-        const nx = gx+dx, ny = gy+dy;
-        if(nx<0||ny<0||nx>=GN-1||ny>=GN-1) continue;
-        const X = nx*G, Y = ny*G;
-        if(this.spotFree(X,Y)) return {x:X, y:Y};
-      }
-    }
-    return null;
   }
   destroy(){
     if(this.dead) return;
@@ -3384,10 +2878,10 @@ class Enemy extends Tank {
     const d = ENEMY_DEF[typeIdx];
     this.typeIdx = typeIdx;
     this.def = d;
-    this.baseSpeed = d.speed * (world.aggression.enemySpeedMul || 1) * (world.fxEnemySpeed || 1);
+    this.baseSpeed = d.speed * (world.aggression.enemySpeedMul || 1);
     this.speed = this.baseSpeed;
     this.bulletSpeed = d.bulletSpeed;
-    this.hp = d.hp + (world.aggression.enemyHpBonus || 0) + (world.fxHp || 0); this.maxHp = this.hp;
+    this.hp = d.hp + (world.aggression.enemyHpBonus || 0); this.maxHp = this.hp;
     this.maxBullets = typeIdx === 4 ? 2 : 1;
     this.flash = !!flash;
     this.spawnDur = 1.05;
@@ -3436,13 +2930,10 @@ class Enemy extends Tank {
   pickTarget(){
     const base = {x:(BASE_GX+1)*G, y:(BASE_GY+1)*G};
     const ps = this.w.players.filter(p=>p && !p.dead && !p.gone && p.spawnT<=0);
-    // 丛林迷彩：树中玩家吸引力大降；围城攻势：更专注攻打基地
-    let bias = this.aggr.playerBias * (this.w.fxSiege ? 0.45 : 1);
-    if(ps.length && rnd() < bias){
+    if(ps.length && rnd() < this.aggr.playerBias){
       let best = ps[0], bd = 1e9;
       for(const p of ps){
-        let d = Math.abs(p.cx-this.cx) + Math.abs(p.cy-this.cy);
-        if(this.w.fxJungle && this.w.field.inTrees(p.x, p.y, TS, TS)) d += 9*G;
+        const d = Math.abs(p.cx-this.cx) + Math.abs(p.cy-this.cy);
         if(d < bd){ bd = d; best = p; }
       }
       return {x:best.cx, y:best.cy, isPlayer:true};
@@ -3596,10 +3087,7 @@ class Enemy extends Tank {
       }
       for(const p of this.w.players){
         if(!p || p.dead || p.gone || p.spawnT>0) continue;
-        if(px > p.x && px < p.x+TS && py > p.y && py < p.y+TS){
-          if(this.w.fxJungle && this.w.field.inTrees(p.x, p.y, TS, TS)) return false; // 树中目标难锁定
-          return true;
-        }
+        if(px > p.x && px < p.x+TS && py > p.y && py < p.y+TS) return true;
       }
     }
     return false;
@@ -3609,11 +3097,8 @@ class Enemy extends Tank {
     if(this.w.freezeT > 0){ this.moving = false; return; }
     if(this.pauseT > 0){ this.pauseT -= dt; this.moving = false; return; }
 
-    // 静电磁场压制：移速按场内倍率结算
-    const dMul = this.w.fieldMul(this.cx, this.cy);
-    this.speed = this.baseSpeed * dMul;
-
     if(this.elite){
+      this.speed = this.baseSpeed;
       this.skillT -= dt;
       if(this.skillT <= 0){
         this.skillT = 6 + rnd()*5;
@@ -3680,7 +3165,7 @@ class Enemy extends Tank {
     }
 
     // 开火
-    let p = this.def.fireRate * this.aggr.fireMul * (this.w.fxFire || 1) * dMul;
+    let p = this.def.fireRate * this.aggr.fireMul;
     if(this.lineOfFire()) p *= 2.8;
     if(rnd() < p) this.tryFire();
     if(this.isBoss && this.skill === "volley" && rnd() < 0.004){
@@ -3752,29 +3237,12 @@ class World {
     this.game = game;
     this.stageIndex = stageIndex;
     this.loop = loop || 0;
-    // 地图池：地狱 / “所有地图”用全图；主线战役（含测试选主线）用战役精选
-    const useAllPool = game.hell || (game.testMode && game.testMenu === "map");
-    this.stagePool = useAllPool ? STAGES.map((_,i)=>i) : CAMPAIGN_STAGE_IDS;
+    this.stagePool = game.hell ? STAGES.map((_,i)=>i) : CAMPAIGN_STAGE_IDS;
     this.mapIndex = this.stagePool[stageIndex % this.stagePool.length];
     this.stage = STAGES[this.mapIndex];
     this.twoP = !!twoP;
     this.field = new Field();
     this.field.load(this.stage);
-    // 关卡特性
-    const fxi = stageFxInfo(this.mapIndex);
-    this.fxKey = fxi.key; this.fxName = fxi.name; this.fxDesc = fxi.desc;
-    const c = fxi.cfg;
-    this.fxPlayerSpeed = c.playerSpeed || 1;
-    this.fxEnemySpeed  = c.enemySpeed || 1;
-    this.fxFire        = c.fire || 1;
-    this.fxHp          = c.hp || 0;
-    this.fxSpawnGap    = c.spawnGap || 1;
-    this.fxBaseSteel   = !!c.baseSteel;
-    this.fxLava        = !!c.lava;
-    this.fxJungle      = !!c.jungle;
-    this.fxSiege       = !!c.siege;
-    this.fxIce         = !!c.ice;
-    if(this.fxBaseSteel){ this.field.baseSteel = true; this.field.buildWall(TE.STEEL); }
     this.aggression = difficultyFor(stageIndex, this.loop);
     if(game.hell){
       this.aggression.enemyHpBonus = Math.min(8, this.aggression.enemyHpBonus + 2 + Math.min(4, game.hellRound||0));
@@ -3782,26 +3250,19 @@ class World {
 
     this.players = [];
     const n = twoP ? 2 : 1;
-    const carryPlayers = carry && carry.players ? carry.players : (Array.isArray(carry) ? carry : null);
     for(let i=0;i<n;i++){
       const p = new Player(this, i);
-      if(carryPlayers && carryPlayers[i]){
-        p.lives = carryPlayers[i].lives;
-        p.score = carryPlayers[i].score;
-        p.kills = Array.from({length:5}, (_,k)=>Number(carryPlayers[i].kills?.[k]||0));
-        p.level = clamp(carryPlayers[i].level || 0, 0, 5);
-        p.armor = clamp(carryPlayers[i].armor || 0, 0, 5);
-        p.twin  = clamp(carryPlayers[i].twin  || 0, 0, 3);
+      if(carry && carry[i]){
+        p.lives = carry[i].lives;
+        p.score = carry[i].score;
+        p.kills = Array.from({length:5}, (_,k)=>Number(carry[i].kills?.[k]||0));
+        p.level = clamp(carry[i].level || 0, 0, 3);
+        p.armor = clamp(carry[i].armor || 0, 0, 3);
         p.applyLevel();
-        p.gone  = carryPlayers[i].gone;
+        p.gone  = carry[i].gone;
         if(p.gone){ p.dead = true; }
       }
       this.players.push(p);
-    }
-    // 老鹰火力/护甲跨关继承
-    if(carry && carry.base){
-      this.field.eaglePower = clamp(carry.base.eaglePower||0, 0, 5);
-      this.field.baseArmor  = clamp(carry.base.baseArmor||0, 0, 5);
     }
 
     this.enemies = [];
@@ -3844,10 +3305,6 @@ class World {
 
     this.freezeT = 0;
     this.baseShieldT = 0;
-    this.fieldLevel = 0;              // 静电磁场等级 0-5
-    this.baseFireCool = 0;            // 老鹰自卫开火冷却
-    this.baseAimDir = 0;              // 老鹰炮管朝向
-    this.baseOwner = { isPlayer:true, index:0, x:BASE_GX*G, y:BASE_GY*G, onBulletGone(){} };
     this.time = 0;
     this.shakeAmt = 0; this.shakeT = 0; this.shakeDur = 1;
     this.over = false; this.cleared = false;
@@ -3856,16 +3313,6 @@ class World {
     this.combo = 0; this.comboT = 0;
     this.stats = { shots:0, hits:0 };
   }
-  /* ---- 静电磁场 ---- */
-  get fieldDebuff(){ return this.fieldLevel * 0.10; }
-  get fieldRadius(){ return this.fieldLevel * 3; }     // 格
-  inField(px, py){
-    if(this.fieldLevel <= 0) return false;
-    const cx = (BASE_GX+1)*G, cy = (BASE_GY+1)*G;
-    const dx = (px - cx)/G, dy = (py - cy)/G;
-    return Math.hypot(dx, dy) <= this.fieldRadius;
-  }
-  fieldMul(px, py){ return this.inField(px,py) ? 1 - this.fieldDebuff : 1; }
 
   allTanks(){
     const a = [];
@@ -3915,7 +3362,7 @@ class World {
       this.spawnIdx = (si + 1) % SPAWN_CELLS.length;
       placed = true;
     }
-    this.spawnT = placed ? this.aggression.spawnGap * (this.fxSpawnGap||1) : 0.4;
+    this.spawnT = placed ? this.aggression.spawnGap : 0.4;
   }
 
   /* ---- 事件 ---- */
@@ -3947,14 +3394,6 @@ class World {
       }
       this.fx.push(new Explosion(x,y,0.7,false));
       this.shake(3,0.16);
-    } else if(kind === "baseArmor"){
-      // 老鹰围墙护甲：抵消攻击
-      Snd.sfx("steel");
-      for(let i=0;i<7;i++){
-        const a = Math.atan2(-DY[b.dir],-DX[b.dir]) + (rnd()-0.5)*1.9;
-        this.fx.push(new Spark(x,y,a, 70+rnd()*120, "#ffd88a", 0.22));
-      }
-      this.fx.push(new Ripple(x,y,"#ffb347",12,0.22));
     } else if(kind === "base"){
       this.destroyBase();
     } else if(kind === "border"){
@@ -4029,22 +3468,14 @@ class World {
     if(!this.queue.length && this.aliveEnemies() === 0) this.checkClear();
   }
   dropPowerUp(){
-    // 星星需求：任一玩家火力未满5 或 老鹰火力未满5；都满后星星替换为双炮
-    const starNeed = this.players.some(p=>p && !p.gone && p.level < 5) || this.field.eaglePower < 5;
-    // 护甲需求：任一玩家护甲未满5 或 老鹰围墙护甲未满5；都满后护甲替换为电磁场
-    const armorNeed = this.players.some(p=>p && !p.gone && p.armor < 5) || this.field.baseArmor < 5;
-    const weights = ITEM_WEIGHTS.map(([t,w])=>{
-      if(t === "star")  return [starNeed ? "star" : "twin", w];
-      if(t === "armor") return [armorNeed ? "armor" : "field", w];
-      return [t, w];
-    });
-    const eligible = weights.filter(([type])=>{
-      if(type === "twin")  return this.players.some(p=>p && !p.gone && p.twin < 3);
-      if(type === "field") return this.fieldLevel < 5;
+    // 只过滤当前已满层的强化类型；只要还有其它候选，就一定从其它候选中掉落。
+    const eligible = ITEM_WEIGHTS.filter(([type])=>{
+      if(type === "star") return this.players.some(p=>p && !p.gone && p.level < 3);
+      if(type === "armor") return this.players.some(p=>p && !p.gone && p.armor < 3);
       return true;
     });
     if(!eligible.length) return;
-    // 场上已有道具时不覆盖，避免强化在玩家赶到前被后续掉落替换。
+    // 场上已有道具时不覆盖，避免护甲/火力在玩家赶到前被后续掉落替换。
     if(this.powerups.some(pu=>pu && !pu.dead)) return;
     // 找一个合适的空位
     let bx = 0, by = 0, ok = false;
@@ -4059,11 +3490,13 @@ class World {
       bx = gx*G + 2; by = gy*G + 2; ok = true; break;
     }
     if(!ok){ bx = 4*G; by = 10*G; }
+    // 按当前玩家状态过滤满层强化，再按权重抽取，避免掉落变成无效道具。
+    // 每关首个有效掉落优先给护甲（只要仍有人未满层），保证新道具能被稳定体验到。
     let total = 0;
     for(const [, weight] of eligible) total += weight;
     let type;
-    // 每关首个有效掉落优先给护甲（只要仍有人需要护甲），保证新道具能被稳定体验到。
-    if(this.itemDrops === 0 && armorNeed && eligible.some(([c])=>c === "armor")){
+    const armorAvailable = eligible.some(([candidate])=>candidate === "armor");
+    if(this.itemDrops === 0 && armorAvailable){
       type = "armor";
     }else{
       let roll = rnd() * total;
@@ -4078,37 +3511,22 @@ class World {
     // 移除旧道具（原版同时只有一个）
     this.powerups.length = 0;
     this.powerups.push(new PowerUp(this, type, bx, by));
-    const toastMap = { star:"火力道具出现", twin:"双炮道具出现", armor:"护甲道具出现", field:"静电磁场出现" };
-    this.game.toast(toastMap[type] || "道具出现");
+    this.game.toast(type === "armor" ? "护甲道具出现 · 抵挡一次伤害" : type === "star" ? "火力道具出现" : "道具出现");
     Snd.sfx("powerAppear");
   }
   applyPowerUp(pu, p){
     p.score += 500;
     this.fx.push(new ScorePop(pu.x+14, pu.y+4, "500", "#9be8ff"));
     switch(pu.type){
-      case "helmet": p.shield = Math.max(p.shield, 10); Snd.sfx("shield"); this.game.toast("护盾展开 · 十秒无敌"); break;
+      case "helmet": p.shield = Math.max(p.shield, 11); Snd.sfx("shield"); this.game.toast("护盾展开"); break;
       case "clock":  this.freezeT = 9; Snd.sfx("freeze"); this.game.toast("时间冻结"); break;
       case "shovel": this.field.applyShovel(20); Snd.sfx("shovel"); this.game.toast("基地强化"); break;
       case "star":
-        if(p.level < 5){ p.levelUp(); this.game.toast("火力提升 · 等级 " + p.level + "/5"); }
-        else if(this.field.eaglePower < 5){ this.field.eaglePower++; Snd.sfx("levelUp"); this.game.toast("老鹰火力 " + this.field.eaglePower + "/5 · 基地自卫开火"); }
-        else { this.game.toast("火力已满级"); }
-        break;
+        if(p.level >= 3){ this.game.toast("火力已满级"); break; }
+        p.levelUp(); this.game.toast("火力提升 · 等级 " + p.level + "/3"); break;
       case "armor":
-        if(p.armor < 5){ p.armor = clamp(p.armor + 1, 0, 5); Snd.sfx("shield"); this.game.toast("护甲 +1 · " + p.armor + "/5"); }
-        else if(this.field.baseArmor < 5){ this.field.baseArmor++; Snd.sfx("shield"); this.game.toast("老鹰围墙护甲 +1 · " + this.field.baseArmor + "/5"); }
-        else { this.game.toast("护甲已满层"); }
-        break;
-      case "twin":
-        p.twin = clamp(p.twin + 1, 0, 3);
-        Snd.sfx("levelUp");
-        this.game.toast(p.twin === 1 ? "双炮 · 双发齐射" : "双炮强化 · 攻击 +" + (p.twin-1)*50 + "%");
-        break;
-      case "field":
-        this.fieldLevel = clamp(this.fieldLevel + 1, 0, 5);
-        Snd.sfx("shield");
-        this.game.toast("静电磁场 · 敌军 -" + this.fieldLevel*10 + "% · 范围 " + this.fieldLevel*3 + " 格");
-        break;
+        if(p.armor >= 3){ this.game.toast("护甲已满层"); break; }
+        p.armor = clamp(p.armor + 1, 0, 3); Snd.sfx("shield"); this.game.toast("护甲 +1 · 当前 " + p.armor + "/3"); break;
       case "tank":   p.lives++; Snd.sfx("life"); this.game.toast("增援抵达 · +1 命"); break;
       case "grenade":{
         let n = 0;
@@ -4122,7 +3540,7 @@ class World {
         break;
       }
     }
-    if(pu.type !== "star" && pu.type !== "armor" && pu.type !== "twin" && pu.type !== "field") Snd.sfx("powerGet");
+    if(pu.type !== "star" && pu.type !== "armor") Snd.sfx("powerGet");
     pu.dead = true;
   }
 
@@ -4198,57 +3616,6 @@ class World {
     this.bullets = bs.filter(b=>!b.dead);
   }
 
-  /* ---- 老鹰自卫开火 ---- */
-  updateBaseDefense(dt){
-    if(!this.field.baseAlive) return;
-    const ep = this.field.eaglePower;
-    if(ep <= 0) return;
-    // 射程随火力提升（格）：1级8格 → 5级16格，主动迎击进入射程的敌人
-    const range = (6 + ep*2) * G;
-    const bx = this.baseOwner.x + TS/2, by = this.baseOwner.y + TS/2;
-    // 自动瞄准：射程内、且弹道不被钢墙挡住的最远可攻击目标（就近优先）
-    let target = null, bd = 1e9;
-    for(const e of this.enemies){
-      if(e.dead || e.spawnT > 0) continue;
-      const d = Math.abs(e.cx - bx) + Math.abs(e.cy - by);
-      if(d > range) continue;
-      const dir = this.aimDirTo(bx, by, e.cx, e.cy);
-      if(!this.baseClearShot(dir, e)) continue;
-      if(d < bd){ bd = d; target = e; }
-    }
-    if(!target){ this.baseFireCool = Math.min(this.baseFireCool, 0); return; }   // 射程内无目标则待机
-    this.baseFireCool -= dt;
-    if(this.baseFireCool > 0) return;
-    this.baseFireCool = 1.7 - ep*0.26;          // 火力越高射速越快
-    const dir = this.aimDirTo(bx, by, target.cx, target.cy);
-    this.baseAimDir = dir;
-    const b = new Bullet(this, this.baseOwner, dir, 5 + ep*0.5, Math.min(ep, 5));
-    this.bullets.push(b);
-    Snd.sfx(ep >= 3 ? "shootBig" : "shoot");
-    this.fx.push(new Ripple(this.baseOwner.x, this.baseOwner.y, "#ffd54a", 9, 0.2));
-  }
-  aimDirTo(x0, y0, tx, ty){
-    const dx = tx - x0, dy = ty - y0;
-    if(Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 1 : 3;
-    return dy > 0 ? 2 : 0;
-  }
-  /* 沿主方向射线：朝目标方向是否有钢墙/边界挡住（砖墙可打穿，不算阻挡） */
-  baseClearShot(dir, t){
-    const x0 = this.baseOwner.x + TS/2, y0 = this.baseOwner.y + TS/2;
-    const dist = (dir === 0 || dir === 2) ? Math.abs(t.cy - y0) : Math.abs(t.cx - x0);
-    let px = x0, py = y0, d = 0;
-    while(d < dist){
-      px += DX[dir]*8; py += DY[dir]*8; d += 8;
-      if(px<0||py<0||px>FS||py>FS) return false;
-      const gx = (px/G)|0, gy = (py/G)|0;
-      // 跳过老鹰自家基地区域（基地+围墙）
-      if(gy >= BASE_GY-1 && gy <= BASE_GY+1 && gx >= BASE_GX-1 && gx <= BASE_GX+1) continue;
-      const cell = this.field.at(gx, gy);
-      if(cell === TE.STEEL || cell === TE.BASE || cell === TE.BORDER) return false;
-    }
-    return true;
-  }
-
   update(dt, inputs){
     this.time += dt;
     this.field.update(dt);
@@ -4261,35 +3628,7 @@ class World {
       const p = this.players[i];
       if(p) p.update(dt, inputs[i] || {up:0,dn:0,lf:0,rt:0,fire:0,firePressed:0});
     }
-    // 熔岩灼烧：贴近熔岩停留 5 秒受到 1 点基础伤害
-    if(this.fxLava){
-      if(this._lavaWarnT > 0) this._lavaWarnT -= dt;
-      for(const p of this.players){
-        if(!p || p.dead || p.gone) continue;
-        const near = this.field.nearWater(p.x, p.y, TS, TS);
-        if(near){
-          if(!p.moving && p.spawnT <= 0) p.lavaT += dt; else p.lavaT = 0;
-          if(p.lavaT >= 3 && !p._lavaWarned){ p._lavaWarned = true; this.game.toast("熔岩灼烧警告 · 快离开！"); Snd.sfx("freeze"); }
-          if(p.lavaT >= 5){ p.lavaT = 0; p._lavaWarned = false; p.takeLavaBurn(); }
-        } else { p.lavaT = 0; p._lavaWarned = false; }
-      }
-    }
     for(const e of this.enemies) if(!e.dead) e.update(dt);
-    // 静电磁场：场内敌军血量被压制（移速/射速在 Enemy.update 中按场内倍率结算）
-    if(this.fieldLevel > 0 && this.field.baseAlive){
-      for(const e of this.enemies){
-        if(e.dead) continue;
-        const want = this.inField(e.cx, e.cy) ? this.fieldDebuff : 0;
-        if(want > (e._fieldApplied || 0)){
-          const loss = Math.floor(e.maxHp * (want - (e._fieldApplied||0)));
-          e.maxHp = Math.max(1, e.maxHp - loss);
-          e.hp = Math.max(0, e.hp - loss);
-          e._fieldApplied = want;
-        }
-      }
-    }
-    // 老鹰自卫开火
-    this.updateBaseDefense(dt);
 
     for(const b of this.bullets) if(!b.dead) b.update(dt);
     this.handleBullets();
@@ -4302,10 +3641,7 @@ class World {
         if(!p || p.dead || p.gone) continue;
         if(rectHit(pu.x,pu.y,pu.size,pu.size, p.x,p.y,TS,TS)){
           // 满层强化不会被无意义地拾取；双人模式下可让另一名玩家继续拾取。
-          if((pu.type === "star" && p.level >= 5 && this.field.eaglePower >= 5) ||
-             (pu.type === "armor" && p.armor >= 5 && this.field.baseArmor >= 5) ||
-             (pu.type === "twin" && p.twin >= 3) ||
-             (pu.type === "field" && this.fieldLevel >= 5)) continue;
+          if((pu.type === "star" && p.level >= 3) || (pu.type === "armor" && p.armor >= 3)) continue;
           this.applyPowerUp(pu, p); break;
         }
       }
@@ -4458,12 +3794,9 @@ function renderField(x, W){
       } else if(t === TE.STEEL){
         x.drawImage(SPR.terrain.steel, px, py);
       } else if(t === TE.WATER){
-        const ws = W.stage && W.stage.lava ? SPR.terrain.lava : SPR.terrain.water;
-        x.drawImage(ws[wf % 3], px, py);
+        x.drawImage(SPR.terrain.water[wf % 3], px, py);
       } else if(t === TE.ICE){
         x.drawImage(SPR.terrain.ice, px, py);
-      } else if(t === TE.SAND){
-        x.drawImage(SPR.terrain.sand, px, py);
       } else if(t === TE.TREE){
         trees.push([px,py]);
       } else if(t === TE.BASE){
@@ -4477,30 +3810,6 @@ function renderField(x, W){
             g.addColorStop(1,"rgba(255,180,60,0)");
             x.fillStyle = g; x.beginPath(); x.arc(px+16,py+16,22,0,TAU); x.fill();
             x.restore();
-            // 老鹰自卫炮管（火力越高越长）
-            if(f.eaglePower > 0){
-              const cx0 = px+16, cy0 = py+16, bxl = 3 + f.eaglePower*1.6;
-              x.save();
-              x.translate(cx0, cy0);
-              x.rotate(W.baseAimDir * Math.PI/2);
-              x.fillStyle = "#3d4a5e";
-              x.fillRect(-2, -bxl, 4, bxl);
-              x.fillStyle = "rgba(255,255,255,.4)";
-              x.fillRect(-2, -bxl, 2, bxl);
-              x.fillStyle = "#ffd54a";
-              x.fillRect(-3, -bxl-2, 6, 3);
-              x.restore();
-            }
-            // 老鹰围墙护甲层数
-            if(f.baseArmor > 0){
-              for(let k=0;k<f.baseArmor;k++){
-                const ax = px+6 + k*4, ay = py+28;
-                x.fillStyle = k===f.baseArmor-1 ? "#ffb347" : "#8a6a1c";
-                x.fillRect(ax, ay, 3, 3);
-                x.fillStyle = "rgba(255,255,255,.4)";
-                x.fillRect(ax, ay, 3, 1);
-              }
-            }
           }
         }
       }
@@ -4616,9 +3925,8 @@ function renderHUD(x, W, G_){
     for(let s=0;s<p.level;s++) x.drawImage(SPR.misc.iconStar, cxL+18+s*10, cy-1);
     cy += 11;
     // 玩家专属强化状态：与生命和等级紧邻，保持紧凑可读。
-    drawUiText(x, "火力" + p.level + "/5", cxL, cy, "#ffe066", 1, 1);
-    drawUiText(x, "甲" + p.armor + "/5", cxL + 52, cy, "#b7c8e8", 1, 1);
-    if(p.twin > 0) drawUiText(x, "双" + p.twin, cxL + 88, cy, "#7fd8ff", 1, 1);
+    drawUiText(x, "火力" + p.level + "/3", cxL, cy, "#ffe066", 1, 1);
+    drawUiText(x, "甲" + p.armor + "/3", cxL + 52, cy, "#b7c8e8", 1, 1);
     cy += 11;
     // 生命
     const lifeIco = i===0 ? SPR.misc.iconP1 : SPR.misc.iconP2;
@@ -4636,8 +3944,8 @@ function renderHUD(x, W, G_){
   cy += 8;
 
   // ---- 关卡 ----
-  const loopLabel = W ? (W.hell ? "地狱绝境" : (W.game && W.game.testMode ? "测试 · 第" + (W.loop+1) + "周目" : "第" + (W.loop+1) + "周目")) : "第1周目";
-  drawUiText(x, loopLabel, cxL, cy, W && (W.hell || (W.game && W.game.testMode)) ? "#ff6b9d" : "#ff9d5c", 1, 1);
+  const loopLabel = W ? (W.hell ? "地狱绝境" : "第" + (W.loop+1) + "周目") : "第1周目";
+  drawUiText(x, loopLabel, cxL, cy, W && W.hell ? "#ff6b9d" : "#ff9d5c", 1, 1);
   cy += 11;
   x.drawImage(SPR.misc.iconFlag, cxL, cy);
   const stageNum = W ? (W.stageIndex+1) : 1;
@@ -4671,35 +3979,6 @@ function renderHUD(x, W, G_){
     }
     const sh = W.players.find(p=>p && p.shield>0 && !p.dead);
     if(sh){ drawUiText(x, "护盾 " + Math.ceil(sh.shield), cxL, cy, "#7fd8ff", 1, 1); cy += 10; }
-    const tw = W.players.find(p=>p && !p.gone && p.twin > 0);
-    if(tw){ drawUiText(x, "双炮 " + tw.twin + "/3", cxL, cy, "#7fd8ff", 1, 1); cy += 10; }
-    if(W.fieldLevel > 0){
-      drawUiText(x, "磁场 " + W.fieldLevel + "/5", cxL, cy, "#9adcff", 1, 1); cy += 10;
-    }
-    if(W.field.eaglePower > 0){
-      drawUiText(x, "鹰火 " + W.field.eaglePower + "/5", cxL, cy, "#ffd54a", 1, 1); cy += 10;
-    }
-    if(W.field.baseArmor > 0){
-      drawUiText(x, "鹰甲 " + W.field.baseArmor + "/5", cxL, cy, "#ffb347", 1, 1); cy += 10;
-    }
-  }
-
-  // ---- 关卡特性说明（固定于侧栏右下的空位） ----
-  if(W && W.fxName){
-    const fxBot = py + ph - 36;                    // 底部提示上方
-    const avail = fxBot - (cy + 4);
-    if(avail >= 50){
-      const boxH = Math.max(52, Math.min(96, avail));
-      const fxTop = fxBot - boxH;
-      rr(x, cxL - 2, fxTop, pw - 16, boxH, 7);
-      x.fillStyle = "rgba(255,179,71,.06)"; x.fill();
-      x.strokeStyle = "rgba(255,179,71,.30)"; x.lineWidth = 1; x.stroke();
-      drawUiText(x, "本 关 特 性", cxL + 5, fxTop + 5, "#ffb347", 1, 1);
-      // 换行宽度 = 框右缘 - 文本起始 x（此前误把绝对坐标当作宽度导致不换行）
-      drawWrappedUi(x, W.fxName + "：" + W.fxDesc, cxL + 5, fxTop + 18, (px + pw - 12) - (cxL + 5), "#aeb9cc", 1, 11, fxBot - 4);
-    } else {
-      drawUiText(x, "本关特性·" + W.fxName, cxL, Math.max(cy + 2, py + ph - 58), "#ffb347", 1, 1);
-    }
   }
 
   // 底部提示
@@ -4724,7 +4003,6 @@ const Game = {
   carry:null,
   acc:0, last:0, time:0,
   menuSel:0,
-  pauseSel:0,            // 暂停菜单选中项（0继续 1保存 2重开 3回标题）
   startStage:0,
   stageCardT:0,
   shutterP:0,
@@ -4735,46 +4013,20 @@ const Game = {
   superReturnState:"title",
   superInput:null,
   superStatus:null,
-  testMode:false,       // 测试模式（cscscs 进入；开启后持久生效，游戏中 C 键呼出）
-  testMenu:"campaign",  // 测试目标：campaign 主线 / hell 地狱绝境 / map 所有地图
-  testLoop:0,           // 测试选中的周目（0-4）
-  testStageIndex:0,     // 测试选中项（主线关卡 0-5 / 地狱区域 0-4 / 地图 0-15）
-  testReturnState:null, // 呼出测试面板前所在状态，关闭时恢复
-  _testJustOpened:false,
-  _cheatBuf:"",
-  _anyPointer:false,
-  stageHold:false,      // 周目开场介绍：至少停留 3 秒并等待按键
-  stageWait:false,
-  stageCloseT:0,
   panels:{},
 
   init(){
     this.panels = {
       title:document.getElementById("pTitle"),
-      intro:document.getElementById("pIntro"),
+      help :document.getElementById("pHelp"),
       pause:document.getElementById("pPause"),
       clear:document.getElementById("pClear"),
       over :document.getElementById("pOver"),
       win  :document.getElementById("pWin"),
-      super:document.getElementById("pSuper"),
-      test :document.getElementById("pTest")
+      super:document.getElementById("pSuper")
     };
     document.getElementById("newLoopBtn").addEventListener("click", ()=>this.startNextLoop());
     document.getElementById("hellBtn").addEventListener("click", ()=>this.startHell());
-    // 测试模式面板
-    document.getElementById("testModeCamp").addEventListener("click", ()=>this.setTestMenu("campaign"));
-    document.getElementById("testModeHell").addEventListener("click", ()=>this.setTestMenu("hell"));
-    document.getElementById("testModeMap").addEventListener("click", ()=>this.setTestMenu("map"));
-    document.getElementById("testLoopL").addEventListener("click", ()=>{ this.testLoop = (this.testLoop + 4) % 5; this.updateTestPanel(); Snd.sfx("menu"); });
-    document.getElementById("testLoopR").addEventListener("click", ()=>{ this.testLoop = (this.testLoop + 1) % 5; this.updateTestPanel(); Snd.sfx("menu"); });
-    document.getElementById("testSelL").addEventListener("click", ()=>{ const n=this.testSelMax()+1; this.testStageIndex=(this.testStageIndex+n-1)%n; this.updateTestPanel(); Snd.sfx("menu"); });
-    document.getElementById("testSelR").addEventListener("click", ()=>{ const n=this.testSelMax()+1; this.testStageIndex=(this.testStageIndex+1)%n; this.updateTestPanel(); Snd.sfx("menu"); });
-    document.getElementById("testStart").addEventListener("click", ()=>this.startTestStage());
-    document.getElementById("testBack").addEventListener("click", ()=>this.closeTestPanel());
-    document.getElementById("testExit").addEventListener("click", ()=>this.exitTestMode());
-    document.getElementById("introBackBtn").addEventListener("click", ()=>{ this.state = "title"; this.showPanel("title"); });
-    // 记录任意指针输入（用于周目开场提示的“按任意键继续”）
-    addEventListener("pointerdown", ()=>{ this._anyPointer = true; });
     this.superInput = document.getElementById("superCode");
     this.superStatus = document.getElementById("superStatus");
     document.getElementById("superSubmit").addEventListener("click", ()=>this.submitSuperCode());
@@ -4790,6 +4042,7 @@ const Game = {
       if(this.superStatus) this.superStatus.textContent = "";
     });
     this.buildMenu();
+    this.buildHelp();
     const syncTouchLayout = () => {
       this.useTouch = matchMedia("(pointer:coarse)").matches || navigator.maxTouchPoints > 0 || (innerWidth <= 1000 && innerHeight <= 600);
       document.getElementById("touch").classList.toggle("on", this.useTouch);
@@ -4874,135 +4127,6 @@ const Game = {
     }
   },
 
-  /* --- 测试模式（cscscs 进入；开启后持久生效，游戏中 C 键呼出） --- */
-  testSelMax(){
-    if(this.testMenu === "hell") return 4;                 // 地狱区域 0-4
-    if(this.testMenu === "map") return STAGES.length - 1;  // 地图 0-15
-    return CAMPAIGN_STAGE_COUNT - 1;                       // 主线关卡 0-5
-  },
-  setTestMenu(menu){
-    this.testMenu = menu;
-    this.testStageIndex = 0;
-    this.updateTestPanel();
-    Snd.sfx("menu");
-  },
-  enterTestMode(){
-    if(this.state !== "title") return;
-    this.testMode = true;
-    this.superUnlocked = true;
-    this.testMenu = "campaign";
-    this.testLoop = 0;
-    this.testStageIndex = 0;
-    this.testReturnState = "title";
-    this.syncSuperTouchUI();
-    this.openTestPanel(true);
-    this.toast("测试模式已开启 · 游戏内按 C 随时呼出");
-    Snd.sfx("levelUp");
-  },
-  openTestPanel(fromEnter){
-    if(!this.testMode) return;
-    if(this.state !== "test") this.testReturnState = this.state;
-    if(this.state === "play") Snd.engineStop();
-    this._testJustOpened = true;     // 本帧刚打开，避免同帧的 C 又被当作“关闭”
-    this.updateTestPanel();
-    this.state = "test";
-    this.showPanel("test");
-    if(!fromEnter) Snd.sfx("menu");
-  },
-  closeTestPanel(){
-    const restore = this.testReturnState || "title";
-    this.showPanel(restore === "play" ? null : restore);
-    this.state = restore;
-    if(restore === "play"){
-      Snd.engineStart();
-      Snd.music("battle");
-    }
-  },
-  exitTestMode(){
-    this.testMode = false;
-    this.superUnlocked = false;
-    this.testReturnState = null;
-    this.syncSuperTouchUI();
-    this.state = "title";
-    this.showPanel("title");
-    this.toast("已退出测试模式");
-    Snd.sfx("menu");
-  },
-  updateTestPanel(){
-    const setBtn = (id, active)=>{ const b=document.getElementById(id); if(!b) return; b.classList.toggle("secondary", !active); };
-    setBtn("testModeCamp", this.testMenu === "campaign");
-    setBtn("testModeHell", this.testMenu === "hell");
-    setBtn("testModeMap",  this.testMenu === "map");
-    const loopRow = document.getElementById("testLoopRow");
-    if(loopRow) loopRow.style.display = this.testMenu === "campaign" ? "flex" : "none";
-    const loopLabel = document.getElementById("testLoopLabel");
-    if(loopLabel) loopLabel.textContent = "第 " + (this.testLoop+1) + " 周目";
-    const selLabel = document.getElementById("testSelLabel");
-    let selText = "";
-    if(this.testMenu === "campaign") selText = "第 " + (this.testStageIndex+1) + " 关 · " + STAGES[CAMPAIGN_STAGE_IDS[this.testStageIndex]].en;
-    else if(this.testMenu === "hell") selText = "地狱绝境 · 区域 " + (this.testStageIndex+1) + " / 5";
-    else selText = "第 " + (this.testStageIndex+1) + " 张 · " + STAGES[this.testStageIndex].en;
-    if(selLabel) selLabel.textContent = selText;
-    const el = document.getElementById("testInfo");
-    if(!el) return;
-    let html = "";
-    if(this.testMenu === "campaign"){
-      const mapIdx = CAMPAIGN_STAGE_IDS[this.testStageIndex];
-      const s = STAGES[mapIdx];
-      const fxi = stageFxInfo(mapIdx);
-      html = `<div style="grid-column:1/-1;text-align:left">
-        <h4 style="color:#ffd88a;font-size:12px;margin-bottom:6px;letter-spacing:.12em">第 ${this.testStageIndex+1} 关 · ${s.en}　（第 ${this.testLoop+1} 周目）</h4>
-        <div class="pw">敌人 <b>${s.enemies.join(" / ")}</b>${s.lava ? "　·　熔岩地形" : ""}</div>
-        <div class="pw">特性 <b>${fxi.name}</b></div>
-        <div class="pw" style="color:#cfe0f7">${fxi.desc}</div>
-      </div>`;
-    } else if(this.testMenu === "hell"){
-      const hp = 2 + Math.min(4, this.testStageIndex);
-      html = `<div style="grid-column:1/-1;text-align:left">
-        <h4 style="color:#ff6b9d;font-size:12px;margin-bottom:6px;letter-spacing:.12em">地狱绝境 · 区域 ${this.testStageIndex+1} / 5</h4>
-        <div class="pw">首领车轮战 · 含首领战与装甲编队</div>
-        <div class="pw" style="color:#cfe0f7">区域耐久额外 +${hp} · 技能强度随区域提升</div>
-      </div>`;
-    } else {
-      const s = STAGES[this.testStageIndex];
-      const fxi = stageFxInfo(this.testStageIndex);
-      html = `<div style="grid-column:1/-1;text-align:left">
-        <h4 style="color:#ffd88a;font-size:12px;margin-bottom:6px;letter-spacing:.12em">第 ${this.testStageIndex+1} 张 · ${s.en}</h4>
-        <div class="pw">敌人 <b>${s.enemies.join(" / ")}</b>${s.lava ? "　·　熔岩地形" : ""}</div>
-        <div class="pw">特性 <b>${fxi.name}</b></div>
-        <div class="pw" style="color:#cfe0f7">${fxi.desc}</div>
-      </div>`;
-    }
-    html += `<div class="pw" style="grid-column:1/-1;margin-top:6px;color:#ffb347">超级按键已解锁：<kbd>T</kbd>冻结 <kbd>Y</kbd>基地 <kbd>U</kbd>火力 <kbd>I</kbd>清场　<kbd>V</kbd>一键胜利</div>`;
-    el.innerHTML = html;
-  },
-  startTestStage(){
-    this.twoP = false;
-    this.superUsed = false;
-    this.campaignStartedAt = performance.now();
-    this.campaignElapsed = 0;
-    this.hellCarry = null;
-    this.carry = null;
-    if(this.testMenu === "hell"){
-      this.hell = true;
-      this.hellRound = this.testStageIndex;
-      this.loop = 4;
-      this.stageIndex = (this.testStageIndex + this.loop*2) % STAGES.length;
-    } else if(this.testMenu === "map"){
-      this.hell = false;
-      this.hellRound = 0;
-      this.loop = 0;
-      this.stageIndex = this.testStageIndex;
-    } else {
-      this.hell = false;
-      this.hellRound = 0;
-      this.loop = this.testLoop;
-      this.stageIndex = this.testStageIndex;
-    }
-    this.testReturnState = null;
-    this.beginStage();
-  },
-
   toast(msg){
     const t = document.getElementById("toast");
     if(!t) return;
@@ -5025,7 +4149,7 @@ const Game = {
       { label:"双 人 合 作", sub:"双人" },
       { label:"继续战役", sub:()=> Save.data.campaign ? (Save.data.campaign.complete ? "战役已完成" : `第 ${Save.data.campaign.loop+1} 周目 · 第 ${Save.data.campaign.stageIndex+1} 关`) : "暂无存档" },
       { label:"起 始 关 卡", sub:()=>"< 第 " + (this.startStage+1) + " 关 >" },
-      { label:"玩 法 说 明", sub:"操作·道具·成长·战役" },
+      { label:"操 作 说 明", sub:"操作说明" },
       { label:"音 效", sub:()=> Snd.muted ? "关闭" : "开启" }
     ];
   },
@@ -5046,77 +4170,37 @@ const Game = {
       el.appendChild(d);
     });
   },
-  openIntro(){
-    this.buildIntro();
-    this.state = "intro";
-    this.showPanel("intro");
-    Snd.sfx("menu");
-  },
-  buildIntro(){
-    const el = document.getElementById("introBody");
+  buildHelp(){
+    const el = document.getElementById("helpGrid");
     if(!el) return;
     el.innerHTML = `
-      <h3>操 作 方 式</h3>
-      <div class="guide-grid">
-        <div>
-          <h4>玩家 1</h4>
-          移动 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · 开火 <kbd>空格</kbd>/<kbd>J</kbd>
-          <h4>玩家 2</h4>
-          移动 <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> · 开火 <kbd>L</kbd>
-        </div>
-        <div>
-          <h4>触屏 / 手柄</h4>
-          触屏：左侧摇杆移动、右下开火，可「摆位」自定义按键位置。<br>
-          手柄：左摇杆/十字键移动与选择，<kbd>A</kbd> 确认、<kbd>B</kbd> 返回、<kbd>Start</kbd> 暂停。
-        </div>
-        <div style="grid-column:1/-1">
-          <h4>系统</h4>
-          <kbd>P</kbd> 暂停 · <kbd>M</kbd> 音效 · <kbd>R</kbd> 重开 · <kbd>F</kbd> 扫描线 · <kbd>Q</kbd> 超级按键 · <kbd>H</kbd> 本说明
-        </div>
+      <div>
+        <h4>玩家 1</h4>
+        移动 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><br>
+        开火 <kbd>空格</kbd> / <kbd>J</kbd><br>
+        <h4 style="margin-top:8px">玩家 2</h4>
+        移动 <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd><br>
+        开火 <kbd>L</kbd> / <kbd>/</kbd> / <kbd>0</kbd><br>
+        <h4 style="margin-top:8px">系统</h4>
+        <kbd>P</kbd> 暂停 &nbsp; <kbd>M</kbd> 音效 &nbsp; <kbd>R</kbd> 重开<br>
+        <kbd>F</kbd> 扫描线 &nbsp; <kbd>Esc</kbd> 返回<br>
+        <kbd>Q</kbd> 输入授权口令<br>
+        <kbd>T</kbd> 冻结 &nbsp; <kbd>Y</kbd> 基地护盾<br>
+        <kbd>U</kbd> 满级火力 &nbsp; <kbd>I</kbd> 清除当前敌军
       </div>
-
-      <h3>道 具 一 览</h3>
-      <div class="guide-grid">
+      <div>
+        <h4>道具</h4>
         <div class="pw"><i style="background:#7fd8ff"></i>头盔 · 十秒无敌护盾</div>
         <div class="pw"><i style="background:#ffd166"></i>时钟 · 冻结全部敌军</div>
         <div class="pw"><i style="background:#c8d4e6"></i>铁锹 · 基地护墙变钢</div>
-        <div class="pw"><i style="background:#ffe066"></i>星星 · 火力升一级（最多5级）</div>
-        <div class="pw"><i style="background:#b7c8e8"></i>护甲 · 抵挡一次伤害（最多5层）</div>
-        <div class="pw"><i style="background:#7fd8ff"></i>双炮 · 双发齐射·攻击强化</div>
-        <div class="pw"><i style="background:#9adcff"></i>磁场 · 静电磁场压制敌军</div>
+        <div class="pw"><i style="background:#ffe066"></i>星星 · 火力升一级（最多 3 层）</div>
+        <div class="pw"><i style="background:#b7c8e8"></i>护甲 · 抵挡一次伤害，可叠加 3 层</div>
         <div class="pw"><i style="background:#ff8f6b"></i>手雷 · 全屏歼灭</div>
         <div class="pw"><i style="background:#9be89b"></i>坦克 · 增加一条命</div>
-      </div>
-
-      <h3>火 力 成 长（5 级）</h3>
-      <div>1级子弹加速 → 2级双发 → <b>3级穿透钢板、伤害翻倍</b> → 4级子弹再加速 → <b>5级伤害翻三倍</b>。</div>
-      <div>火力满 5 级后再吃星星，会强化<b>老鹰自卫火力（1-5级）</b>：老鹰会主动瞄准、攻击进入射程的敌人。</div>
-
-      <h3>护 甲 成 长（5 层）</h3>
-      <div>每层护甲抵挡一次致命伤害。</div>
-      <div>护甲满 5 层后再吃护甲，会加固<b>老鹰围墙护甲（1-5层）</b>：每层抵消一次对基地的攻击。</div>
-
-      <h3>双 炮 与 磁 场</h3>
-      <div>老鹰火力满 5 级后，星星不再掉落，改为掉落<b>双炮</b>：双发齐射、攻击强化 3 级。</div>
-      <div>老鹰围墙护甲满 5 层后，护甲不再掉落，改为掉落<b>静电磁场</b>：敌军移速/射速/攻击/血量降低 10%→50%，范围 3→15 格。</div>
-      <div>玩家火力或护甲掉级后，对应道具会重新掉落。</div>
-
-      <h3>战 役 结 构</h3>
-      <div>主线战役每个周目共 <b>${CAMPAIGN_STAGE_COUNT} 关</b>，全部打通进入下一周目；累计 <b>5 个周目</b>，难度逐周攀升。</div>
-      <div>每关拥有独特机制：冰面滑行、沙地减速、熔岩灼烧、丛林隐蔽……关卡名即体验。</div>
-
-      <h3>周 目 成 长</h3>
-      <div>每一周目敌军强化：数量 <b>+3 辆</b>（上限12）、移速 <b>+4.5%</b>、耐久 <b>+1</b>、精英概率 <b>+5.5%</b>（上限30%）。后期敌军可能获得<b>冲刺、护盾、自我修理</b>技能。</div>
-      <div>进入新周目会<b>继承火力、护甲、双炮与老鹰升级</b>，配合周目奖励越战越强。</div>
-
-      <h3>地 狱 绝 境</h3>
-      <div>完成第五周目后解锁。共 <b>5 个区域</b>，每区一场残酷车轮战并含<b>首领战</b>；首领耐久火力远超常规，具备双发齐射与精英技能。</div>
-
-      <h3 class="gold" style="margin-top:14px">隐 藏 福 袋</h3>
-      <div class="gold">以<span style="color:#5ce08a">标准通关</span>（全程不使用超级按键）打通最终防线的指挥官，可联系作者领取隐藏福袋：<b>一周 Token 自由</b>。</div>
-      <div style="color:var(--ink-faint)">联系渠道：大海的科技宝箱（YouTube / Bilibili / TikTok）视频评论区，或项目 README。</div>
-      <div style="color:var(--ink-faint);margin-top:4px">备注：使用超级按键会记为「辅助通关」，不满足福袋条件。</div>
-    `;
+        <h4 style="margin-top:8px">要点</h4>
+        守住基地老鹰，歼灭全部敌军即可通关。<br>
+        超级按键的满级火力可击穿钢板；普通火力最多 3 层，冰面会打滑。
+      </div>`;
   },
   menuActivate(){
     Snd.resume();
@@ -5126,14 +4210,13 @@ const Game = {
       case 1: this.newGame(true);  break;
       case 2: this.continueCampaign(); break;
       case 3: break;
-      case 4: this.openIntro(); break;
+      case 4: this.state = "help"; this.showPanel("help"); break;
       case 5: Snd.setMute(!Snd.muted); this.buildMenu(); if(!Snd.muted) Snd.music("title"); else Snd.stopMusic(); break;
     }
   },
 
   /* --- 流程 --- */
   newGame(twoP){
-    this.testMenu = "campaign";        // 正常战役使用战役地图池
     this.twoP = twoP;
     this.stageIndex = this.startStage;
     this.loop = 0;
@@ -5141,7 +4224,7 @@ const Game = {
     this.hellRound = 0;
     this.hellCarry = null;
     this.carry = null;
-    if(!this.testMode) this.superUnlocked = false;   // 测试模式开启时保留超级按键
+    this.superUnlocked = false;
     this.superUsed = false;
     this.campaignStartedAt = performance.now();
     this.campaignElapsed = 0;
@@ -5151,7 +4234,6 @@ const Game = {
     this.beginStage();
   },
   continueCampaign(){
-    this.testMenu = "campaign";
     const c = Save.data.campaign;
     if(!c){ this.toast("暂无可继续的战役存档"); return; }
     this.twoP = !!c.twoP;
@@ -5161,7 +4243,7 @@ const Game = {
     this.hellRound = c.hellRound||0;
     this.hellCarry = c.hellCarry||null;
     this.carry = c.carry||null;
-    if(!this.testMode) this.superUnlocked = false;
+    this.superUnlocked = false;
     this.superUsed = !!c.superUsed;
     this.campaignStartedAt = performance.now();
     this.campaignElapsed = Number(c.elapsed)||0;
@@ -5174,21 +4256,13 @@ const Game = {
         this.stageIndex = 0;
         this.hellRound = 0;
         this.hell = false;
-        if(!this.testMode) this.superUnlocked = false;
+        this.superUnlocked = false;
         this.superUsed = false;
-        const savedPlayers = Array.isArray(c.carry) ? c.carry : ((c.carry && c.carry.players) || []);
-        const savedBase = (c.carry && c.carry.base) ? c.carry.base : {eaglePower:0, baseArmor:0};
-        this.carry = {
-          base:{ eaglePower:clamp(savedBase.eaglePower||0,0,5), baseArmor:clamp(savedBase.baseArmor||0,0,5) },
-          players:savedPlayers.map(p=>({
-            lives:3 + (reward.extraLife||0), score:p.score||0,
-            kills:Array.isArray(p.kills) ? p.kills.slice() : [0,0,0,0,0],
-            gone:false,
-            level:Math.min(5, (p.level||1) + (reward.startPower||0)),
-            armor:Math.min(5, p.armor||0),
-            twin:Math.min(3, p.twin||0)
-          }))
-        };
+        this.carry = (c.carry || []).map(p=>({
+          lives:3 + (reward.extraLife||0), score:p.score||0,
+          kills:Array.isArray(p.kills) ? p.kills.slice() : [0,0,0,0,0],
+          gone:false, level:Math.min(1 + (reward.startPower||0),3), armor:0
+        }));
         Save.data.unlockedLoops = Math.max(Save.data.unlockedLoops||1, completed+1);
         Save.data.loopRewards[String(completed)] = reward;
         this.clearCheckpoint();
@@ -5203,7 +4277,6 @@ const Game = {
     this.toast("已读取战役进度");
   },
   saveCheckpoint(showToast=false){
-    if(this.testMode) return;             // 测试模式不写入战役存档
     if(!this.world || (!this.twoP && !this.world.players.length)) return;
     Save.data.campaign = {
       schema: SAVE_SCHEMA,
@@ -5231,17 +4304,12 @@ const Game = {
     this.world = new World(this, this.stageIndex, this.loop, this.twoP, this.carry);
     if(this.hell) this.world.hellRound = this.hellRound;
     this.state = "stage";
-    // 周目开场 / 地狱开场：介绍至少停留 3 秒，之后等待按键继续
-    this.stageHold = (!this.hell && !this.testMode && this.loop > 0 && this.stageIndex === 0) || (this.hell && this.hellRound === 0 && this.stageIndex === 0);
-    this.stageWait = false;
-    this.stageCloseT = 0;
+    this.stageCardT = 1.55;
     this.shutterP = 0;
-    this.stageCardT = this.stageHold ? 3.0 : 1.55;
     Snd.stopMusic();
     Snd.sfx("stage");
     this.stageIntro = this.loopIntro(this.loop);
     this.stageIntroShown = false;
-    if(this.testMode) return;            // 测试模式不写入战役存档
     this.saveCheckpoint(false);
   },
   currentRunElapsed(){
@@ -5254,7 +4322,6 @@ const Game = {
     return (h ? String(h).padStart(2,"0")+":" : "") + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
   },
   recordAchievement(kind){
-    if(this.testMode) return null;         // 测试模式不计入成就
     const key = kind === "hell" ? "hell" : "loop" + (this.loop+1);
     const entry = {key, kind, loop:this.loop+1, time:Math.round(this.currentRunElapsed()), superUsed:!!this.superUsed, at:new Date().toISOString()};
     const old = Save.data.achievements.find(a=>a.key===key);
@@ -5272,12 +4339,9 @@ const Game = {
   },
   collectCarry(){
     if(!this.world) return null;
-    return {
-      base:{ eaglePower:this.world.field.eaglePower, baseArmor:this.world.field.baseArmor },
-      players:this.world.players.map(p=>({
-        lives:p.lives, score:p.score, kills:p.kills.slice(), gone:p.gone, level:p.level, armor:p.armor, twin:p.twin
-      }))
-    };
+    return this.world.players.map(p=>({
+      lives:p.lives, score:p.score, kills:p.kills.slice(), gone:p.gone, level:p.level, armor:p.armor
+    }));
   },
   onStageClear(){
     this.carry = this.collectCarry();
@@ -5287,12 +4351,11 @@ const Game = {
     this.renderClearPanel();
     this.showPanel("clear");
     const best = Math.max(...this.world.players.map(p=>p.score));
-    if(!this.testMode && best > Save.data.hi){ Save.data.hi = best; }
+    if(best > Save.data.hi){ Save.data.hi = best; }
     const stageCount = this.hell ? STAGES.length : CAMPAIGN_STAGE_COUNT;
     const nxt = this.stageIndex + 1;
-    if(!this.testMode && !this.hell && nxt < stageCount && nxt+1 > Save.data.maxStage) Save.data.maxStage = nxt+1;
+    if(!this.hell && nxt < stageCount && nxt+1 > Save.data.maxStage) Save.data.maxStage = nxt+1;
     this.saveCheckpoint(false);
-    if(this.testMode) return;              // 测试模式不推进存档
     // 结算页本身是安全节点：继续战役应从下一关/下一个地狱区域开始。
     if(this.hell){
       Save.data.campaign.hellRound = this.hellRound + 1;
@@ -5329,7 +4392,6 @@ const Game = {
     body.innerHTML = html;
   },
   nextStage(){
-    if(this.testMode){ this.backToTitle(); this.toast("测试关卡完成 · 测试模式保持开启"); return; }
     if(this.hell){
       this.hellRound++;
       if(this.hellRound >= 5){
@@ -5411,17 +4473,10 @@ const Game = {
     this.superUsed = false;
     const reward = this.loopReward(completed);
     Save.data.loopRewards[String(completed)] = reward;
-    // 周目切换继承火力/护甲/双炮/老鹰升级（上限 5/5/3/5），周目奖励在此基础上附加初始火力与额外生命
-    this.carry = this.world ? {
-      base:{ eaglePower:this.world.field.eaglePower, baseArmor:this.world.field.baseArmor },
-      players:this.world.players.map(p=>({
-        lives:3 + (reward.extraLife||0), score:p.score, kills:p.kills.slice(), gone:false,
-        level:Math.min(5, p.level + (reward.startPower||0)), armor:Math.min(5, p.armor), twin:Math.min(3, p.twin||0)
-      }))
-    } : null;
+    this.carry = this.world ? this.world.players.map(p=>({ lives:3 + (reward.extraLife||0), score:p.score, kills:p.kills.slice(), gone:false, level:Math.min(1 + (reward.startPower||0),3), armor:0 })) : null;
     this.clearCheckpoint();
     this.beginStage();
-    this.toast("第" + (completed+1) + "周目已开启 · 火力/护甲/老鹰继承 · " + this.loopIntro(completed));
+    this.toast("第" + (completed+1) + "周目已开启 · " + this.loopIntro(completed));
   },
   loopIntro(loop){
     if(loop <= 0) return "标准敌军配置";
@@ -5480,11 +4535,10 @@ const Game = {
       body.innerHTML = html;
     }
     const best = this.world ? Math.max(...this.world.players.map(p=>p.score)) : 0;
-    if(!this.testMode && best > Save.data.hi){ Save.data.hi = best; Save.save(); }
+    if(best > Save.data.hi){ Save.data.hi = best; Save.save(); }
     this.showPanel("over");
   },
   backToTitle(){
-    // 测试模式保持开启（除非通过测试面板的“退出测试模式”按钮显式关闭）
     this.state = "title";
     this.world = null;
     Snd.engineStop();
@@ -5498,8 +4552,6 @@ const Game = {
   togglePause(){
     if(this.state === "play"){
       this.state = "pause";
-      this.pauseSel = 0;
-      this.updatePauseSel();
       this.showPanel("pause");
       Snd.engineStop();
       Snd.sfx("pause");
@@ -5512,27 +4564,10 @@ const Game = {
       if(Snd.musicGain) try{ Snd.musicGain.gain.value = 0.42; }catch(e){}
     }
   },
-  /* 暂停菜单：手柄/键盘方向选择高亮 */
-  updatePauseSel(){
-    const ids = ["pauseResumeBtn","pauseSaveBtn","pauseRestartBtn","pauseTitleBtn"];
-    ids.forEach((id,i)=>{
-      const b = document.getElementById(id);
-      if(b) b.classList.toggle("sel", i === this.pauseSel);
-    });
-  },
-  activatePauseSel(){
-    switch(this.pauseSel){
-      case 0: this.togglePause(); break;
-      case 1: this.saveCheckpoint(true); break;
-      case 2: this.hidePanels(); this.restartStage(); break;
-      case 3: this.hidePanels(); this.backToTitle(); break;
-    }
-  },
 
   /* --- 输入分派 --- */
   handleKeys(){
     const I = Input;
-    const G = I.ui || {};   // 手柄界面操作（up/dn/lf/rt/ok/back/pause）
     if(I.hit("KeyM")){
       Snd.setMute(!Snd.muted);
       this.toast(Snd.muted ? "音效关闭" : "音效开启");
@@ -5545,83 +4580,54 @@ const Game = {
       if(fx){ fx.classList.toggle("scan"); Save.data.scan = fx.classList.contains("scan"); Save.save(); }
     }
     if(I.hit("KeyQ") && this.state !== "super") this.openSuperPrompt();
-    // 测试模式开启后：游戏中按 C 随时呼出/关闭测试面板
-    if(this.testMode && I.hit("KeyC") && this.state !== "test" && this.state !== "super"){
-      this.openTestPanel();
-    }
 
     switch(this.state){
       case "title":
-        // 隐藏彩蛋：输入 cscscs 进入测试模式（不显示任何入口）
-        if(I.hit("KeyC")) this._cheatBuf += "c";
-        if(I.hit("KeyS")) this._cheatBuf += "s";
-        if(this._cheatBuf.length > 6) this._cheatBuf = this._cheatBuf.slice(-6);
-        if(this._cheatBuf === "cscscs"){ this._cheatBuf = ""; this.enterTestMode(); break; }
-        if(I.hitAny("ArrowUp","KeyW") || G.up){ this.menuSel = (this.menuSel+5)%6; this.buildMenu(); Snd.sfx("menu"); }
-        if(I.hitAny("ArrowDown","KeyS") || G.dn){ this.menuSel = (this.menuSel+1)%6; this.buildMenu(); Snd.sfx("menu"); }
+        if(I.hitAny("ArrowUp","KeyW")){ this.menuSel = (this.menuSel+5)%6; this.buildMenu(); Snd.sfx("menu"); }
+        if(I.hitAny("ArrowDown","KeyS")){ this.menuSel = (this.menuSel+1)%6; this.buildMenu(); Snd.sfx("menu"); }
         if(this.menuSel === 3){
     const maxS = Math.min(CAMPAIGN_STAGE_COUNT, Save.data.maxStage);
-          if(I.hitAny("ArrowLeft","KeyA") || G.lf){ this.startStage = (this.startStage-1+maxS)%maxS; this.buildMenu(); Snd.sfx("menu"); }
-          if(I.hitAny("ArrowRight","KeyD") || G.rt){ this.startStage = (this.startStage+1)%maxS; this.buildMenu(); Snd.sfx("menu"); }
+          if(I.hitAny("ArrowLeft","KeyA")){ this.startStage = (this.startStage-1+maxS)%maxS; this.buildMenu(); Snd.sfx("menu"); }
+          if(I.hitAny("ArrowRight","KeyD")){ this.startStage = (this.startStage+1)%maxS; this.buildMenu(); Snd.sfx("menu"); }
         }
-        if(I.hitAny("Enter","Space","NumpadEnter","KeyJ") || G.ok) this.menuActivate();
-        if(I.hit("KeyH")) this.openIntro();
+        if(I.hitAny("Enter","Space","NumpadEnter","KeyJ")) this.menuActivate();
+        if(I.hit("KeyH")){ this.state = "help"; this.showPanel("help"); }
         break;
-      case "intro":
-        if(I.hitAny("Escape","KeyH","Enter","Space") || G.ok || G.back){ this.state = "title"; this.showPanel("title"); }
+      case "help":
+        if(I.hitAny("Escape","KeyH","Enter","Space")){ this.state = "title"; this.showPanel("title"); }
         break;
       case "super":
-        if(I.hit("Escape") || G.back) this.closeSuperPrompt();
-        if(I.hit("Enter") || G.ok) this.submitSuperCode();
-        break;
-      case "test":
-        if(I.hitAny("ArrowLeft","KeyA") || G.lf){ const n=this.testSelMax()+1; this.testStageIndex=(this.testStageIndex+n-1)%n; this.updateTestPanel(); Snd.sfx("menu"); }
-        if(I.hitAny("ArrowRight","KeyD") || G.rt){ const n=this.testSelMax()+1; this.testStageIndex=(this.testStageIndex+1)%n; this.updateTestPanel(); Snd.sfx("menu"); }
-        if(this.testMenu === "campaign" && (I.hitAny("ArrowUp","KeyW") || G.up)){ this.testLoop=(this.testLoop+4)%5; this.updateTestPanel(); Snd.sfx("menu"); }
-        if(this.testMenu === "campaign" && (I.hitAny("ArrowDown","KeyS") || G.dn)){ this.testLoop=(this.testLoop+1)%5; this.updateTestPanel(); Snd.sfx("menu"); }
-        if(I.hitAny("Enter","Space","KeyJ") || G.ok) this.startTestStage();
-        if(I.hit("Escape") || G.back) this.closeTestPanel();
-        if(I.hit("KeyC") && !this._testJustOpened) this.closeTestPanel();
+        if(I.hit("Escape")) this.closeSuperPrompt();
+        if(I.hit("Enter")) this.submitSuperCode();
         break;
       case "play":
-        if(I.hit("KeyP") || G.pause) this.togglePause();
-        if(this.testMode && I.hit("KeyV")){ this.world.checkClear(); this.toast("一键胜利 · 测试模式"); }
+        if(I.hit("KeyP")) this.togglePause();
         if(this.superUnlocked && I.hit("KeyT")) this.useSuperAction("freeze");
         if(this.superUnlocked && I.hit("KeyY")) this.useSuperAction("base");
         if(this.superUnlocked && I.hit("KeyU")) this.useSuperAction("power");
         if(this.superUnlocked && I.hit("KeyI")) this.useSuperAction("clear");
         break;
       case "pause":
-        if(I.hit("KeyP") || G.pause) this.togglePause();
+        if(I.hit("KeyP")) this.togglePause();
         if(I.hit("KeyR")){ this.hidePanels(); this.restartStage(); }
         if(I.hit("KeyS")) this.saveCheckpoint(true);
-        if(I.hit("Escape") || G.back){ this.hidePanels(); this.backToTitle(); }
-        if(I.hitAny("ArrowUp","ArrowDown") || G.up || G.dn){
-          const up = I.hit("ArrowUp") || G.up;
-          this.pauseSel = (this.pauseSel + (up ? 3 : 1)) % 4;
-          this.updatePauseSel(); Snd.sfx("menu");
-        }
-        if(I.hitAny("Enter","Space","NumpadEnter","KeyJ") || G.ok) this.activatePauseSel();
+        if(I.hit("Escape")){ this.hidePanels(); this.backToTitle(); }
         break;
       case "clear":
-        if(I.hitAny("Enter","Space","KeyJ") || G.ok) this.nextStage();
+        if(I.hitAny("Enter","Space","KeyJ")) this.nextStage();
         break;
       case "over":
-        if(I.hitAny("Enter","Space","KeyJ") || G.ok) this.backToTitle();
+        if(I.hitAny("Enter","Space","KeyJ")) this.backToTitle();
         break;
       case "win":
-        if(I.hitAny("Enter","Space","KeyJ") || G.ok) this.backToTitle();
+        if(I.hitAny("Enter","Space","KeyJ")) this.backToTitle();
         break;
     }
-    this._testJustOpened = false;
   },
 
   update(dt){
-    Input.pollGamepads(dt);
+    Input.pollGamepads();
     this.time += dt;
-    const G = Input.ui || {};
-    const anyInput = Input.anyPressed || this._anyPointer || (G.up||G.dn||G.lf||G.rt||G.ok||G.back||G.pause) ? 1 : 0;
-    this._anyPointer = false;
     this._diagT = (this._diagT || 0) - dt;
     if(this._diagT <= 0){
       const out=document.getElementById("diagnostics");
@@ -5631,24 +4637,9 @@ const Game = {
     this.handleKeys();
 
     if(this.state === "stage"){
-      if(this.stageHold){
-        if(this.stageWait){
-          if(this.stageCloseT > 0){
-            this.stageCloseT -= dt;
-            this.shutterP = clamp(1 - this.stageCloseT/0.5, 0, 1);
-            if(this.stageCloseT <= 0) this.enterPlay();
-          } else if(anyInput){
-            this.stageCloseT = 0.5;
-          }
-        } else {
-          this.stageCardT -= dt;
-          if(this.stageCardT <= 0){ this.stageWait = true; this.shutterP = 0; }
-        }
-      } else {
-        this.stageCardT -= dt;
-        if(this.stageCardT < 0.55) this.shutterP = clamp(1 - this.stageCardT/0.55, 0, 1);
-        if(this.stageCardT <= 0) this.enterPlay();
-      }
+      this.stageCardT -= dt;
+      if(this.stageCardT < 0.55) this.shutterP = clamp(1 - this.stageCardT/0.55, 0, 1);
+      if(this.stageCardT <= 0) this.enterPlay();
     } else if(this.state === "play"){
       this.campaignElapsed += dt;
       const inputs = [];
@@ -5691,11 +4682,10 @@ const Game = {
       x.fillRect(0, VH-Math.ceil(h), VW, Math.ceil(h));
       if(this.shutterP < 0.02){
         const s = this.world ? this.world.stage : STAGES[this.stageIndex % CAMPAIGN_STAGE_COUNT];
-        const loopName = this.testMode ? "测试模式" : (this.hell ? "地狱绝境" : "第" + (this.loop+1) + "周目");
+        const loopName = this.hell ? "地狱绝境" : "第" + (this.loop+1) + "周目";
         drawUiTextC(x, loopName + " · 第" + (this.stageIndex+1) + "关", VW/2, VH/2 - 34, "#141a24", 2, 2);
         drawUiTextC(x, s.en, VW/2, VH/2 - 4, "#3d4552", 1, 2);
         drawUiTextC(x, this.hell ? this.hellIntro(this.hellRound) : this.loopIntro(this.loop), VW/2, VH/2 + 18, "#4b5665", 1, 1);
-        if(this.stageWait) drawUiTextC(x, "按任意键继续", VW/2, VH/2 + 44, "#141a24", 1, 1);
       }
     }
     // 暂停遮罩
@@ -5708,21 +4698,16 @@ const Game = {
 
   resize(){
     if(typeof MobileUI !== "undefined") MobileUI.applyOrientation();
+    const pad = this.useTouch ? 8 : 46;
     const rotated = document.documentElement.classList.contains("tk-rotated");
     const vw = rotated ? innerHeight : innerWidth;
     const vh = rotated ? innerWidth  : innerHeight;
-    // 机柜外壳 padding(14*2) + 边框/阴影留白，统一计为 CAB；再加屏幕安全边距，
-    // 确保画布 + 机柜在任何设备上都不超出视口（防止“出框”）。
-    const pad = this.useTouch ? 12 : 46;
-    const CAB = 44;
-    const availW = Math.max(200, vw - pad - CAB);
-    const availH = Math.max(150, vh - pad - CAB);
-    const sc = Math.min(availW / VW, availH / VH);
-    const s = Math.max(0.42, Math.floor(sc*20)/20);
+    const sc = Math.min((vw - pad) / VW, (vh - pad) / VH);
+    const s = Math.max(0.5, Math.floor(sc*20)/20);
     this.scale = s;
     cv.style.width  = Math.round(VW*s) + "px";
     cv.style.height = Math.round(VH*s) + "px";
-    if(typeof PadUI !== "undefined"){ PadUI.syncOrientation(); PadUI.clamp(); }
+    if(PadUI.el){ PadUI.syncOrientation(); PadUI.clamp(); }
   }
 };
 
