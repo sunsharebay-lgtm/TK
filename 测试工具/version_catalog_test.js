@@ -13,6 +13,10 @@ const tank = catalog.games.find((game) => game.id === 'tank-battle');
 assert.ok(tank, '游戏目录必须包含坦克大战');
 assert.match(tank.version, /^v\d+\.\d+\.\d+$/, '坦克大战版本必须使用稳定版语义版本');
 assert.equal(tank.status, '稳定版', '坦克大战应标记为稳定版');
+const threeKingdoms = catalog.games.find((game) => game.id === 'three-kingdoms');
+assert.ok(threeKingdoms, '游戏目录必须包含三国 RPG');
+assert.equal(threeKingdoms.version, 'v0.1.0', '三国 RPG 第一稳定切片必须为 v0.1.0');
+assert.equal(threeKingdoms.status, '稳定版', '三国 RPG v0.1.0 应标记为稳定版');
 
 const template = JSON.parse(read('game-catalog.template.json'));
 const parsedTags = parseStableTags([
@@ -35,11 +39,17 @@ const taggedCatalog = generateCatalog(template, [
   'release/foo',
 ].join('\n'));
 assert.equal(taggedCatalog.games[0].version, 'v1.6.2', '目录应使用坦克大战最高 namespace 标签');
+const taggedThreeKingdoms = taggedCatalog.games.find((game) => game.id === 'three-kingdoms');
+assert.equal(taggedThreeKingdoms.version, 'v0.1.0', '目录应解析三国 RPG namespace 稳定版本');
+assert.equal(taggedThreeKingdoms.status, '稳定版', '存在三国 RPG namespace 标签时应标记为稳定版');
 
 const fallbackCatalog = generateCatalog(template, 'v9.9.9\nrelease/foo');
 const fallbackTank = fallbackCatalog.games.find((game) => game.id === 'tank-battle');
 assert.equal(fallbackTank.version, 'v1.6.1', '没有匹配 namespace 标签时应使用坦克大战 fallback');
 assert.equal(fallbackTank.status, '稳定版', '没有匹配 namespace 标签时应使用稳定版状态');
+const fallbackThreeKingdoms = fallbackCatalog.games.find((game) => game.id === 'three-kingdoms');
+assert.equal(fallbackThreeKingdoms.version, 'v0.1.0', '没有匹配 namespace 标签时应使用三国 RPG fallback');
+assert.equal(fallbackThreeKingdoms.status, '开发版', '没有匹配 namespace 标签时三国 RPG 应保留开发版状态');
 
 const generator = read('scripts/generate-game-catalog.cjs');
 assert.match(generator, /game-catalog\.json/, '版本生成器应生成游戏目录文件');

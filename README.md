@@ -26,9 +26,19 @@ If this project interests you, please follow **大海的科技宝箱** on YouTub
 
 ## 当前版本 / Current Version
 
-当前正式版本：`v1.6.1`
+当前正式版本：
 
-Current release: `v1.6.1`
+- 坦克大战：`v1.6.1`
+- 三国 RPG：`v0.1.0`，第一稳定垂直切片
+
+Current releases:
+
+- Tank Battle: `v1.6.1`
+- Three Kingdoms RPG: `v0.1.0`, the first stable vertical slice
+
+三国 RPG 的 `v0.1.0` 是原创的第一稳定垂直切片，包含探索、地点交互、武将招募、队伍管理和回合制战斗；它是独立创作的玩法实验，不声称复制任何原作。
+
+The Three Kingdoms RPG `v0.1.0` is an original first stable vertical slice with exploration, location interactions, officer recruitment, party management, and turn-based combat. It is an independent gameplay experiment and does not claim to copy any original work.
 
 详细更新内容见 [更新记录.md](更新记录.md)。
 
@@ -52,7 +62,7 @@ From the game center, select “钢铁防线 坦克大战” to play, or open th
 
 <https://sunsharebay-lgtm.github.io/TK/tank-battle.html>
 
-三国 RPG 当前为第一版原创探索切片，可直接打开，包含五个 16×16 区域、碰撞移动、地点交互、一次武将招募和独立存档；战斗系统仍留待后续任务实现：
+三国 RPG 当前为第一稳定垂直切片 `v0.1.0`，可直接打开，包含五个 16×16 区域、碰撞移动、地点交互、一次武将招募、独立存档和回合制战斗；这是原创独立创作，不声称复制任何原作：
 
 <https://sunsharebay-lgtm.github.io/TK/three-kingdoms.html>
 
@@ -74,6 +84,6 @@ Open `tank-battle.html` or `three-kingdoms.html` in a modern web browser to play
 
 ## 稳定版本标签 / Stable Version Tags
 
-小游戏中心的版本号由 Git 稳定版本标签自动生成，不需要单独修改首页。发布新的正式游戏版本时，创建并推送形如 `v1.6.2` 的标签；GitHub Pages 工作流会读取最新的 `vX.Y.Z` 标签，生成 `game-catalog.json`，首页再自动展示对应的“稳定版”版本号。普通代码、文档或测试提交不会被当成新游戏版本。
+小游戏中心的版本号由 Git 稳定版本标签自动生成，不需要单独修改首页。每款游戏使用独立的 namespaced tag：坦克大战使用 `game/tank-battle/vX.Y.Z`，三国 RPG 使用 `game/three-kingdoms/vX.Y.Z`。发布三国 RPG 第一稳定垂直切片时使用 `game/three-kingdoms/v0.1.0`；生成器会为每个游戏读取其 namespace 下的最高稳定语义版本，并在没有匹配标签时保留模板中的 fallback（因此首页源码中的三国卡片 fallback 是 `v0.1.0 开发版`）。普通代码、文档或测试提交不会被当成新游戏版本，也不创建旧式全局 `v0.1.0` 标签。
 
-The game center reads its version numbers from Git stable-version tags, so the homepage does not need a separate manual edit. When publishing a new official game version, create and push a tag such as `v1.6.2`; the GitHub Pages workflow reads the newest `vX.Y.Z` tag, generates `game-catalog.json`, and the homepage displays the matching stable version automatically. Ordinary code, documentation, or test commits are not treated as new game releases.
+The game center reads version numbers from Git stable-version tags, so the homepage does not need a separate manual edit. Each game uses its own namespaced tag: Tank Battle uses `game/tank-battle/vX.Y.Z`, while Three Kingdoms RPG uses `game/three-kingdoms/vX.Y.Z`. The first stable Three Kingdoms vertical slice is released as `game/three-kingdoms/v0.1.0`; the generator selects the highest stable semantic version within each game namespace and keeps the template fallback when no matching tag exists (so the embedded Three Kingdoms card fallback is `v0.1.0 开发版`). Ordinary code, documentation, and test commits are not treated as game releases, and no legacy global `v0.1.0` tag is created.
