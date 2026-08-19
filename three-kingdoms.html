@@ -96,6 +96,8 @@
       justify-content: center;
     }
     .action-pad { display: flex; justify-content: center; align-items: center; gap: 14px; }
+    .battle-actions { display: flex; justify-content: center; gap: 6px; grid-column: 1 / -1; }
+    .battle-actions .control-button { min-width: 54px; font-size: 10px; }
     button {
       color: var(--ink);
       font: inherit;
@@ -161,9 +163,16 @@
           <button class="control-button face-button cancel" data-action="cancel" aria-label="取消">X</button>
           <button class="control-button face-button confirm" data-action="confirm" aria-label="确认">A</button>
         </div>
+        <div class="battle-actions" aria-label="战斗指令">
+          <button class="control-button" data-action="battle-1" aria-label="进击">1 进击</button>
+          <button class="control-button" data-action="battle-2" aria-label="计策">2 计策</button>
+          <button class="control-button" data-action="battle-3" aria-label="防守">3 防守</button>
+          <button class="control-button" data-action="battle-4" aria-label="道具">4 道具</button>
+          <button class="control-button" data-action="battle-5" aria-label="撤退">5 撤退</button>
+        </div>
       </div>
     </section>
-    <p class="footer-note">本页面仅使用程序绘制与程序化音色，不加载远程素材。当前为原创探索切片，战斗系统将在后续任务实现。</p>
+    <p class="footer-note">本页面仅使用程序绘制与程序化音色，不加载远程素材。当前为原创探索与回合制战斗切片。</p>
   </main>
   <script>
   (() => {
@@ -189,6 +198,7 @@
           interactions: [
             { id: 'field-lantern', kind: 'npc', x: 4, y: 11, name: '守灯人', dialogue: 'field-lantern' },
             { id: 'field-grain-cache', kind: 'chest', x: 10, y: 10, name: '芦叶箱', content: { item: 'millet-cake', amount: 2 } },
+            { id: 'field-skirmish', kind: 'battle', x: 12, y: 8, name: '烽火哨', encounter: 'reed-watch' },
             { id: 'field-town-road', kind: 'exit', x: 13, y: 8, name: '石桥路', to: 'town' }
           ],
           hint: '田埂向东收拢成石桥，守灯人把北行的方向交给你。'
@@ -252,6 +262,7 @@
           ],
           interactions: [
             { id: 'gate-mountain-road', kind: 'exit', x: 1, y: 8, name: '回山路', to: 'mountain' },
+            { id: 'stone-oath', kind: 'battle', x: 10, y: 8, name: '石誓台', encounter: 'stone-oath' },
             { id: 'gate-altar', kind: 'npc', x: 12, y: 6, name: '关前传令', dialogue: 'gate-sentinel' }
           ],
           hint: '断云关前没有捷径，先听传令，再决定是否叩响石门。'
@@ -264,14 +275,19 @@
         zhi: { id: 'zhi', name: '织火', role: '流火医者', level: 1, troops: 27, maxTroops: 27, spirit: 16, color: '#b9d685' }
       },
       ENEMIES: {
-        'reed-bandit': { id: 'reed-bandit', name: '芦荡游骑', troops: 24, spirit: 8, reward: 10 },
-        'dusk-scout': { id: 'dusk-scout', name: '暮影斥候', troops: 31, spirit: 11, reward: 14 },
-        'ridge-warden': { id: 'ridge-warden', name: '岭上守望者', troops: 48, spirit: 18, reward: 22 }
+        'reed-bandit': { id: 'reed-bandit', name: '芦荡游骑', troops: 32, spirit: 8, attack: 4, reward: 10 },
+        'dusk-scout': { id: 'dusk-scout', name: '暮影斥候', troops: 31, spirit: 11, attack: 5, reward: 14 },
+        'ridge-warden': { id: 'ridge-warden', name: '岭上守望者', troops: 48, spirit: 18, attack: 7, reward: 22 },
+        'stone-vow-captain': { id: 'stone-vow-captain', name: '石誓督军', troops: 58, spirit: 24, attack: 8, reward: 60, boss: true }
+      },
+      ENCOUNTERS: {
+        'reed-watch': { id: 'reed-watch', kind: 'normal', name: '烽火哨 · 芦荡边', enemy: 'reed-bandit', seed: 1731 },
+        'stone-oath': { id: 'stone-oath', kind: 'boss', name: '石誓台 · 断云关', enemy: 'stone-vow-captain', seed: 9047, event: 'stone-oath-complete' }
       },
       TACTICS: {
-        'ember-screen': { id: 'ember-screen', name: '引火成幕', cost: 3, effect: 'pressure', text: '以火光压低敌阵的士气。' },
-        'clear-chant': { id: 'clear-chant', name: '清歌定心', cost: 2, effect: 'restore', text: '短歌回荡，队伍恢复少量士气。' },
-        'false-banner': { id: 'false-banner', name: '借旗惑敌', cost: 4, effect: 'confuse', text: '错落旗影令敌军暂失方向。' }
+        'fire-suppression': { id: 'fire-suppression', name: '火势压制', cost: 3, effect: 'pressure', text: '火线逼近，敌阵的前排被迫后撤。' },
+        'morale-rally': { id: 'morale-rally', name: '鼓舞士气', cost: 2, effect: 'restore', text: '短促的号令让队伍重新稳住阵脚。' },
+        'phantom-banner': { id: 'phantom-banner', name: '疑兵扰乱', cost: 4, effect: 'confuse', text: '错落旗影令敌军暂失方向。' }
       },
       ITEMS: {
         'millet-cake': { id: 'millet-cake', name: '暖粟饼', kind: 'restore', amount: 12, text: '朴素的干粮，能让一名队员重新振作。' }
@@ -350,7 +366,7 @@
     const World = {
       mapId: 'field', x: 2, y: 13,
       roster: [], party: [], levels: {}, troops: {}, provisions: 20,
-      events: {}, chests: {},
+      experience: 0, items: {}, events: {}, chests: {},
       reset() {
         this.mapId = 'field';
         this.roster = ['yun', 'lan', 'he'];
@@ -358,6 +374,8 @@
         this.levels = { yun: 1, lan: 1, he: 1 };
         this.troops = { yun: 36, lan: 30, he: 42 };
         this.provisions = 20;
+        this.experience = 0;
+        this.items = { 'millet-cake': 1 };
         this.events = {};
         this.chests = {};
         this.x = DATA.MAPS.field.start.x;
@@ -407,6 +425,7 @@
         if (point.kind === 'chest') {
           if (this.chests[point.id]) return { moved: false, blocked: false, triggered: null };
           this.chests[point.id] = true;
+          if (point.content && point.content.item) this.items[point.content.item] = (this.items[point.content.item] || 0) + (point.content.amount || 1);
           return { moved: false, blocked: false, triggered: { ...point, type: point.kind, content: point.content } };
         }
         if (point.kind === 'recovery') {
@@ -415,6 +434,9 @@
             if (actor) this.troops[id] = actor.maxTroops;
           });
           return { moved: false, blocked: false, triggered: { ...point, type: point.kind } };
+        }
+        if (point.kind === 'battle') {
+          return { moved: false, blocked: false, triggered: { ...point, type: point.kind, encounter: point.encounter } };
         }
         if (point.kind === 'exit') {
           const to = point.to;
@@ -428,7 +450,8 @@
           mapId: this.mapId, x: this.x, y: this.y,
           roster: this.roster.slice(), party: this.party.slice(),
           levels: { ...this.levels }, troops: { ...this.troops },
-          provisions: this.provisions, events: { ...this.events }, chests: { ...this.chests }
+          provisions: this.provisions, experience: this.experience,
+          items: { ...this.items }, events: { ...this.events }, chests: { ...this.chests }
         };
       },
       save() { return Save.save(this.toState()); }
@@ -504,6 +527,205 @@
       }
     };
 
+    const Battle = {
+      commands: ['attack', 'tactic', 'defend', 'item', 'retreat'],
+      state: 'idle', status: 'idle', encounter: null, enemy: null, party: {}, choices: {},
+      partyMorale: 0, round: 0, log: [], tacticUsed: false, result: null, active: false,
+      random: () => 0.5,
+      _rng(seed) {
+        let value = Number(seed) >>> 0;
+        return () => {
+          value = (value * 1664525 + 1013904223) >>> 0;
+          return value / 4294967296;
+        };
+      },
+      _writeLog(text) {
+        this.log.push({ round: this.round, text });
+        if (this.log.length > 8) this.log.shift();
+      },
+      _normalize(command) {
+        if (typeof command === 'string') {
+          if (this.commands.includes(command)) return { type: command };
+          if (command.startsWith('tactic:')) return { type: 'tactic', tacticId: command.slice(7) };
+          if (command.startsWith('item:')) return { type: 'item', itemId: command.slice(5) };
+          return null;
+        }
+        if (!command || typeof command !== 'object') return null;
+        const type = command.type || command.command;
+        if (!this.commands.includes(type)) return null;
+        return { type, tacticId: command.tacticId, itemId: command.itemId };
+      },
+      start(encounterId = 'reed-watch') {
+        const encounter = DATA.ENCOUNTERS[encounterId];
+        const enemyData = encounter && DATA.ENEMIES[encounter.enemy];
+        if (!encounter || !enemyData || !World.party.length) return false;
+        this.state = 'battle'; this.status = 'active'; this.active = true;
+        this.encounter = { ...encounter };
+        this.enemy = { ...enemyData, morale: enemyData.spirit };
+        this.party = {};
+        World.party.forEach((id) => {
+          const actor = DATA.ACTORS[id];
+          if (!actor) return;
+          this.party[id] = {
+            id, name: actor.name, level: World.levels[id] || actor.level,
+            troops: Math.max(0, World.troops[id] ?? actor.troops),
+            maxTroops: actor.maxTroops + Math.max(0, (World.levels[id] || 1) - 1) * 4,
+            morale: actor.spirit, defending: false
+          };
+        });
+        this.choices = {}; this.partyMorale = 0;
+        Object.values(this.party).forEach((actor) => { this.partyMorale += actor.morale; });
+        this.round = 0; this.log = []; this.tacticUsed = false; this.result = null;
+        this.random = this._rng(encounter.seed);
+        this._writeLog(`${encounter.name}：${enemyData.name}挡住去路。`);
+        Game.state = 'battle';
+        Game.message = '按 1–5 为每名队员选择行动。';
+        return 'battle';
+      },
+      choose(actorId, command) {
+        if (!this.active || !this.party[actorId] || this.party[actorId].troops <= 0) return false;
+        const normalized = this._normalize(command);
+        if (!normalized) return false;
+        if (normalized.type === 'tactic') {
+          normalized.tacticId = normalized.tacticId || 'fire-suppression';
+          if (!DATA.TACTICS[normalized.tacticId]) return false;
+        }
+        if (normalized.type === 'item') {
+          normalized.itemId = normalized.itemId || Object.keys(World.items || {}).find((id) => World.items[id] > 0);
+          if (!normalized.itemId || !DATA.ITEMS[normalized.itemId]) return false;
+        }
+        this.choices[actorId] = normalized;
+        return normalized.type;
+      },
+      chooseNext(command) {
+        const actorId = Object.keys(this.party).find((id) => this.party[id].troops > 0 && !this.choices[id]);
+        return actorId ? this.choose(actorId, command) : false;
+      },
+      _syncWorld() {
+        Object.keys(this.party).forEach((id) => { World.troops[id] = Math.max(0, this.party[id].troops); });
+      },
+      _snapshot() {
+        const party = {};
+        Object.keys(this.party).forEach((id) => { party[id] = { ...this.party[id] }; });
+        return {
+          status: this.status, round: this.round, enemy: this.enemy ? { ...this.enemy } : null,
+          party, partyMorale: this.partyMorale, log: this.log.slice(), tacticUsed: this.tacticUsed
+        };
+      },
+      snapshot() { return this._snapshot(); },
+      _complete(status) {
+        this.status = status; this.state = status; this.active = false;
+        this.result = this._snapshot();
+        Game.state = status === 'defeat' ? 'game-over' : 'battle-result';
+        Game.message = status === 'victory' ? '战斗胜利，确认战果。' : status === 'retreated' ? '队伍脱离了战场。' : '队伍全员败退。';
+        return this.result;
+      },
+      resolveRound() {
+        if (!this.active) return this.result || this._snapshot();
+        this.round += 1;
+        const orderedActors = Object.keys(this.party);
+        orderedActors.forEach((id) => {
+          if (!this.choices[id] && this.party[id].troops > 0) this.choices[id] = { type: 'defend' };
+        });
+        let retreatRequested = false;
+        orderedActors.forEach((id) => {
+          const actor = this.party[id];
+          const choice = this.choices[id];
+          actor.defending = choice && choice.type === 'defend';
+          if (!choice || actor.troops <= 0) return;
+          if (choice.type === 'attack') {
+            const damage = 4 + Math.floor(actor.troops / 12) + actor.level + Math.floor(this.random() * 3);
+            this.enemy.troops = Math.max(0, this.enemy.troops - damage);
+            this._writeLog(`${actor.name}进击，敌军损失${damage}兵。`);
+          } else if (choice.type === 'defend') {
+            this._writeLog(`${actor.name}收拢队形，准备承受冲击。`);
+          } else if (choice.type === 'tactic') {
+            const tactic = DATA.TACTICS[choice.tacticId];
+            this.tacticUsed = true;
+            if (tactic.effect === 'pressure') {
+              const damage = 8 + actor.level + Math.floor(this.random() * 2);
+              this.enemy.troops = Math.max(0, this.enemy.troops - damage);
+              this.enemy.morale = Math.max(0, this.enemy.morale - 4);
+              this._writeLog(`${actor.name}施放${tactic.name}，敌军损失${damage}兵。`);
+            } else if (tactic.effect === 'restore') {
+              this.partyMorale += 9;
+              Object.values(this.party).forEach((member) => { member.morale += 3; });
+              this._writeLog(`${actor.name}施放${tactic.name}，我方士气上升。`);
+            } else {
+              this.enemy.morale = Math.max(0, this.enemy.morale - 9);
+              this._writeLog(`${actor.name}施放${tactic.name}，敌军士气受挫。`);
+            }
+          } else if (choice.type === 'item') {
+            const item = DATA.ITEMS[choice.itemId];
+            const count = (World.items && World.items[choice.itemId]) || 0;
+            if (item && count > 0) {
+              actor.troops = Math.min(actor.maxTroops, actor.troops + item.amount);
+              World.items[choice.itemId] = count - 1;
+              this._writeLog(`${actor.name}使用${item.name}，恢复${item.amount}兵。`);
+            } else this._writeLog('行囊中没有可用的恢复道具。');
+          } else if (choice.type === 'retreat') {
+            if (this.encounter.kind === 'normal') retreatRequested = true;
+            else this._writeLog('石誓台封锁退路，撤退指令无效。');
+          }
+        });
+        this._syncWorld();
+        if (retreatRequested) {
+          this._writeLog('队伍退回原来的道路。');
+          this.choices = {};
+          return this._complete('retreated');
+        }
+        if (this.enemy.troops <= 0 && !(this.encounter.kind === 'boss' && !this.tacticUsed)) {
+          this._writeLog(`${this.enemy.name}溃散。`);
+          this.choices = {};
+          return this._complete('victory');
+        }
+        if (this.enemy.troops <= 0) {
+          this.enemy.troops = 1;
+          this._writeLog('石誓督军抓住空隙重整阵脚，必须先以计策破局。');
+        }
+        const enemyDamage = Math.max(1, this.enemy.attack + Math.floor(this.enemy.troops / 20));
+        const confused = this.enemy.morale <= 15 && this.tacticUsed && this.log.some((entry) => entry.text.includes('疑兵扰乱'));
+        orderedActors.forEach((id) => {
+          const actor = this.party[id];
+          if (actor.troops <= 0) return;
+          const incoming = Math.max(1, Math.floor(enemyDamage * (actor.defending ? 0.45 : confused ? 0.55 : 1)));
+          actor.troops = Math.max(0, actor.troops - incoming);
+          this._writeLog(`${this.enemy.name}反击${actor.name}，造成${incoming}伤害。`);
+        });
+        this._syncWorld();
+        this.choices = {};
+        if (orderedActors.every((id) => this.party[id].troops <= 0)) return this._complete('defeat');
+        return this._snapshot();
+      },
+      finish() {
+        if (this.status === 'victory') {
+          const previousExperience = World.experience || 0;
+          const reward = this.enemy.reward || 0;
+          World.experience = previousExperience + reward;
+          World.provisions += reward;
+          if (previousExperience < 20 && World.experience >= 20 && !World.events['first-upgrade']) {
+            const id = World.party.find((actorId) => this.party[actorId]);
+            if (id) {
+              World.levels[id] = (World.levels[id] || 1) + 1;
+              World.events['first-upgrade'] = true;
+              this._writeLog(`${DATA.ACTORS[id].name}达到新的行军等级。`);
+            }
+          }
+          if (this.encounter.event) World.events[this.encounter.event] = true;
+          Game.message = `战果确认：获得${reward}军粮，经验累计${World.experience}。`;
+        } else if (this.status === 'retreated') {
+          Game.message = '队伍回到了原来的道路。';
+        } else if (this.status === 'defeat') {
+          Game.state = 'game-over';
+          return 'game-over';
+        } else return false;
+        Game.state = 'world';
+        this.state = 'world';
+        return 'world';
+      }
+    };
+
+
     function tileColor(x, y, palette) {
       const seed = (x * 17 + y * 31 + x * y) % 7;
       return palette[seed === 0 ? 2 : seed < 3 ? 1 : 0];
@@ -575,26 +797,39 @@
     }
     function renderBattle() {
       if (!ctx) return;
+      const enemy = Battle.enemy || { name: '未定敌阵', troops: 0, morale: 0 };
       ctx.fillStyle = '#151424'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      drawText('遭遇战 · 远岭风声', 12, 11, '#f0bd57', 10);
-      ctx.fillStyle = '#383458'; ctx.fillRect(14, 42, 228, 62);
-      ctx.fillStyle = '#6b638a'; ctx.fillRect(14, 97, 228, 7);
-      drawText('敌阵', 128, 54, '#f2d895', 8, 'center');
-      drawText('芦荡游骑', 128, 72, '#e89b81', 10, 'center');
-      drawText('兵力 24   士气 08', 128, 89, '#c3bba9', 7, 'center');
-      panel(10, 119, 236, 111, '#111522', '#5a4a34');
-      drawText('1 进击   2 策略   3 防守', 20, 132, '#f6e9c9', 8);
-      drawText('4 物品   5 退避', 20, 148, '#f6e9c9', 8);
-      drawText('选择行动，守住这条路。', 20, 181, '#a99d86', 8);
-      drawText('A 确认 / X 返回', 20, 211, '#5da3c9', 7);
+      drawText(Battle.encounter ? Battle.encounter.name : '遭遇战', 12, 11, '#f0bd57', 10);
+      ctx.fillStyle = '#383458'; ctx.fillRect(14, 34, 228, 55);
+      ctx.fillStyle = '#6b638a'; ctx.fillRect(14, 82, Math.max(0, Math.round(228 * enemy.troops / Math.max(1, DATA.ENEMIES[Battle.encounter.enemy].troops))), 7);
+      drawText('敌阵', 22, 42, '#f2d895', 7);
+      drawText(enemy.name, 128, 43, '#e89b81', 10, 'center');
+      drawText(`兵力 ${String(enemy.troops).padStart(2, '0')}  士气 ${String(enemy.morale).padStart(2, '0')}`, 128, 64, '#c3bba9', 7, 'center');
+      let line = 103;
+      Object.values(Battle.party || {}).forEach((actor) => {
+        drawText(`${actor.name} ${String(actor.troops).padStart(2, '0')}/${actor.maxTroops}`, 18, line, actor.troops > 0 ? '#f6e9c9' : '#6e6670', 7);
+        line += 11;
+      });
+      panel(10, 140, 236, 90, '#111522', '#5a4a34');
+      drawText('1 进击  2 计策  3 防守  4 道具  5 撤退', 18, 151, '#f6e9c9', 7);
+      const latest = Battle.log && Battle.log[Battle.log.length - 1];
+      drawText(latest ? latest.text : '选择行动，守住这条路。', 18, 177, '#c3bba9', 7);
+      drawText(`回合 ${Battle.round}  ${Battle.pendingActors ? '等待队伍指令' : ''}`, 18, 194, '#a99d86', 7);
+      drawText('数字键 / 触控按钮 · X 返回', 18, 214, '#5da3c9', 7);
     }
     function renderSpecialState() {
       if (!ctx) return;
       ctx.fillStyle = '#0e121c'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
       const titles = { 'battle-result': '战斗记录', camp: '静松营', 'game-over': '灯火暂熄' };
-      drawText(titles[Game.state] || '', 128, 48, '#f0bd57', 16, 'center');
-      drawText(Game.state === 'camp' ? '整理行囊，下一程仍在等候。' : Game.state === 'game-over' ? '别忘了，风停之后仍可重新出发。' : '道路清晰了一些。', 128, 100, '#c3bba9', 8, 'center');
-      drawText('A 确认继续    X 返回标题', 128, 182, '#75b6cf', 8, 'center');
+      drawText(titles[Game.state] || '', 128, 42, '#f0bd57', 16, 'center');
+      if (Game.state === 'battle-result' && Battle.result) {
+        const resultText = Battle.status === 'victory' ? `胜利 · 获得 ${Battle.enemy.reward} 军粮` : '撤退 · 未获得战果';
+        drawText(resultText, 128, 86, '#f6e9c9', 9, 'center');
+        drawText(Battle.log[Battle.log.length - 1]?.text || '', 128, 112, '#c3bba9', 7, 'center');
+      } else {
+        drawText(Game.state === 'camp' ? '整理行囊，下一程仍在等候。' : Game.state === 'game-over' ? '队伍全员败退，旅程暂告中止。' : '道路清晰了一些。', 128, 100, '#c3bba9', 8, 'center');
+      }
+      drawText(Game.state === 'battle-result' ? 'A 确认战果    X 返回标题' : 'A 确认继续    X 返回标题', 128, 182, '#75b6cf', 8, 'center');
     }
     function render() {
       if (Game.state === 'title') renderTitle();
@@ -618,6 +853,7 @@
           const result = World.interact();
           const point = result.triggered;
           if (point && point.type === 'npc' && point.dialogue) Dialogue.start(point.dialogue);
+          else if (point && point.type === 'battle' && point.encounter) Battle.start(point.encounter);
           else if (point && point.type === 'chest') Game.message = `获得：${DATA.ITEMS[point.content.item].name}`;
           else if (point && point.type === 'recovery') Game.message = '队伍恢复了兵力。';
           else if (point && point.type === 'exit') Game.message = `前往${DATA.MAPS[World.mapId].name}`;
@@ -631,8 +867,26 @@
         if (Input.consume('confirm')) Game.state = 'world';
         if (Input.consume('cancel')) Game.returnToTitle();
       } else if (Game.state === 'battle') {
-        for (let i = 1; i <= 5; i++) if (Input.consume(`battle-${i}`)) { Game.state = 'battle-result'; break; }
-        if (Input.consume('cancel')) Game.state = 'world';
+        const commandByAction = { 'battle-1': 'attack', 'battle-2': { type: 'tactic', tacticId: 'fire-suppression' }, 'battle-3': 'defend', 'battle-4': { type: 'item' }, 'battle-5': 'retreat' };
+        for (let i = 1; i <= 5; i++) {
+          const battleAction = `battle-${i}`;
+          if (Input.consume(battleAction)) {
+            Battle.chooseNext(commandByAction[battleAction]);
+            const pending = Object.keys(Battle.party).some((id) => Battle.party[id].troops > 0 && !Battle.choices[id]);
+            if (!pending) Battle.resolveRound();
+            break;
+          }
+        }
+        if (Input.consume('cancel')) {
+          if (Battle.encounter && Battle.encounter.kind === 'normal') Battle.chooseNext('retreat');
+          else Game.message = '首领战无法返回。';
+        }
+      } else if (Game.state === 'battle-result') {
+        if (Input.consume('confirm')) Battle.finish();
+        if (Input.consume('cancel')) Game.returnToTitle();
+      } else if (Game.state === 'game-over') {
+        if (Input.consume('confirm')) Game.returnToTitle();
+        if (Input.consume('cancel')) Game.returnToTitle();
       } else if (Input.consume('cancel')) Game.returnToTitle();
       render();
     }
@@ -642,6 +896,7 @@
     window.Game = Game;
     window.World = World;
     window.Dialogue = Dialogue;
+    window.Battle = Battle;
     window.Save = Save;
     window.GameCanvas = canvas;
     window.GameRender = render;
