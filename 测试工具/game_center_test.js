@@ -13,5 +13,7 @@ assert.match(read('tank-battle.html'), /钢铁防线.*坦克大战/, '坦克大�
 assert.match(portal, /赞助商：llapi\.org/, '首页应显示赞助商名称');
 assert.match(portal, /有需要用 API 中转服务的可以试下，价格不是最低，但稳定可靠。/, '首页应显示赞助推荐文案');
 assert.match(portal, /href=["']https:\/\/llapi\.org\/?["'][^>]*target=["']_blank["'][^>]*rel=["'][^"']*sponsored[^"']*noopener[^"']*noreferrer/, '赞助商链接应安全地新窗口打开并标记为 sponsored');
+assert.match(portal, /有需要用 API 中转服务的可以试下，价格不是最低，但稳定可靠。<a class=["']sponsor-direct["'][^>]*>点击直达<\/a>/, '赞助文案后应显示点击直达');
+assert.match(portal, /class=["']sponsor-direct["'][^>]*href=["']https:\/\/llapi\.org\/?["'][^>]*target=["']_blank["']/, '点击直达应链接到 llapi.org 并新窗口打开');
 
 console.log('Game center entry checks passed.');

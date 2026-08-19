@@ -263,6 +263,21 @@
       line-height: 1.6;
     }
 
+    .sponsor-direct {
+      display: inline-block;
+      margin-left: 10px;
+      color: var(--amber);
+      font-weight: 700;
+      text-decoration-color: rgba(255, 179, 71, .72);
+      text-underline-offset: 3px;
+      white-space: nowrap;
+    }
+
+    .sponsor-direct:hover,
+    .sponsor-direct:focus-visible {
+      color: var(--ink);
+    }
+
     .sponsor-visit {
       color: var(--amber);
       font-size: 10px;
@@ -451,7 +466,7 @@
       <div class="sponsor-label">FRIENDLY<br>RECOMMENDATION</div>
       <div>
         <p class="sponsor-name"><a href="https://llapi.org" target="_blank" rel="sponsored noopener noreferrer">赞助商：llapi.org</a> · 友情推荐</p>
-        <p class="sponsor-copy">有需要用 API 中转服务的可以试下，价格不是最低，但稳定可靠。</p>
+        <p class="sponsor-copy">有需要用 API 中转服务的可以试下，价格不是最低，但稳定可靠。<a class="sponsor-direct" href="https://llapi.org" target="_blank" rel="sponsored noopener noreferrer">点击直达</a></p>
       </div>
       <span class="sponsor-visit" aria-hidden="true">VISIT ↗</span>
     </aside>
