@@ -13,6 +13,16 @@
       "statusWhenMissing": "稳定版",
       "version": "v1.6.1",
       "status": "稳定版"
+    },
+    {
+      "id": "three-kingdoms",
+      "title": "吞食天地：汉末群雄",
+      "url": "./three-kingdoms.html",
+      "tagNamespace": "game/three-kingdoms",
+      "fallbackVersion": "v0.1.0",
+      "statusWhenMissing": "开发版",
+      "version": "v0.1.0",
+      "status": "开发版"
     }
   ]
 }
