@@ -36,26 +36,36 @@ For the complete change history, see [更新记录.md](更新记录.md).
 
 ## 在线试玩 / Play Online
 
-GitHub Pages 会在 `main` 分支更新后自动部署最新版：
+GitHub Pages 会在 `main` 分支更新后自动部署最新版。原有二维码对应的地址现在是小游戏中心：
 
 <https://sunsharebay-lgtm.github.io/TK/>
 
-GitHub Pages automatically publishes the latest version after every update to the `main` branch:
+GitHub Pages automatically publishes the latest version after every update to the `main` branch. The original QR-code URL now opens the game center:
 
 <https://sunsharebay-lgtm.github.io/TK/>
+
+从游戏中心点击“钢铁防线 坦克大战”即可开始游戏，也可以直接打开坦克大战：
+
+<https://sunsharebay-lgtm.github.io/TK/tank-battle.html>
+
+From the game center, select “钢铁防线 坦克大战” to play, or open the direct game URL:
+
+<https://sunsharebay-lgtm.github.io/TK/tank-battle.html>
 
 ## 项目内容 / Project Contents
 
-- `坦克大战.html`：最新可运行的网页版游戏源码 / Latest playable web game source
+- `index.html`：小游戏中心入口 / Game center entry page
+- `tank-battle.html`：坦克大战稳定的直接入口 / Stable direct entry for Tank Battle
+- `坦克大战.html`：旧中文入口兼容跳转页 / Compatibility redirect for the former Chinese entry
 - `历史版本/`：已归档的旧版源码 / Archived source snapshots
 - `更新记录.md`：每个已确认版本的更新记录 / Confirmed-version changelog
 - `文件夹说明.md`：目录和文件用途说明 / Project structure guide
 
 ## 运行方式 / How To Run
 
-直接使用现代浏览器打开 `坦克大战.html` 即可开始游戏。
+直接使用现代浏览器打开 `tank-battle.html` 即可开始游戏；打开 `index.html` 可进入小游戏中心。
 
-Open `坦克大战.html` in a modern web browser to play.
+Open `tank-battle.html` in a modern web browser to play; open `index.html` to view the game center.
 
 ## 版本原则 / Versioning
 
