@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b13">
+  <meta name="description" content="九州烽烟：一款原创 FC 风格三国 RPG 外壳。">
+  <title>九州烽烟 · 汉末群雄</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f6e9c9;
+      --muted: #a99d86;
+      --gold: #f0bd57;
+      --red: #d86455;
+      --blue: #5da3c9;
+      --panel: #15151f;
+      --panel-deep: #0b0c13;
+      --line: #514735;
+      font-family: "SF Mono", "Cascadia Mono", "Noto Sans Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% -20%, #293046 0, transparent 48%),
+        linear-gradient(160deg, #090b12 0%, #11131d 48%, #08090e 100%);
+    }
+    .console {
+      width: min(820px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: clamp(16px, 4vw, 34px) 0 28px;
+    }
+    .console-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 4px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      margin: 0;
+      color: var(--gold);
+      font-size: clamp(15px, 2.5vw, 22px);
+      letter-spacing: .16em;
+      text-shadow: 2px 2px #4b2d26;
+    }
+    .subbrand { margin: 5px 0 0; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+    .led { color: #6ad58a; font-size: 10px; letter-spacing: .08em; white-space: nowrap; }
+    .led::before { content: "●"; margin-right: 7px; color: #6ad58a; }
+    .screen-shell {
+      margin-top: 18px;
+      padding: clamp(10px, 2vw, 18px);
+      background: linear-gradient(145deg, #262333, #10111a 70%);
+      border: 1px solid #675b43;
+      border-radius: 12px;
+      box-shadow: 0 20px 55px rgba(0,0,0,.42), inset 0 0 0 4px #0d0e15;
+    }
+    .screen-bezel {
+      display: grid;
+      place-items: center;
+      padding: clamp(8px, 2vw, 16px);
+      background: #05060a;
+      border: 3px solid #3b352a;
+      border-radius: 6px;
+      box-shadow: inset 0 0 34px rgba(0,0,0,.8);
+    }
+    canvas {
+      display: block;
+      width: min(100%, 768px);
+      height: auto;
+      aspect-ratio: 16 / 15;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: #111421;
+      outline: 1px solid #2d3448;
+    }
+    .control-deck {
+      display: grid;
+      grid-template-columns: 1fr minmax(190px, 250px) 1fr;
+      align-items: center;
+      gap: clamp(16px, 5vw, 48px);
+      margin-top: 18px;
+      padding: 14px;
+      background: rgba(8,9,14,.75);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 42px);
+      grid-template-rows: repeat(3, 38px);
+      justify-content: center;
+    }
+    .action-pad { display: flex; justify-content: center; align-items: center; gap: 14px; }
+    button {
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .control-button {
+      min-width: 42px;
+      min-height: 38px;
+      border: 1px solid #736145;
+      border-radius: 5px;
+      background: linear-gradient(#3a3540, #1b1b26);
+      box-shadow: 0 3px 0 #090a10;
+    }
+    .control-button:active { transform: translateY(2px); box-shadow: 0 1px 0 #090a10; }
+    .control-button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    .dpad .up { grid-column: 2; grid-row: 1; }
+    .dpad .left { grid-column: 1; grid-row: 2; }
+    .dpad .right { grid-column: 3; grid-row: 2; }
+    .dpad .down { grid-column: 2; grid-row: 3; }
+    .face-button { border-radius: 50%; border-color: #874a45; background: linear-gradient(#753f43, #392126); }
+    .face-button.confirm { color: #ffd878; }
+    .face-button.cancel { color: #b5cde0; }
+    .hint { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; text-align: center; }
+    .hint strong { color: var(--gold); font-weight: normal; }
+    .footer-note { margin: 15px 4px 0; color: #746d61; font-size: 10px; line-height: 1.6; text-align: center; }
+    @media (max-width: 560px) {
+      .console { width: min(100% - 18px, 820px); }
+      .console-head { align-items: start; flex-direction: column; gap: 6px; }
+      .control-deck { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .hint { grid-column: 1 / -1; grid-row: 1; }
+      .dpad { grid-column: 1; grid-row: 2; }
+      .action-pad { grid-column: 2; grid-row: 2; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="console">
+    <header class="console-head">
+      <div>
+        <h1 class="brand">九州烽烟</h1>
+        <p class="subbrand">原创 8-BIT 乱世行旅 · FIRST BUILD</p>
+      </div>
+      <div class="led" id="status-text">LOCAL CARTRIDGE READY</div>
+    </header>
+    <section class="screen-shell" aria-label="九州烽烟游戏屏幕">
+      <div class="screen-bezel">
+        <canvas id="game-canvas" width="256" height="240" aria-label="九州烽烟虚拟游戏画布"></canvas>
+      </div>
+      <div class="control-deck" aria-label="移动控制器">
+        <div class="dpad" aria-label="方向键">
+          <button class="control-button up" data-action="up" aria-label="上">▲</button>
+          <button class="control-button left" data-action="left" aria-label="左">◀</button>
+          <button class="control-button right" data-action="right" aria-label="右">▶</button>
+          <button class="control-button down" data-action="down" aria-label="下">▼</button>
+        </div>
+        <p class="hint"><strong>方向键 / WASD</strong><br>移动 · Enter / Z 确认<br>Esc / X 返回 · 1–5 战斗</p>
+        <div class="action-pad" aria-label="功能键">
+          <button class="control-button face-button cancel" data-action="cancel" aria-label="取消">X</button>
+          <button class="control-button face-button confirm" data-action="confirm" aria-label="确认">A</button>
+        </div>
+      </div>
+    </section>
+    <p class="footer-note">本页面仅使用程序绘制与程序化音色，不加载远程素材。当前为可操作外壳版本。</p>
+  </main>
+  <script>
+  (() => {
+    'use strict';
+
+    const WIDTH = 256;
+    const HEIGHT = 240;
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+    if (canvas) { canvas.width = WIDTH; canvas.height = HEIGHT; }
+
+    const DATA = {
+      MAPS: {
+        field: {
+          id: 'field', name: '青禾原', palette: ['#172b31', '#28504a', '#5e8b5c'],
+          exits: { east: 'river-town', north: 'wind-ridge' },
+          landmarks: [{ x: 5, y: 7, type: 'shrine', name: '听雨台' }, { x: 11, y: 4, type: 'road', name: '旧驿道' }],
+          hint: '风从北面山口来，田埂尽头有一盏不灭的灯。'
+        },
+        'river-town': {
+          id: 'river-town', name: '蒲渡镇', palette: ['#1e2430', '#4a4c59', '#b07d52'],
+          exits: { west: 'field', south: 'quiet-camp' },
+          landmarks: [{ x: 7, y: 6, type: 'well', name: '石轮井' }, { x: 12, y: 8, type: 'gate', name: '渡口门' }],
+          hint: '渡船停在雾里，镇上的人正在为远行者备一盏灯。'
+        },
+        'quiet-camp': {
+          id: 'quiet-camp', name: '静松营', palette: ['#162a2b', '#315145', '#9e8855'],
+          exits: { north: 'river-town', east: 'wind-ridge' },
+          landmarks: [{ x: 8, y: 5, type: 'fire', name: '松脂火' }],
+          hint: '在这里整理队伍，短暂的安静也能积攒勇气。'
+        },
+        'wind-ridge': {
+          id: 'wind-ridge', name: '回风岭', palette: ['#171d31', '#343a62', '#786b91'],
+          exits: { south: 'field', west: 'quiet-camp' },
+          landmarks: [{ x: 9, y: 4, type: 'watch', name: '残哨' }],
+          hint: '岭上的风会把脚印吹散，但不会吹散决心。'
+        }
+      },
+      ACTORS: {
+        yun: { id: 'yun', name: '云策', role: '行军策士', level: 1, troops: 36, maxTroops: 36, spirit: 14, color: '#e6b85d' },
+        lan: { id: 'lan', name: '兰舟', role: '弦歌弓手', level: 1, troops: 30, maxTroops: 30, spirit: 12, color: '#75b6cf' },
+        he: { id: 'he', name: '何砺', role: '石甲卫', level: 1, troops: 42, maxTroops: 42, spirit: 9, color: '#d97862' },
+        zhi: { id: 'zhi', name: '织火', role: '流火医者', level: 1, troops: 27, maxTroops: 27, spirit: 16, color: '#b9d685' }
+      },
+      ENEMIES: {
+        'reed-bandit': { id: 'reed-bandit', name: '芦荡游骑', troops: 24, spirit: 8, reward: 10 },
+        'dusk-scout': { id: 'dusk-scout', name: '暮影斥候', troops: 31, spirit: 11, reward: 14 },
+        'ridge-warden': { id: 'ridge-warden', name: '岭上守望者', troops: 48, spirit: 18, reward: 22 }
+      },
+      TACTICS: {
+        'ember-screen': { id: 'ember-screen', name: '引火成幕', cost: 3, effect: 'pressure', text: '以火光压低敌阵的士气。' },
+        'clear-chant': { id: 'clear-chant', name: '清歌定心', cost: 2, effect: 'restore', text: '短歌回荡，队伍恢复少量士气。' },
+        'false-banner': { id: 'false-banner', name: '借旗惑敌', cost: 4, effect: 'confuse', text: '错落旗影令敌军暂失方向。' }
+      },
+      ITEMS: {
+        'millet-cake': { id: 'millet-cake', name: '暖粟饼', kind: 'restore', amount: 12, text: '朴素的干粮，能让一名队员重新振作。' }
+      },
+      DIALOGUES: {
+        title: ['烽烟从远方压来。', '你要把这支小队带到哪里？'],
+        'field-lantern': ['守灯人：北岭的路还没有断。', '守灯人：若要同行，就别把希望只交给风。'],
+        'recruit-zhi': ['织火：我会治伤，也会看火色。', '织火：让我替队伍守住最后一盏灯吧。'],
+        'camp-rest': ['营火：疲惫被松香慢慢带走。', '队伍恢复了精神。']
+      }
+    };
+
+    const ACTIONS = new Set(['up', 'down', 'left', 'right', 'confirm', 'cancel', 'battle-1', 'battle-2', 'battle-3', 'battle-4', 'battle-5']);
+    const keyActions = {
+      ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down',
+      ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right',
+      Enter: 'confirm', z: 'confirm', Z: 'confirm', Escape: 'cancel', x: 'cancel', X: 'cancel',
+      '1': 'battle-1', '2': 'battle-2', '3': 'battle-3', '4': 'battle-4', '5': 'battle-5'
+    };
+    const Input = {
+      queue: [],
+      enqueue(action) { if (ACTIONS.has(action)) this.queue.push(action); return ACTIONS.has(action); },
+      consume(action) {
+        if (!ACTIONS.has(action)) return false;
+        const index = this.queue.indexOf(action);
+        if (index < 0) return false;
+        this.queue.splice(index, 1);
+        return action;
+      },
+      clear() { this.queue.length = 0; }
+    };
+
+    let audioContext;
+    function tone(frequency, duration) {
+      try {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return;
+        audioContext = audioContext || new AudioCtor();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = 'square';
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.018, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+        oscillator.connect(gain); gain.connect(audioContext.destination);
+        oscillator.start(); oscillator.stop(audioContext.currentTime + duration);
+      } catch (_) { /* Audio is optional in the cartridge shell. */ }
+    }
+
+    const Game = {
+      state: 'title',
+      mapId: 'field',
+      party: [],
+      cursor: { x: 7, y: 8 },
+      dialogue: [],
+      dialoguePage: 0,
+      message: '按确认键开始新的旅程',
+      startNew() {
+        this.party = ['yun', 'lan', 'he'].map((id) => ({ ...DATA.ACTORS[id] }));
+        this.mapId = 'field';
+        this.cursor = { x: 7, y: 8 };
+        this.dialogue = [];
+        this.dialoguePage = 0;
+        this.message = DATA.MAPS.field.hint;
+        this.state = 'world';
+        tone(440, .08);
+        return this.state;
+      },
+      enterWorld(mapId) {
+        if (!DATA.MAPS[mapId]) return false;
+        this.mapId = mapId;
+        this.state = 'world';
+        this.message = DATA.MAPS[mapId].hint;
+        return this.state;
+      },
+      returnToTitle() {
+        this.state = 'title';
+        this.message = '按确认键开始新的旅程';
+        Input.clear();
+        return this.state;
+      },
+      showDialogue(id) {
+        if (!DATA.DIALOGUES[id]) return false;
+        this.dialogue = DATA.DIALOGUES[id].slice();
+        this.dialoguePage = 0;
+        this.state = 'dialogue';
+        return this.state;
+      },
+      openCamp() { this.state = 'camp'; return this.state; },
+      openBattle() { this.state = 'battle'; return this.state; },
+      gameOver() { this.state = 'game-over'; return this.state; }
+    };
+
+    function tileColor(x, y, palette) {
+      const seed = (x * 17 + y * 31 + x * y) % 7;
+      return palette[seed === 0 ? 2 : seed < 3 ? 1 : 0];
+    }
+    function drawText(text, x, y, color = '#f6e9c9', size = 8, align = 'left') {
+      if (!ctx) return;
+      ctx.font = `${size}px monospace`;
+      ctx.textAlign = align;
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+    }
+    function panel(x, y, width, height, fill = '#111522', stroke = '#d0a75b') {
+      if (!ctx) return;
+      ctx.fillStyle = fill; ctx.fillRect(x, y, width, height);
+      ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+    }
+    function renderTitle() {
+      if (!ctx) return;
+      ctx.fillStyle = '#0b101c'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      for (let y = 0; y < HEIGHT; y += 8) { ctx.fillStyle = y % 16 ? '#0e1723' : '#111d2b'; ctx.fillRect(0, y, WIDTH, 4); }
+      drawText('九州烽烟', 128, 40, '#f0bd57', 24, 'center');
+      drawText('漢  末  群  雄', 128, 75, '#c8dbdf', 9, 'center');
+      ctx.fillStyle = '#263f50'; ctx.fillRect(36, 104, 184, 2);
+      drawText('一支小队 · 四处山河 · 一盏微灯', 128, 119, '#a99d86', 8, 'center');
+      drawText('▶  新的旅程', 128, 157, '#f6e9c9', 10, 'center');
+      drawText('原创开发版  0.1', 128, 188, '#65768b', 7, 'center');
+      drawText('CONFIRM / ENTER', 128, 207, '#5da3c9', 7, 'center');
+    }
+    function renderWorld() {
+      if (!ctx) return;
+      const map = DATA.MAPS[Game.mapId] || DATA.MAPS.field;
+      ctx.fillStyle = map.palette[0]; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      const cell = 16;
+      for (let y = 0; y < 12; y++) for (let x = 0; x < 16; x++) {
+        ctx.fillStyle = tileColor(x, y, map.palette); ctx.fillRect(x * cell, y * cell, cell - 1, cell - 1);
+      }
+      for (const point of map.landmarks) {
+        const px = point.x * cell + 4; const py = point.y * cell + 4;
+        ctx.fillStyle = point.type === 'fire' ? '#e58b52' : '#d1b66a';
+        ctx.fillRect(px, py, 7, 7); ctx.fillStyle = '#473d37'; ctx.fillRect(px + 2, py - 3, 3, 3);
+      }
+      const px = Game.cursor.x * cell + 5; const py = Game.cursor.y * cell + 3;
+      ctx.fillStyle = '#f4e3a7'; ctx.fillRect(px, py, 6, 10); ctx.fillStyle = '#bd655b'; ctx.fillRect(px + 1, py - 3, 4, 4);
+      panel(0, 194, WIDTH, 46, '#111522', '#5a4a34');
+      drawText(map.name, 9, 201, '#f0bd57', 9);
+      drawText(map.hint, 9, 214, '#c3bba9', 7);
+      drawText(`队伍 ${Game.party.length || 0}/4`, 246, 202, '#75b6cf', 7, 'right');
+    }
+    function renderDialogue() {
+      renderWorld();
+      panel(8, 151, 240, 80, '#101522', '#e2b75f');
+      const text = Game.dialogue[Game.dialoguePage] || '';
+      drawText('对话', 17, 160, '#f0bd57', 8);
+      drawText(text, 17, 178, '#f6e9c9', 8);
+      drawText('A 确认', 232, 215, '#75b6cf', 7, 'right');
+    }
+    function renderBattle() {
+      if (!ctx) return;
+      ctx.fillStyle = '#151424'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      drawText('遭遇战 · 远岭风声', 12, 11, '#f0bd57', 10);
+      ctx.fillStyle = '#383458'; ctx.fillRect(14, 42, 228, 62);
+      ctx.fillStyle = '#6b638a'; ctx.fillRect(14, 97, 228, 7);
+      drawText('敌阵', 128, 54, '#f2d895', 8, 'center');
+      drawText('芦荡游骑', 128, 72, '#e89b81', 10, 'center');
+      drawText('兵力 24   士气 08', 128, 89, '#c3bba9', 7, 'center');
+      panel(10, 119, 236, 111, '#111522', '#5a4a34');
+      drawText('1 进击   2 策略   3 防守', 20, 132, '#f6e9c9', 8);
+      drawText('4 物品   5 退避', 20, 148, '#f6e9c9', 8);
+      drawText('选择行动，守住这条路。', 20, 181, '#a99d86', 8);
+      drawText('A 确认 / X 返回', 20, 211, '#5da3c9', 7);
+    }
+    function renderSpecialState() {
+      if (!ctx) return;
+      ctx.fillStyle = '#0e121c'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      const titles = { 'battle-result': '战斗记录', camp: '静松营', 'game-over': '灯火暂熄' };
+      drawText(titles[Game.state] || '', 128, 48, '#f0bd57', 16, 'center');
+      drawText(Game.state === 'camp' ? '整理行囊，下一程仍在等候。' : Game.state === 'game-over' ? '别忘了，风停之后仍可重新出发。' : '道路清晰了一些。', 128, 100, '#c3bba9', 8, 'center');
+      drawText('A 确认继续    X 返回标题', 128, 182, '#75b6cf', 8, 'center');
+    }
+    function render() {
+      if (Game.state === 'title') renderTitle();
+      else if (Game.state === 'world') renderWorld();
+      else if (Game.state === 'dialogue') renderDialogue();
+      else if (Game.state === 'battle') renderBattle();
+      else renderSpecialState();
+    }
+
+    function step(action) {
+      if (Game.state === 'title' && Input.consume('confirm')) { Game.startNew(); return; }
+      if (Game.state === 'world') {
+        if (Input.consume('up')) Game.cursor.y = Math.max(1, Game.cursor.y - 1);
+        if (Input.consume('down')) Game.cursor.y = Math.min(11, Game.cursor.y + 1);
+        if (Input.consume('left')) Game.cursor.x = Math.max(0, Game.cursor.x - 1);
+        if (Input.consume('right')) Game.cursor.x = Math.min(15, Game.cursor.x + 1);
+        if (Input.consume('confirm')) Game.showDialogue('field-lantern');
+        if (Input.consume('cancel')) Game.openCamp();
+      } else if (Game.state === 'dialogue') {
+        if (Input.consume('confirm')) {
+          Game.dialoguePage += 1;
+          if (Game.dialoguePage >= Game.dialogue.length) { Game.dialogue = []; Game.state = 'world'; Game.message = '灯火指向北方。'; }
+        }
+        if (Input.consume('cancel')) Game.state = 'world';
+      } else if (Game.state === 'camp') {
+        if (Input.consume('confirm')) Game.state = 'world';
+        if (Input.consume('cancel')) Game.returnToTitle();
+      } else if (Game.state === 'battle') {
+        for (let i = 1; i <= 5; i++) if (Input.consume(`battle-${i}`)) { Game.state = 'battle-result'; break; }
+        if (Input.consume('cancel')) Game.state = 'world';
+      } else if (Input.consume('cancel')) Game.returnToTitle();
+      render();
+    }
+
+    window.DATA = DATA;
+    window.Input = Input;
+    window.Game = Game;
+    window.GameCanvas = canvas;
+    window.GameRender = render;
+    window.GameStep = step;
+
+    window.addEventListener('keydown', (event) => {
+      if (event.repeat) return;
+      const action = keyActions[event.key] || keyActions[event.code];
+      if (!action) return;
+      event.preventDefault();
+      Input.enqueue(action);
+      step(action);
+    });
+    document.querySelectorAll('[data-action]').forEach((button) => {
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        const action = button.getAttribute('data-action');
+        if (Input.enqueue(action)) { tone(320, .035); step(action); }
+      });
+      button.addEventListener('click', () => {
+        const action = button.getAttribute('data-action');
+        if (Input.enqueue(action)) step(action);
+      });
+    });
+    render();
+  })();
+  </script>
+</body>
+</html>

@@ -52,10 +52,15 @@ From the game center, select “钢铁防线 坦克大战” to play, or open th
 
 <https://sunsharebay-lgtm.github.io/TK/tank-battle.html>
 
+三国 RPG 当前为第一版原创外壳开发状态，可直接打开：
+
+<https://sunsharebay-lgtm.github.io/TK/three-kingdoms.html>
+
 ## 项目内容 / Project Contents
 
 - `index.html`：小游戏中心入口 / Game center entry page
 - `tank-battle.html`：坦克大战稳定的直接入口 / Stable direct entry for Tank Battle
+- `three-kingdoms.html`：九州烽烟三国 RPG 外壳，当前为原创 FC 风格开发版 / Original FC-style Three Kingdoms RPG shell (development build)
 - `坦克大战.html`：旧中文入口兼容跳转页 / Compatibility redirect for the former Chinese entry
 - `历史版本/`：已归档的旧版源码 / Archived source snapshots
 - `更新记录.md`：每个已确认版本的更新记录 / Confirmed-version changelog
@@ -63,9 +68,9 @@ From the game center, select “钢铁防线 坦克大战” to play, or open th
 
 ## 运行方式 / How To Run
 
-直接使用现代浏览器打开 `tank-battle.html` 即可开始游戏；打开 `index.html` 可进入小游戏中心。
+直接使用现代浏览器打开 `tank-battle.html` 或 `three-kingdoms.html` 即可开始对应游戏；打开 `index.html` 可进入小游戏中心。
 
-Open `tank-battle.html` in a modern web browser to play; open `index.html` to view the game center.
+Open `tank-battle.html` or `three-kingdoms.html` in a modern web browser to play; open `index.html` to view the game center.
 
 ## 稳定版本标签 / Stable Version Tags
 
