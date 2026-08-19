@@ -52,7 +52,7 @@ From the game center, select “钢铁防线 坦克大战” to play, or open th
 
 <https://sunsharebay-lgtm.github.io/TK/tank-battle.html>
 
-三国 RPG 当前为第一版原创外壳开发状态，可直接打开：
+三国 RPG 当前为第一版原创探索切片，可直接打开，包含五个 16×16 区域、碰撞移动、地点交互、一次武将招募和独立存档；战斗系统仍留待后续任务实现：
 
 <https://sunsharebay-lgtm.github.io/TK/three-kingdoms.html>
 
