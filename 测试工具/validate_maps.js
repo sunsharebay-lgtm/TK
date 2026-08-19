@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* 坦克大战 · 地图校验脚本
- * 从 坦克大战.html 提取 STAGES，校验：
+ * 从 tank-battle.html 提取 STAGES，校验：
  *  1) 26 行 x 26 列
  *  2) 字符合法 (B S W T I .)
  *  3) 出生点/玩家出生点/基地 的 2x2 区域可清空且可达（深度>=8）
@@ -9,7 +9,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const FILE = process.argv[2] || path.join(__dirname, "..", "坦克大战", "坦克大战.html");
+const FILE = process.argv[2] || path.join(__dirname, "..", "tank-battle.html");
 const html = fs.readFileSync(FILE, "utf8");
 
 const GN = 26;
