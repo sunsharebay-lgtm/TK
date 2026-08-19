@@ -26,9 +26,9 @@ If this project interests you, please follow **大海的科技宝箱** on YouTub
 
 ## 当前版本 / Current Version
 
-当前正式版本：`v1.6`
+当前正式版本：`v1.6.1`
 
-Current release: `v1.6`
+Current release: `v1.6.1`
 
 详细更新内容见 [更新记录.md](更新记录.md)。
 
@@ -67,8 +67,8 @@ From the game center, select “钢铁防线 坦克大战” to play, or open th
 
 Open `tank-battle.html` in a modern web browser to play; open `index.html` to view the game center.
 
-## 版本原则 / Versioning
+## 稳定版本标签 / Stable Version Tags
 
-游戏功能完成阶段性成果后，经确认才会成为新的正式版本。正式版本会更新更新记录、归档上一版源码，并同步推送到本仓库。
+小游戏中心的版本号由 Git 稳定版本标签自动生成，不需要单独修改首页。发布新的正式游戏版本时，创建并推送形如 `v1.6.2` 的标签；GitHub Pages 工作流会读取最新的 `vX.Y.Z` 标签，生成 `game-catalog.json`，首页再自动展示对应的“稳定版”版本号。普通代码、文档或测试提交不会被当成新游戏版本。
 
-A milestone becomes an official release only after confirmation. Official releases update the changelog, archive the previous source snapshot, and are pushed to this repository.
+The game center reads its version numbers from Git stable-version tags, so the homepage does not need a separate manual edit. When publishing a new official game version, create and push a tag such as `v1.6.2`; the GitHub Pages workflow reads the newest `vX.Y.Z` tag, generates `game-catalog.json`, and the homepage displays the matching stable version automatically. Ordinary code, documentation, or test commits are not treated as new game releases.
