@@ -3,7 +3,7 @@ name: Deploy Tank Battle to GitHub Pages
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['game/**/v*']
   workflow_dispatch:
 
 permissions:
@@ -28,15 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Generate game version catalog
-        shell: bash
-        run: |
-          VERSION="$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)"
-          if [ -z "$VERSION" ]; then
-            echo "No stable version tag found (expected vX.Y.Z)." >&2
-            exit 1
-          fi
-          node scripts/generate-game-catalog.cjs "$VERSION"
-          echo "Using stable game version: $VERSION"
+        run: node scripts/generate-game-catalog.cjs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
