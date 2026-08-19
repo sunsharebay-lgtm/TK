@@ -21,6 +21,7 @@
       "tagNamespace": "game/three-kingdoms",
       "fallbackVersion": "v0.1.0",
       "statusWhenMissing": "开发版",
+      "statusWhenTagged": "稳定版",
       "version": "v0.1.0",
       "status": "开发版"
     }
