@@ -358,6 +358,12 @@
       color: var(--green);
     }
 
+    .game-version {
+      color: var(--amber);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
     .game-card h3 {
       margin: 44px 0 10px;
       font-size: clamp(27px, 4vw, 42px);
@@ -479,7 +485,7 @@
       <div class="games">
         <a class="game-card" href="./tank-battle.html">
           <div>
-            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 001</span></div>
+            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 001 · <span class="game-version" data-game-version="tank-battle">v1.6.1 稳定版</span></span></div>
             <h3>钢铁防线<br>坦克大战</h3>
             <p>经典即时战斗，关卡推进、敌方 AI、触屏操作和火力升级都已就位。</p>
           </div>
@@ -498,5 +504,22 @@
       <span>Play in browser · No download</span>
     </footer>
   </main>
+  <script>
+    (async function syncGameVersions() {
+      const slots = document.querySelectorAll('[data-game-version]');
+      if (!slots.length) return;
+      try {
+        const response = await fetch('./game-catalog.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error('version catalog unavailable');
+        const catalog = await response.json();
+        slots.forEach((slot) => {
+          const game = catalog.games && catalog.games.find((entry) => entry.id === slot.dataset.gameVersion);
+          if (game && game.version) slot.textContent = `${game.version} ${game.status || ''}`.trim();
+        });
+      } catch (_) {
+        // Keep the embedded stable-version fallback when the catalog is unavailable.
+      }
+    }());
+  </script>
 </body>
 </html>

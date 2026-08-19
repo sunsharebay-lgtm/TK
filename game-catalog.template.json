@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "type": "git-tag",
+    "version": "__VERSION__"
+  },
+  "games": [
+    {
+      "id": "tank-battle",
+      "title": "钢铁防线·坦克大战",
+      "url": "./tank-battle.html",
+      "version": "__VERSION__",
+      "status": "稳定版"
+    }
+  ]
+}
