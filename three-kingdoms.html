@@ -337,9 +337,9 @@
         }
       },
       ACTORS: {
-        'liu-bei': { id: 'liu-bei', name: '刘备', role: '白河行军主将', level: 1, troops: 38, maxTroops: 38, spirit: 15, color: '#79a9d1', visual: { robes: '#315b8b', trim: '#f4ead1', skin: '#e0a078', head: '#d6c48b', hair: '#263044', weapon: 'fan' } },
-        'guan-yu': { id: 'guan-yu', name: '关羽', role: '青袍义士', level: 1, troops: 44, maxTroops: 44, spirit: 17, color: '#55a894', visual: { robes: '#17685f', trim: '#b7d8c5', skin: '#b8654f', head: '#3b9c86', hair: '#251d1b', beard: '#241b1a', weapon: 'guandao' } },
-        'zhang-fei': { id: 'zhang-fei', name: '张飞', role: '玄甲猛将', level: 1, troops: 46, maxTroops: 46, spirit: 14, color: '#756b88', visual: { robes: '#252a3b', trim: '#a49778', skin: '#9d5846', head: '#3d3a48', hair: '#0f1118', beard: '#101118', weapon: 'spear' } },
+        'liu-bei': { id: 'liu-bei', name: '刘备', role: '白河行军主将', level: 1, troops: 38, maxTroops: 38, spirit: 15, color: '#79a9d1', visual: { robes: '#315b8b', trim: '#f4ead1', skin: '#e0a078', head: '#e8c84a', hair: '#263044', weapon: 'fan' } },
+        'guan-yu': { id: 'guan-yu', name: '关羽', role: '青袍义士', level: 1, troops: 44, maxTroops: 44, spirit: 17, color: '#55a894', visual: { robes: '#17685f', trim: '#b7d8c5', skin: '#c04030', head: '#3b9c86', hair: '#251d1b', beard: '#1a1210', weapon: 'guandao' } },
+        'zhang-fei': { id: 'zhang-fei', name: '张飞', role: '玄甲猛将', level: 1, troops: 46, maxTroops: 46, spirit: 14, color: '#756b88', visual: { robes: '#252a3b', trim: '#a49778', skin: '#9d5846', head: '#3d3a48', hair: '#0f1118', beard: '#080910', weapon: 'spear' } },
         yun: { id: 'yun', name: '云策', role: '行军策士', level: 1, troops: 36, maxTroops: 36, spirit: 14, color: '#e6b85d', visual: { robes: '#795b37', trim: '#e6b85d', skin: '#d99a73', head: '#b48d4d', hair: '#33251f', weapon: 'scroll' } },
         lan: { id: 'lan', name: '兰舟', role: '弦歌弓手', level: 1, troops: 30, maxTroops: 30, spirit: 12, color: '#75b6cf', visual: { robes: '#315c78', trim: '#9bd1dc', skin: '#e0a078', head: '#80b8cf', hair: '#252b3b', weapon: 'bow' } },
         he: { id: 'he', name: '何砺', role: '石甲卫', level: 1, troops: 42, maxTroops: 42, spirit: 9, color: '#d97862', visual: { robes: '#59404a', trim: '#c98768', skin: '#ba7657', head: '#9e7562', hair: '#28252a', weapon: 'shield' } },
@@ -670,6 +670,8 @@
         const selection = this.partySelection;
         if (action === 'up') selection.cursor = (selection.cursor + selection.options.length - 1) % selection.options.length;
         else if (action === 'down') selection.cursor = (selection.cursor + 1) % selection.options.length;
+        else if (action === 'left') selection.cursor = (selection.cursor + selection.options.length - 1) % selection.options.length;
+        else if (action === 'right') selection.cursor = (selection.cursor + 1) % selection.options.length;
         else if (action === 'confirm') {
           const id = selection.options[selection.cursor];
           const index = selection.selected.indexOf(id);
@@ -1105,22 +1107,31 @@
       context.fillStyle = visual.skin; context.fillRect(-37, top + 47 + frame, 10, 25); context.fillRect(27, top + 47 - frame, 10, 25);
       // sleeves
       context.fillStyle = visual.robes; context.fillRect(-38, top + 44 + frame, 12, 8); context.fillRect(26, top + 44 - frame, 12, 8);
-      // head (large)
+      // head (large) with crown highlight for liu-bei
       context.fillStyle = visual.head; context.fillRect(-25, top + 2, 50, 12);
+      if (actorId === 'liu-bei') { context.fillStyle = '#f0d050'; context.fillRect(-18, top - 1, 36, 6); context.fillRect(-10, top - 6, 20, 6); }
       // hair
       context.fillStyle = visual.hair; context.fillRect(-22, top + 5, 44, 30);
       // hair top knot
       context.fillRect(-6, top - 3, 12, 10);
       // face
       context.fillStyle = visual.skin; context.fillRect(-15, top + 14, 30, 24);
-      // eyes
-      context.fillStyle = '#0f0f18'; context.fillRect(-9, top + 20, 4, 5); context.fillRect(5, top + 20, 4, 5);
-      // eye whites
-      context.fillStyle = '#f0eee8'; context.fillRect(-8, top + 20, 2, 2); context.fillRect(6, top + 20, 2, 2);
+      // eye whites (larger, more visible)
+      context.fillStyle = '#f0eee8'; context.fillRect(-11, top + 19, 7, 6); context.fillRect(4, top + 19, 7, 6);
+      // eye pupils (black dots on white)
+      context.fillStyle = '#0f0f18'; context.fillRect(-8, top + 21, 4, 4); context.fillRect(5, top + 21, 4, 4);
       // mouth
       context.fillStyle = '#c04040'; context.fillRect(-3, top + 30, 6, 2);
-      // beard
-      if (visual.beard) { context.fillStyle = visual.beard; context.fillRect(-12, top + 30, 24, 18); context.fillRect(-7, top + 44, 14, 10); }
+      // beard (enhanced: wider coverage for all beard-bearing characters)
+      if (visual.beard) {
+        context.fillStyle = visual.beard;
+        context.fillRect(-14, top + 30, 28, 20);
+        context.fillRect(-9, top + 44, 18, 12);
+        // extra beard volume for zhang-fei
+        if (actorId === 'zhang-fei') { context.fillRect(-18, top + 28, 36, 8); context.fillRect(-12, top + 46, 24, 8); }
+        // extra beard for guan-yu
+        if (actorId === 'guan-yu') { context.fillRect(-10, top + 32, 20, 22); }
+      }
       // belt
       context.fillStyle = visual.trim; context.fillRect(-27, top + 43, 54, 4);
       // legs
@@ -1129,8 +1140,13 @@
       context.fillStyle = '#151722'; context.fillRect(-25, top + 92, 22, 7); context.fillRect(3, top + 92, 22, 7);
       // weapon
       context.strokeStyle = visual.trim; context.lineWidth = 3;
-      if (visual.weapon === 'guandao') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(42, top - 5); context.lineTo(57, top + 10); context.stroke(); }
-      else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(47, top - 10); context.stroke(); }
+      if (visual.weapon === 'guandao') {
+        // 青龙偃月刀：更长更大，刀刃明显
+        context.beginPath(); context.moveTo(35, top + 92); context.lineTo(42, top - 8); context.stroke();
+        context.beginPath(); context.moveTo(38, top - 8); context.lineTo(56, top + 5); context.stroke();
+        context.fillStyle = visual.trim; context.fillRect(50, top - 2, 8, 14);
+      }
+      else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(47, top - 10); context.stroke(); context.fillStyle = visual.trim; context.fillRect(43, top - 12, 8, 5); }
       else if (visual.weapon === 'fan') { context.fillStyle = '#f0d783'; context.fillRect(30, top + 50, 20, 15); context.stroke(); }
       else if (visual.weapon === 'bow') { context.beginPath(); context.arc(37, top + 57, 17, -1.2, 1.2); context.stroke(); }
       else if (visual.weapon === 'scroll') { context.fillStyle = '#e8dbb5'; context.fillRect(30, top + 50, 8, 22); context.stroke(); }
@@ -1163,13 +1179,17 @@
       } else {
         // open ground base
         context.fillStyle = tileColor(tileX, tileY, palette); context.fillRect(sx, sy, size, size);
-        // grass blades
-        if (seed > 2) {
-          context.strokeStyle = 'rgba(255,255,255,.1)'; context.lineWidth = 1;
-          const gx = sx + 10 + seed * 7; const gy = sy + 10 + seed2 * 5;
-          context.beginPath(); context.moveTo(gx, gy + 14); context.lineTo(gx + 2, gy); context.stroke();
-          context.beginPath(); context.moveTo(gx + 10, gy + 10); context.lineTo(gx + 14, gy); context.stroke();
-        }
+        // grass blades (multiple per tile for richer texture)
+        context.strokeStyle = 'rgba(255,255,255,.1)'; context.lineWidth = 1;
+        const gx = sx + 10 + seed * 7; const gy = sy + 10 + seed2 * 5;
+        context.beginPath(); context.moveTo(gx, gy + 14); context.lineTo(gx + 2, gy); context.stroke();
+        context.beginPath(); context.moveTo(gx + 10, gy + 10); context.lineTo(gx + 14, gy); context.stroke();
+        const gx2 = sx + 30 + seed2 * 5; const gy2 = sy + 20 + seed * 6;
+        context.beginPath(); context.moveTo(gx2, gy2 + 12); context.lineTo(gx2 + 3, gy2); context.stroke();
+        const gx3 = sx + 50 + seed * 3; const gy3 = sy + 8 + seed2 * 4;
+        context.strokeStyle = 'rgba(200,255,200,.08)';
+        context.beginPath(); context.moveTo(gx3, gy3 + 10); context.lineTo(gx3 - 1, gy3); context.stroke();
+        context.beginPath(); context.moveTo(gx3 + 8, gy3 + 8); context.lineTo(gx3 + 11, gy3 + 1); context.stroke();
         // tile border edge
         context.strokeStyle = 'rgba(0,0,0,.06)'; context.lineWidth = 1;
         context.strokeRect(sx + 1, sy + 1, size - 2, size - 2);
@@ -1215,7 +1235,7 @@
       if (Game.partySelection.visible) {
         panel(180, 151, 920, 418, '#101522', '#e2b75f');
         drawText('出战编成', 220, 180, '#f0bd57', 36);
-        drawText('方向选择 · A 切换 · 选满三人自动出战 · X 保留当前队伍', 220, 240, '#c3bba9', 20);
+        drawText('方向 / HJKL 选择 · 空格 / Enter 切换 · 选满三人自动出战 · Esc 保留当前队伍', 220, 240, '#c3bba9', 20);
         Game.partySelection.options.forEach((id, index) => {
           const selected = Game.partySelection.selected.includes(id);
           drawText(`${index === Game.partySelection.cursor ? '▶' : ' '} ${selected ? '■' : '□'} ${DATA.ACTORS[id].name}`, 250, 290 + index * 44, index === Game.partySelection.cursor ? '#f6e9c9' : '#8f9aaa', 28);
@@ -1228,19 +1248,24 @@
       const text = Game.dialogue[Game.dialoguePage] || '';
       drawText('对话', 40, 170, '#f0bd57', 20);
       drawText(text, 40, 210, '#f6e9c9', 22);
-      drawText('A 确认', 580, 295, '#75b6cf', 18, 'right');
+      drawText('Enter / 空格 确认', 580, 295, '#75b6cf', 18, 'right');
     }
     function renderBattle() {
       if (!ctx) return;
       const enemy = Battle.enemy || { name: '未定敌阵', troops: 0, morale: 0 };
-      ctx.fillStyle = '#151424'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      // gradient background (sky/terrain)
+      const grad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+      grad.addColorStop(0, '#1a2040');
+      grad.addColorStop(0.4, '#252a48');
+      grad.addColorStop(1, '#151424');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, WIDTH, HEIGHT);
       drawText(Battle.encounter ? Battle.encounter.name : '遭遇战', 50, 40, '#f0bd57', 40);
       ctx.fillStyle = '#383458'; ctx.fillRect(50, 100, 1180, 280);
       const enemyId = Battle.encounter && DATA.ENEMIES[Battle.encounter.enemy] ? Battle.encounter.enemy : null;
       drawText('敌阵', 90, 130, '#f2d895', 26);
       drawText(enemy.name, 640, 140, '#e89b81', 36, 'center');
       drawText(`兵力 ${String(enemy.troops).padStart(2, '0')}  士气 ${String(enemy.morale).padStart(2, '0')}`, 640, 200, '#c3bba9', 26, 'center');
-      if (enemyId) drawActorSprite(ctx, enemyId, 1060, 200, { flip: true, height: 100 });
+      if (enemyId) drawActorSprite(ctx, enemyId, 1060, 200, { flip: true, height: 140 });
       ctx.fillStyle = '#6b638a'; ctx.fillRect(90, 340, Math.max(0, Math.round(1060 * enemy.troops / Math.max(1, DATA.ENEMIES[Battle.encounter.enemy].troops))), 20);
       let line = 430;
       Object.values(Battle.party || {}).forEach((actor, index) => {
@@ -1250,7 +1275,7 @@
       panel(40, 570, 1200, 130, '#111522', '#5a4a34');
       drawText('1 进击  2 计策  3 防守  4 道具  5 撤退', 70, 592, '#f6e9c9', 24);
       const latest = Battle.log && Battle.log[Battle.log.length - 1];
-      drawText(latest ? latest.text : '选择行动，守住这条路。', 70, 630, '#c3bba9', 22);
+      drawText(latest ? latest.text : '选择行动，守住这条路。', 70, 630, '#c3bba9', 24);
       drawText(`回合 ${Battle.round}  · ${Battle.pendingActors ? '等待队伍指令' : '行动焦点：全队'}`, 70, 660, '#a99d86', 22);
       drawText('数字键 / 触控按钮 · X 返回', 1180, 660, '#5da3c9', 20, 'right');
     }
@@ -1264,7 +1289,7 @@
       const list = items.length ? items : ['队伍将继续向营地前进'];
       list.slice(0, 6).forEach((text, index) => drawText(`${index + 1}. ${text}`, 150, 200 + index * 56, '#f6e9c9', 26));
       drawText('前往营地进行整备，准备进入下一阶段。', 640, 580, '#a99d86', 20, 'center');
-      drawText('A 确认继续    X 返回标题', 640, 640, '#75b6cf', 20, 'center');
+      drawText('Enter / 空格 确认继续    Esc 返回标题', 640, 640, '#75b6cf', 20, 'center');
     }
     function renderChapterTransition() {
       if (!ctx) return;
@@ -1274,7 +1299,7 @@
       drawText('古 驿 道', 640, 280, '#c8dbdf', 32, 'center');
       ctx.fillStyle = '#263f50'; ctx.fillRect(440, 330, 400, 4);
       drawText('新的征途即将开始……', 640, 360, '#a99d86', 22, 'center');
-      drawText('A 确认继续', 640, 580, '#75b6cf', 22, 'center');
+      drawText('Enter / 空格 确认继续', 640, 580, '#75b6cf', 22, 'center');
     }
     function renderSpecialState() {
       if (!ctx) return;
@@ -1288,7 +1313,7 @@
       } else {
         drawText(Game.state === 'camp' ? '整理行囊，下一程仍在等候。' : Game.state === 'game-over' ? '队伍全员败退，旅程暂告中止。' : '道路清晰了一些。', 640, 200, '#c3bba9', 22, 'center');
       }
-      drawText(Game.state === 'battle-result' ? 'A 确认战果    X 返回标题' : 'A 确认继续    X 返回标题', 640, 360, '#75b6cf', 20, 'center');
+      drawText(Game.state === 'battle-result' ? 'Enter 确认战果    Esc 返回标题' : 'Enter 确认继续    Esc 返回标题', 640, 360, '#75b6cf', 20, 'center');
     }
     function render() {
       if (Game.state === 'title') renderTitle();
@@ -1302,20 +1327,12 @@
 
     function step(action) {
       if (Game.state === 'world' && Game.partySelection.visible) {
+        let handled = false;
         for (const actionName of ['up', 'down', 'confirm', 'cancel']) {
-          if (Input.consume(actionName)) {
-            if (actionName === 'up' || actionName === 'down') {
-              Game.partyInput(actionName);
-            } else {
-              Game.partyInput(actionName);
-            }
-          }
+          if (Input.consume(actionName)) { Game.partyInput(actionName); handled = true; }
         }
-        for (const dir of ['up', 'down', 'left', 'right']) {
-          if (Input.consume(dir)) {
-            const result = World.move(dir);
-            if (result.blocked) Game.message = '前方是无法通行的地形。';
-          }
+        for (const dir of ['left', 'right']) {
+          if (Input.consume(dir)) { Game.partyInput(dir); handled = true; }
         }
         render();
         return;
