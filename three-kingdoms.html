@@ -29,7 +29,7 @@
         linear-gradient(160deg, #090b12 0%, #11131d 48%, #08090e 100%);
     }
     .console {
-      width: min(820px, calc(100% - 28px));
+      width: min(1340px, calc(100% - 28px));
       margin: 0 auto;
       padding: clamp(16px, 4vw, 34px) 0 28px;
     }
@@ -70,9 +70,9 @@
     }
     canvas {
       display: block;
-      width: min(100%, 768px);
+      width: min(100%, 1280px);
       height: auto;
-      aspect-ratio: 16 / 15;
+      aspect-ratio: 16 / 9;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       background: #111421;
@@ -126,7 +126,7 @@
     .hint strong { color: var(--gold); font-weight: normal; }
     .footer-note { margin: 15px 4px 0; color: #746d61; font-size: 10px; line-height: 1.6; text-align: center; }
     @media (max-width: 560px) {
-      .console { width: min(100% - 18px, 820px); }
+      .console { width: min(100% - 18px, 1340px); }
       .console-head { align-items: start; flex-direction: column; gap: 6px; }
       .control-deck { grid-template-columns: 1fr 1fr; gap: 12px; }
       .hint { grid-column: 1 / -1; grid-row: 1; }
@@ -149,7 +149,7 @@
     </header>
     <section class="screen-shell" aria-label="九州烽烟游戏屏幕">
       <div class="screen-bezel">
-        <canvas id="game-canvas" width="512" height="480" aria-label="九州烽烟虚拟游戏画布"></canvas>
+        <canvas id="game-canvas" width="1280" height="720" aria-label="九州烽烟虚拟游戏画布"></canvas>
       </div>
       <div class="control-deck" aria-label="移动控制器">
         <div class="dpad" aria-label="方向键">
@@ -178,10 +178,11 @@
   (() => {
     'use strict';
 
-    const WIDTH = 512;
-    const HEIGHT = 480;
-    const MAP_TILE_SIZE = 32;
-    const MAP_VIEW_HEIGHT = 360;
+    const WIDTH = 1280;
+    const HEIGHT = 720;
+    const MAP_TILE_SIZE = 80;
+    const MAP_VIEW_HEIGHT = HEIGHT - 120;
+    const MAP_VIEW_WIDTH = WIDTH;
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
     if (canvas) { canvas.width = WIDTH; canvas.height = HEIGHT; }
@@ -1053,7 +1054,7 @@
       const seed = (x * 17 + y * 31 + x * y) % 7;
       return palette[seed === 0 ? 2 : seed < 3 ? 1 : 0];
     }
-    function drawText(text, x, y, color = '#f6e9c9', size = 8, align = 'left') {
+    function drawText(text, x, y, color = '#f6e9c9', size = 20, align = 'left') {
       if (!ctx) return;
       ctx.font = `${size}px monospace`;
       ctx.textAlign = align;
@@ -1064,19 +1065,19 @@
     function panel(x, y, width, height, fill = '#111522', stroke = '#d0a75b') {
       if (!ctx) return;
       ctx.fillStyle = fill; ctx.fillRect(x, y, width, height);
-      ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+      ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
     }
     function renderTitle() {
       if (!ctx) return;
       ctx.fillStyle = '#0b101c'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      for (let y = 0; y < HEIGHT; y += 8) { ctx.fillStyle = y % 16 ? '#0e1723' : '#111d2b'; ctx.fillRect(0, y, WIDTH, 4); }
-      drawText('九州烽烟', 128, 40, '#f0bd57', 24, 'center');
-      drawText('漢  末  群  雄', 128, 75, '#c8dbdf', 9, 'center');
-      ctx.fillStyle = '#263f50'; ctx.fillRect(36, 104, 184, 2);
-      drawText('一支小队 · 四处山河 · 一盏微灯', 128, 119, '#a99d86', 8, 'center');
-      drawText('▶  新的旅程', 128, 157, '#f6e9c9', 10, 'center');
-      drawText('原创开发版  0.1', 128, 188, '#65768b', 7, 'center');
-      drawText('CONFIRM / ENTER', 128, 207, '#5da3c9', 7, 'center');
+      for (let y = 0; y < HEIGHT; y += 20) { ctx.fillStyle = y % 40 ? '#0e1723' : '#111d2b'; ctx.fillRect(0, y, WIDTH, 10); }
+      drawText('九州烽烟', 640, 80, '#f0bd57', 60, 'center');
+      drawText('漢  末  群  雄', 640, 160, '#c8dbdf', 28, 'center');
+      ctx.fillStyle = '#263f50'; ctx.fillRect(440, 210, 400, 4);
+      drawText('一支小队 · 四处山河 · 一盏微灯', 640, 240, '#a99d86', 20, 'center');
+      drawText('▶  新的旅程', 640, 320, '#f6e9c9', 28, 'center');
+      drawText('原创开发版  0.1', 640, 390, '#65768b', 18, 'center');
+      drawText('CONFIRM / ENTER', 640, 430, '#5da3c9', 18, 'center');
     }
     function drawActorSprite(context, actorId, x, y, options = {}) {
       const actor = DATA.ACTORS[actorId] || { visual: { robes: '#6b638a', trim: '#d97862', skin: '#9d5846', head: '#493b52', hair: '#15131b', weapon: 'spear' } };
@@ -1084,36 +1085,38 @@
       const visual = actor.visual || { robes: actor.color, trim: '#f6e9c9', skin: '#d99a73', head: actor.color, hair: '#202020', weapon: 'staff' };
       const frame = options.frame === 1 ? 2 : 0;
       const flip = options.flip ? -1 : 1;
-      const ox = x + (options.width || 32) / 2;
-      const top = y + (options.height || 40) - 37;
+      const sw = options.width || 80;
+      const sh = options.height || 100;
+      const ox = x + sw / 2;
+      const top = y + sh - 92;
       context.save();
       context.translate(ox, 0);
       context.scale(flip, 1);
-      context.fillStyle = 'rgba(0,0,0,.34)'; context.fillRect(-14, y + 37, 28, 4);
-      context.fillStyle = visual.hair; context.fillRect(-9, top + 2, 18, 12);
-      context.fillStyle = visual.skin; context.fillRect(-7, top + 6, 14, 10);
-      context.fillStyle = visual.head; context.fillRect(-10, top + 1, 20, 5);
-      context.fillStyle = visual.trim; context.fillRect(-6, top + 15, 12, 3);
-      context.fillStyle = visual.robes; context.fillRect(-11, top + 18, 22, 13);
-      context.fillStyle = visual.trim; context.fillRect(-3, top + 18, 6, 13);
-      context.fillStyle = visual.skin; context.fillRect(-15, top + 19 + frame, 4, 10); context.fillRect(11, top + 19 - frame, 4, 10);
-      context.fillStyle = '#222333'; context.fillRect(-8, top + 31, 6, 7); context.fillRect(2, top + 31, 6, 7);
-      context.fillStyle = '#151722'; context.fillRect(-10, top + 37, 9, 3); context.fillRect(1, top + 37, 9, 3);
-      if (visual.beard) { context.fillStyle = visual.beard; context.fillRect(-5, top + 12, 10, 7); context.fillRect(-3, top + 18, 6, 4); }
-      context.strokeStyle = visual.trim; context.lineWidth = 2;
-      if (visual.weapon === 'guandao') { context.beginPath(); context.moveTo(14, top + 37); context.lineTo(17, top - 2); context.lineTo(23, top + 4); context.stroke(); }
-      else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(14, top + 37); context.lineTo(19, top - 4); context.stroke(); }
-      else if (visual.weapon === 'fan') { context.fillStyle = '#f0d783'; context.fillRect(12, top + 20, 8, 6); context.stroke(); }
-      else if (visual.weapon === 'bow') { context.beginPath(); context.arc(15, top + 23, 7, -1.2, 1.2); context.stroke(); }
-      else { context.fillStyle = visual.trim; context.fillRect(12, top + 20, 4, 12); }
+      context.fillStyle = 'rgba(0,0,0,.34)'; context.fillRect(-35, y + 92, 70, 10);
+      context.fillStyle = visual.hair; context.fillRect(-22, top + 5, 44, 30);
+      context.fillStyle = visual.skin; context.fillRect(-17, top + 15, 34, 25);
+      context.fillStyle = visual.head; context.fillRect(-25, top + 2, 50, 12);
+      context.fillStyle = visual.trim; context.fillRect(-15, top + 37, 30, 7);
+      context.fillStyle = visual.robes; context.fillRect(-27, top + 44, 54, 32);
+      context.fillStyle = visual.trim; context.fillRect(-7, top + 44, 14, 32);
+      context.fillStyle = visual.skin; context.fillRect(-37, top + 47 + frame, 10, 25); context.fillRect(27, top + 47 - frame, 10, 25);
+      context.fillStyle = '#222333'; context.fillRect(-20, top + 76, 15, 17); context.fillRect(5, top + 76, 15, 17);
+      context.fillStyle = '#151722'; context.fillRect(-25, top + 92, 22, 7); context.fillRect(3, top + 92, 22, 7);
+      if (visual.beard) { context.fillStyle = visual.beard; context.fillRect(-12, top + 30, 24, 17); context.fillRect(-7, top + 44, 14, 10); }
+      context.strokeStyle = visual.trim; context.lineWidth = 3;
+      if (visual.weapon === 'guandao') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(42, top - 5); context.lineTo(57, top + 10); context.stroke(); }
+      else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(47, top - 10); context.stroke(); }
+      else if (visual.weapon === 'fan') { context.fillStyle = '#f0d783'; context.fillRect(30, top + 50, 20, 15); context.stroke(); }
+      else if (visual.weapon === 'bow') { context.beginPath(); context.arc(37, top + 57, 17, -1.2, 1.2); context.stroke(); }
+      else { context.fillStyle = visual.trim; context.fillRect(30, top + 50, 10, 30); }
       context.restore();
       return true;
     }
     function viewportFor(worldX, worldY) {
-      const maxX = Math.max(0, 16 * MAP_TILE_SIZE - WIDTH);
+      const maxX = Math.max(0, 16 * MAP_TILE_SIZE - MAP_VIEW_WIDTH);
       const maxY = Math.max(0, 16 * MAP_TILE_SIZE - MAP_VIEW_HEIGHT);
       return {
-        x: Math.max(0, Math.min(maxX, worldX * MAP_TILE_SIZE - WIDTH / 2 + MAP_TILE_SIZE / 2)),
+        x: Math.max(0, Math.min(maxX, worldX * MAP_TILE_SIZE - MAP_VIEW_WIDTH / 2 + MAP_TILE_SIZE / 2)),
         y: Math.max(0, Math.min(maxY, worldY * MAP_TILE_SIZE - MAP_VIEW_HEIGHT / 2 + MAP_TILE_SIZE / 2))
       };
     }
@@ -1124,103 +1127,108 @@
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, WIDTH, MAP_VIEW_HEIGHT); ctx.clip();
       ctx.fillStyle = map.palette[0]; ctx.fillRect(0, 0, WIDTH, MAP_VIEW_HEIGHT);
       const cell = MAP_TILE_SIZE;
-      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const startCol = Math.max(0, Math.floor(camera.x / cell));
+      const endCol = Math.min(15, Math.ceil((camera.x + MAP_VIEW_WIDTH) / cell));
+      const startRow = Math.max(0, Math.floor(camera.y / cell));
+      const endRow = Math.min(15, Math.ceil((camera.y + MAP_VIEW_HEIGHT) / cell));
+      for (let y = startRow; y <= endRow; y++) for (let x = startCol; x <= endCol; x++) {
         const sx = x * cell - camera.x; const sy = y * cell - camera.y;
         const wall = map.tiles[y][x] === '#';
         ctx.fillStyle = wall ? map.palette[2] : tileColor(x, y, map.palette);
         ctx.fillRect(sx, sy, cell, cell);
-        if (!wall) { ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(sx + 5, sy + 5, 4, 4); }
+        if (!wall) { ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(sx + 10, sy + 10, 8, 8); }
       }
       for (const point of map.interactions) {
-        const px = point.x * cell - camera.x + 10; const py = point.y * cell - camera.y + 10;
-        if (point.actorId) drawActorSprite(ctx, point.actorId, point.x * cell - camera.x, point.y * cell - camera.y - 7, { frame: 0 });
-        else { ctx.fillStyle = point.kind === 'npc' ? '#d1b66a' : point.kind === 'chest' ? '#a96d4f' : point.kind === 'recovery' ? '#79b89b' : '#78a6cf'; ctx.fillRect(px, py, 12, 12); }
+        if (point.x < startCol || point.x > endCol || point.y < startRow || point.y > endRow) continue;
+        const px = point.x * cell - camera.x + 20; const py = point.y * cell - camera.y + 20;
+        if (point.actorId) drawActorSprite(ctx, point.actorId, point.x * cell - camera.x, point.y * cell - camera.y - 18, { frame: 0 });
+        else { ctx.fillStyle = point.kind === 'npc' ? '#d1b66a' : point.kind === 'chest' ? '#a96d4f' : point.kind === 'recovery' ? '#79b89b' : '#78a6cf'; ctx.fillRect(px, py, 30, 30); }
       }
-      drawActorSprite(ctx, World.party[0] || 'liu-bei', World.x * cell - camera.x, World.y * cell - camera.y - 7, { frame: (World.x + World.y) % 2 });
+      drawActorSprite(ctx, World.party[0] || 'liu-bei', World.x * cell - camera.x, World.y * cell - camera.y - 18, { frame: (World.x + World.y) % 2 });
       ctx.restore();
       panel(0, MAP_VIEW_HEIGHT, WIDTH, HEIGHT - MAP_VIEW_HEIGHT, '#111522', '#5a4a34');
-      drawText(map.name, 18, MAP_VIEW_HEIGHT + 14, '#f0bd57', 18);
-      drawText(`章 ${Game.chapter} · 目标：${Game.currentObjective || World.objective}`, 18, MAP_VIEW_HEIGHT + 43, '#c3bba9', 13);
-      drawText(Game.message || map.hint, 18, MAP_VIEW_HEIGHT + 69, '#c3bba9', 12);
-      drawText(`队伍 ${World.party.length || 0}/3`, 474, MAP_VIEW_HEIGHT + 18, '#75b6cf', 12, 'right');
-      World.party.slice(0, 3).forEach((id, index) => { drawActorSprite(ctx, id, 340 + index * 54, MAP_VIEW_HEIGHT + 45, { frame: index % 2, height: 40 }); drawText(DATA.ACTORS[id].name, 356 + index * 54, MAP_VIEW_HEIGHT + 91, '#f6e9c9', 10, 'center'); });
+      drawText(map.name, 36, MAP_VIEW_HEIGHT + 24, '#f0bd57', 36);
+      drawText(`章 ${Game.chapter} · 目标：${Game.currentObjective || World.objective}`, 36, MAP_VIEW_HEIGHT + 72, '#c3bba9', 24);
+      drawText(Game.message || map.hint, 36, MAP_VIEW_HEIGHT + 108, '#c3bba9', 20);
+      drawText(`队伍 ${World.party.length || 0}/3`, WIDTH - 50, MAP_VIEW_HEIGHT + 28, '#75b6cf', 24, 'right');
+      World.party.slice(0, 3).forEach((id, index) => { drawActorSprite(ctx, id, 850 + index * 135, MAP_VIEW_HEIGHT + 40, { frame: index % 2, height: 100 }); drawText(DATA.ACTORS[id].name, 890 + index * 135, MAP_VIEW_HEIGHT + 150, '#f6e9c9', 20, 'center'); });
       if (Game.partySelection.visible) {
-        panel(72, 76, 368, 218, '#101522', '#e2b75f');
-        drawText('出战编成', 94, 96, '#f0bd57', 18);
-        drawText('方向选择 · A 切换 · 选满三人自动出战 · X 保留当前队伍', 94, 125, '#c3bba9', 11);
+        panel(180, 151, 920, 418, '#101522', '#e2b75f');
+        drawText('出战编成', 220, 180, '#f0bd57', 36);
+        drawText('方向选择 · A 切换 · 选满三人自动出战 · X 保留当前队伍', 220, 240, '#c3bba9', 20);
         Game.partySelection.options.forEach((id, index) => {
           const selected = Game.partySelection.selected.includes(id);
-          drawText(`${index === Game.partySelection.cursor ? '▶' : ' '} ${selected ? '■' : '□'} ${DATA.ACTORS[id].name}`, 105, 155 + index * 22, index === Game.partySelection.cursor ? '#f6e9c9' : '#8f9aaa', 14);
+          drawText(`${index === Game.partySelection.cursor ? '▶' : ' '} ${selected ? '■' : '□'} ${DATA.ACTORS[id].name}`, 250, 290 + index * 44, index === Game.partySelection.cursor ? '#f6e9c9' : '#8f9aaa', 28);
         });
       }
     }
     function renderDialogue() {
       renderWorld();
-      panel(8, 151, 240, 80, '#101522', '#e2b75f');
+      panel(20, 151, 600, 180, '#101522', '#e2b75f');
       const text = Game.dialogue[Game.dialoguePage] || '';
-      drawText('对话', 17, 160, '#f0bd57', 8);
-      drawText(text, 17, 178, '#f6e9c9', 8);
-      drawText('A 确认', 232, 215, '#75b6cf', 7, 'right');
+      drawText('对话', 40, 170, '#f0bd57', 20);
+      drawText(text, 40, 210, '#f6e9c9', 22);
+      drawText('A 确认', 580, 295, '#75b6cf', 18, 'right');
     }
     function renderBattle() {
       if (!ctx) return;
       const enemy = Battle.enemy || { name: '未定敌阵', troops: 0, morale: 0 };
       ctx.fillStyle = '#151424'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      drawText(Battle.encounter ? Battle.encounter.name : '遭遇战', 24, 22, '#f0bd57', 20);
-      ctx.fillStyle = '#383458'; ctx.fillRect(24, 60, 464, 148);
+      drawText(Battle.encounter ? Battle.encounter.name : '遭遇战', 50, 40, '#f0bd57', 40);
+      ctx.fillStyle = '#383458'; ctx.fillRect(50, 100, 1180, 280);
       const enemyId = Battle.encounter && DATA.ENEMIES[Battle.encounter.enemy] ? Battle.encounter.enemy : null;
-      drawText('敌阵', 44, 76, '#f2d895', 13);
-      drawText(enemy.name, 256, 78, '#e89b81', 18, 'center');
-      drawText(`兵力 ${String(enemy.troops).padStart(2, '0')}  士气 ${String(enemy.morale).padStart(2, '0')}`, 256, 111, '#c3bba9', 13, 'center');
-      if (enemyId) drawActorSprite(ctx, enemyId, 426, 120, { flip: true, height: 40 });
-      ctx.fillStyle = '#6b638a'; ctx.fillRect(44, 180, Math.max(0, Math.round(424 * enemy.troops / Math.max(1, DATA.ENEMIES[Battle.encounter.enemy].troops))), 12);
-      let line = 238;
+      drawText('敌阵', 90, 130, '#f2d895', 26);
+      drawText(enemy.name, 640, 140, '#e89b81', 36, 'center');
+      drawText(`兵力 ${String(enemy.troops).padStart(2, '0')}  士气 ${String(enemy.morale).padStart(2, '0')}`, 640, 200, '#c3bba9', 26, 'center');
+      if (enemyId) drawActorSprite(ctx, enemyId, 1060, 200, { flip: true, height: 100 });
+      ctx.fillStyle = '#6b638a'; ctx.fillRect(90, 340, Math.max(0, Math.round(1060 * enemy.troops / Math.max(1, DATA.ENEMIES[Battle.encounter.enemy].troops))), 20);
+      let line = 430;
       Object.values(Battle.party || {}).forEach((actor, index) => {
-        drawActorSprite(ctx, actor.id, 36 + (index % 4) * 92, line - 10, { frame: index % 2 });
-        drawText(`${actor.name} ${String(actor.troops).padStart(2, '0')}/${actor.maxTroops}`, 74 + (index % 4) * 92, line + 4, actor.troops > 0 ? '#f6e9c9' : '#6e6670', 11, 'center');
+        drawActorSprite(ctx, actor.id, 80 + (index % 4) * 220, line - 20, { frame: index % 2 });
+        drawText(`${actor.name} ${String(actor.troops).padStart(2, '0')}/${actor.maxTroops}`, 180 + (index % 4) * 220, line + 8, actor.troops > 0 ? '#f6e9c9' : '#6e6670', 22, 'center');
       });
-      panel(18, 326, 476, 138, '#111522', '#5a4a34');
-      drawText('1 进击  2 计策  3 防守  4 道具  5 撤退', 36, 344, '#f6e9c9', 13);
+      panel(40, 570, 1200, 130, '#111522', '#5a4a34');
+      drawText('1 进击  2 计策  3 防守  4 道具  5 撤退', 70, 592, '#f6e9c9', 24);
       const latest = Battle.log && Battle.log[Battle.log.length - 1];
-      drawText(latest ? latest.text : '选择行动，守住这条路。', 36, 378, '#c3bba9', 12);
-      drawText(`回合 ${Battle.round}  · ${Battle.pendingActors ? '等待队伍指令' : '行动焦点：全队'}`, 36, 411, '#a99d86', 12);
-      drawText('数字键 / 触控按钮 · X 返回', 36, 440, '#5da3c9', 12);
+      drawText(latest ? latest.text : '选择行动，守住这条路。', 70, 630, '#c3bba9', 22);
+      drawText(`回合 ${Battle.round}  · ${Battle.pendingActors ? '等待队伍指令' : '行动焦点：全队'}`, 70, 660, '#a99d86', 22);
+      drawText('数字键 / 触控按钮 · X 返回', 1180, 660, '#5da3c9', 20, 'right');
     }
     function renderChapterSummary() {
       if (!ctx) return;
       const summary = Game.chapterSummary || World.chapterSummary || { title: '第一章', items: [] };
       ctx.fillStyle = '#0d1118'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      drawText(`${summary.title || '章节结算'} · ${summary.completed ? '完成' : '回顾'}`, 128, 34, '#f0bd57', 18, 'center');
-      drawText('要点回顾', 56, 78, '#c8dbdf', 13);
+      drawText(`${summary.title || '章节结算'} · ${summary.completed ? '完成' : '回顾'}`, 640, 60, '#f0bd57', 36, 'center');
+      drawText('要点回顾', 120, 140, '#c8dbdf', 26);
       const items = Array.isArray(summary.items) ? summary.items : [];
       const list = items.length ? items : ['队伍将继续向营地前进'];
-      list.slice(0, 6).forEach((text, index) => drawText(`${index + 1}. ${text}`, 72, 112 + index * 28, '#f6e9c9', 13));
-      drawText('前往营地进行整备，准备进入下一阶段。', 128, 310, '#a99d86', 9, 'center');
-      drawText('A 确认继续    X 返回标题', 128, 404, '#75b6cf', 9, 'center');
+      list.slice(0, 6).forEach((text, index) => drawText(`${index + 1}. ${text}`, 150, 200 + index * 56, '#f6e9c9', 26));
+      drawText('前往营地进行整备，准备进入下一阶段。', 640, 580, '#a99d86', 20, 'center');
+      drawText('A 确认继续    X 返回标题', 640, 640, '#75b6cf', 20, 'center');
     }
     function renderChapterTransition() {
       if (!ctx) return;
       ctx.fillStyle = '#0b0f1a'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      for (let y = 0; y < HEIGHT; y += 8) { ctx.fillStyle = y % 16 ? '#0d1522' : '#0f1928'; ctx.fillRect(0, y, WIDTH, 4); }
-      drawText('第二章', 128, 120, '#f0bd57', 24, 'center');
-      drawText('古 驿 道', 128, 160, '#c8dbdf', 14, 'center');
-      ctx.fillStyle = '#263f50'; ctx.fillRect(56, 195, 144, 2);
-      drawText('新的征途即将开始……', 128, 215, '#a99d86', 9, 'center');
-      drawText('A 确认继续', 128, 360, '#75b6cf', 9, 'center');
+      for (let y = 0; y < HEIGHT; y += 20) { ctx.fillStyle = y % 40 ? '#0d1522' : '#0f1928'; ctx.fillRect(0, y, WIDTH, 10); }
+      drawText('第二章', 640, 200, '#f0bd57', 60, 'center');
+      drawText('古 驿 道', 640, 280, '#c8dbdf', 32, 'center');
+      ctx.fillStyle = '#263f50'; ctx.fillRect(440, 330, 400, 4);
+      drawText('新的征途即将开始……', 640, 360, '#a99d86', 22, 'center');
+      drawText('A 确认继续', 640, 580, '#75b6cf', 22, 'center');
     }
     function renderSpecialState() {
       if (!ctx) return;
       ctx.fillStyle = '#0e121c'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
       const titles = { 'battle-result': '战斗记录', camp: '静松营', 'game-over': '灯火暂熄' };
-      drawText(titles[Game.state] || '', 128, 42, '#f0bd57', 16, 'center');
+      drawText(titles[Game.state] || '', 640, 80, '#f0bd57', 36, 'center');
       if (Game.state === 'battle-result' && Battle.result) {
         const resultText = Battle.status === 'victory' ? `胜利 · 获得 ${Battle.enemy.reward} 军粮` : '撤退 · 未获得战果';
-        drawText(resultText, 128, 86, '#f6e9c9', 9, 'center');
-        drawText(Battle.log[Battle.log.length - 1]?.text || '', 128, 112, '#c3bba9', 7, 'center');
+        drawText(resultText, 640, 160, '#f6e9c9', 22, 'center');
+        drawText(Battle.log[Battle.log.length - 1]?.text || '', 640, 210, '#c3bba9', 18, 'center');
       } else {
-        drawText(Game.state === 'camp' ? '整理行囊，下一程仍在等候。' : Game.state === 'game-over' ? '队伍全员败退，旅程暂告中止。' : '道路清晰了一些。', 128, 100, '#c3bba9', 8, 'center');
+        drawText(Game.state === 'camp' ? '整理行囊，下一程仍在等候。' : Game.state === 'game-over' ? '队伍全员败退，旅程暂告中止。' : '道路清晰了一些。', 640, 200, '#c3bba9', 22, 'center');
       }
-      drawText(Game.state === 'battle-result' ? 'A 确认战果    X 返回标题' : 'A 确认继续    X 返回标题', 128, 182, '#75b6cf', 8, 'center');
+      drawText(Game.state === 'battle-result' ? 'A 确认战果    X 返回标题' : 'A 确认继续    X 返回标题', 640, 360, '#75b6cf', 20, 'center');
     }
     function render() {
       if (Game.state === 'title') renderTitle();
