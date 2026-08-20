@@ -123,9 +123,9 @@ for (const table of ['MAPS', 'ACTORS', 'ENEMIES', 'TACTICS', 'ITEMS', 'DIALOGUES
   assert.ok(Object.keys(context.DATA[table]).length > 0, `DATA.${table} 不能为空`);
 }
 const canvas = context.document.getElementById('game-canvas');
-assert.equal(canvas.width, 512, 'virtual canvas 宽度必须为 512');
-assert.equal(canvas.height, 480, 'virtual canvas 高度必须为 480');
-assert.equal(context.DATA.MAP_TILE_SIZE, 32, '地图 tileSize 必须为 32');
+assert.equal(canvas.width, 1280, 'virtual canvas 宽度必须为 1280');
+assert.equal(canvas.height, 720, 'virtual canvas 高度必须为 720');
+assert.equal(context.DATA.MAP_TILE_SIZE, 80, '地图 tileSize 必须为 80');
 assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
 for (const actorId of ['liu-bei', 'guan-yu', 'zhang-fei']) {
   const actor = context.DATA.ACTORS[actorId];
