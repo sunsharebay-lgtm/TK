@@ -118,13 +118,13 @@ assert.equal(context.Game.startNew(), 'world', 'Game.startNew() 应进入 world'
 assert.equal(context.Game.state, 'world');
 assert.equal(context.Game.enterWorld('field'), 'world', 'field 地图必须可进入');
 assert.equal(context.Game.mapId, 'field');
-for (const table of ['MAPS', 'ACTORS', 'ENEMIES', 'TACTICS', 'ITEMS', 'DIALOGUES']) {
+for (const table of ['MAPS', 'ACTORS', 'ENEMIES', 'TACTICS', 'ITEMS', 'DIALOGUES', 'QUESTS']) {
   assert.ok(context.DATA && context.DATA[table], `DATA.${table} 必须存在`);
   assert.ok(Object.keys(context.DATA[table]).length > 0, `DATA.${table} 不能为空`);
 }
 const canvas = context.document.getElementById('game-canvas');
 assert.equal(canvas.width, 512, 'virtual canvas 宽度必须为 512');
-assert.equal(canvas.height, 480, 'virtual canvas高度必须为 480');
+assert.equal(canvas.height, 480, 'virtual canvas 高度必须为 480');
 assert.equal(context.DATA.MAP_TILE_SIZE, 32, '地图 tileSize 必须为 32');
 assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
 for (const actorId of ['liu-bei', 'guan-yu', 'zhang-fei']) {
@@ -147,7 +147,7 @@ for (const action of ['up', 'down', 'left', 'right', 'confirm', 'cancel', 'battl
 assert.ok(context.World, 'World 必须暴露探索系统');
 assert.equal(typeof context.World.move, 'function', 'World.move 必须暴露');
 assert.equal(typeof context.World.interact, 'function', 'World.interact 必须暴露');
-assert.deepEqual(Object.keys(context.DATA.MAPS).sort(), ['boss-gate', 'camp', 'field', 'mountain', 'town'], '必须包含五个原创区域');
+assert.deepEqual(Object.keys(context.DATA.MAPS).sort(), ['boss-gate', 'camp', 'field', 'mountain', 'reed-cave', 'town'], '必须包含六个原创区域');
 for (const map of Object.values(context.DATA.MAPS)) {
   assert.equal(map.tiles.length, 16, `${map.id} 必须是 16 行地图`);
   assert.ok(map.tiles.every((row) => row.length === 16), `${map.id} 必须是 16x16 地图`);
@@ -184,6 +184,11 @@ assert.equal(chest.result.triggered.type, 'chest', 'World.interact 必须识别�
 assert.ok(chest.result.triggered.content, '宝箱必须有原创内容');
 const chestAgain = context.World.interact();
 assert.equal(chestAgain.triggered, null, '宝箱第二次交互不能重复触发');
+const townLoot = interactionOf('town', 'loot');
+assert.equal(townLoot.result.triggered.type, 'loot', 'World.interact 必须识别一次性城镇搜刮');
+assert.equal(townLoot.result.triggered.once, true, '城镇搜刮必须是一回合一次性事件');
+const townLootAgain = context.World.interact();
+assert.equal(townLootAgain.triggered, null, '城镇搜刮第二次交互不能重复触发');
 const recovery = interactionOf('town', 'recovery');
 assert.equal(recovery.result.triggered.type, 'recovery', 'World.interact 必须识别恢复点');
 assert.equal(recovery.result.triggered.area, 'town', '恢复点必须标记所在区域');
@@ -224,6 +229,9 @@ assert.equal(context.Game.triggerMountainPursuit(), 'dialogue', '山道应触发
 while (context.Game.state === 'dialogue') context.Dialogue.confirm();
 assert.equal(context.World.storyFlags['mountain-pursuit'], true, '山道追击应完成');
 assert.equal(context.Game.currentObjective, '前往断云关', '追击后目标应指向断云关');
+assert.equal(context.Game.summaryChapter(), 'chapter-summary', '章节结束后必须进入 chapter-summary 状态');
+assert.equal(context.Game.chapterSummary.title, '第一章', '章节总结必须有标题');
+assert.ok(context.Game.chapterSummary.items.length > 0, '章节总结必须包含摘要条目');
 assert.equal(context.Battle.start('stone-oath'), false, '前置事件完成前首领战必须被阻止');
 context.World.storyFlags['military-book-found'] = true;
 assert.equal(context.Battle.start('stone-oath'), 'battle', '失军书、关羽和追击完成后首领战应允许开始');
@@ -237,7 +245,7 @@ const savedState = {
   events: { 'recruit-zhi': true }, chests: { 'field:grain-cache': true },
 };
 assert.equal(context.Save.save(savedState), true, 'Save.save 应成功保存');
-assert.ok(context.__storage.has('tk-three-kingdoms-v0'), '只能使用三国探索存档 key');
+assert.ok(context.__storage.has('tk-three-kingdoms-v1'), '只能使用三国探索存档 key');
 assert.equal(context.__storage.size, 1, 'Save 不能触碰其他游戏存档');
 const loadedState = context.Save.load();
 assert.equal(loadedState.mapId, savedState.mapId, 'Save.load 应恢复旧存档地图');
@@ -245,12 +253,13 @@ assert.deepEqual(loadedState.party, savedState.party, 'Save.load 应恢复旧存
 assert.equal(loadedState.objective, '找到失军书', '旧存档应补默认 objective');
 assert.equal(loadedState.chapter, 'chapter-1', '旧存档应补默认 chapter');
 assert.ok(loadedState.storyFlags && typeof loadedState.storyFlags === 'object', '旧存档应补默认 storyFlags');
-context.__storage.set('tk-three-kingdoms-v0', '{坏 JSON');
+assert.ok(loadedState.chapterSummary && Array.isArray(loadedState.chapterSummary.items), '旧存档应补默认 chapterSummary');
+context.__storage.set('tk-three-kingdoms-v1', '{坏 JSON');
 const corrupt = context.Save.load();
 assert.equal(corrupt.ok, false, '损坏 JSON 必须返回可处理错误状态');
 assert.match(corrupt.error, /读取|JSON|损坏/, '损坏存档必须包含明确错误');
 assert.doesNotThrow(() => context.Save.clear(), 'Save.clear 不应抛出异常');
-assert.equal(context.__storage.has('tk-three-kingdoms-v0'), false, 'Save.clear 只应清除三国探索 key');
+assert.equal(context.__storage.has('tk-three-kingdoms-v1'), false, 'Save.clear 只应清除三国探索 key');
 
 assert.ok(context.Battle, 'Battle 必须暴露战斗系统');
 for (const method of ['start', 'choose', 'resolveRound', 'finish']) {
@@ -259,6 +268,7 @@ for (const method of ['start', 'choose', 'resolveRound', 'finish']) {
 assert.ok(context.DATA.ENCOUNTERS, 'DATA.ENCOUNTERS 必须存在');
 assert.ok(context.DATA.ENCOUNTERS['reed-watch'], '必须提供固定普通遭遇');
 assert.ok(context.DATA.ENCOUNTERS['stone-oath'], '必须提供固定首领遭遇');
+assert.ok(context.DATA.ENCOUNTERS['reed-cave-ambush'], '必须提供 reed cave 普通遭遇');
 assert.deepEqual(Array.from(context.Battle.commands), ['attack', 'tactic', 'defend', 'item', 'retreat'], '五种战斗指令顺序必须稳定');
 assert.match(html, /data-action="battle-1"[\s\S]*data-action="battle-5"/, '移动端必须提供 1–5 战斗按钮');
 
@@ -352,11 +362,15 @@ assert.equal(preFinishEvents['stone-oath-complete'], undefined, '结果确认前
 const preFinishState = context.Game.state;
 assert.equal(preFinishState, 'battle-result', '胜利必须先进入 battle-result');
 const reward = context.Battle.finish();
-assert.equal(reward, 'world', '首领结果确认后必须回到原世界地图');
+assert.equal(reward, 'chapter-summary', '首领结果确认后必须进入章节结算');
+assert.equal(context.Game.state, 'chapter-summary');
+context.Game.returnToWorld('camp');
+assert.equal(context.Game.state, 'world', '章节结算确认后必须回到世界地图');
 assert.equal(context.World.events['stone-oath-complete'], true, '首领结果确认后必须完成事件');
 assert.ok(context.World.provisions > 20, '胜利必须奖励军粮');
 assert.ok(Object.values(context.World.levels).some((level) => level >= 2), '首次达到经验阈值必须升级');
-assert.equal(context.Game.state, 'world');
+assert.equal(context.World.chapterSummary.completed, true, '章节结算必须标记完成');
+assert.ok(Array.isArray(context.World.chapterSummary.items) && context.World.chapterSummary.items.length > 0, '章节结算必须包含摘要条目');
 
 context.Game.startNew();
 context.World.storyFlags['military-book-found'] = true;
