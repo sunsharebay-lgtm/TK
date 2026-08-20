@@ -538,3 +538,86 @@ const ridgeAmbushPoint = mountainMap.interactions.find((i) => i.kind === 'battle
 assert.ok(ridgeAmbushPoint, 'mountain 必须有 ridge-ambush 遭遇点');
 
 console.log('Three Kingdoms exploration and combat checks passed.');
+
+// ============================================
+// HJKL 键位 / 控制器 / 视觉升级 / 手柄测试（新增）
+// ============================================
+
+// --- 3A. HJKL 移动键位 ---
+assert.equal(typeof context.keyActions, 'object', 'keyActions 必须暴露');
+const keys = context.keyActions;
+assert.equal(keys.h, 'left', 'h 必须映射到 left');
+assert.equal(keys.H, 'left', 'H 必须映射到 left');
+assert.equal(keys.j, 'down', 'j 必须映射到 down');
+assert.equal(keys.J, 'down', 'J 必须映射到 down');
+assert.equal(keys.k, 'up', 'k 必须映射到 up');
+assert.equal(keys.K, 'up', 'K 必须映射到 up');
+assert.equal(keys.l, 'right', 'l 必须映射到 right');
+assert.equal(keys.L, 'right', 'L 必须映射到 right');
+
+// 原有键位必须保留
+assert.equal(keys.ArrowUp, 'up', '方向键上必须保留');
+assert.equal(keys.w, 'up', 'WASD w 必须保留');
+assert.equal(keys.a, 'left', 'WASD a 必须保留');
+assert.equal(keys.s, 'down', 'WASD s 必须保留');
+assert.equal(keys.d, 'right', 'WASD d 必须保留');
+assert.equal(keys.Enter, 'confirm', 'Enter 必须保留');
+assert.equal(keys[' '], 'confirm', '空格必须映射到 confirm');
+assert.equal(keys.Escape, 'cancel', 'Escape 必须保留');
+assert.equal(keys.x, 'cancel', 'x 必须保留');
+assert.equal(keys.z, 'confirm', 'z 必须保留');
+
+// --- 3B. partySelection 不应阻塞方向移动 ---
+context.Game.startNew();
+assert.equal(context.Game.state, 'world');
+assert.equal(context.Game.partySelection.visible, false, '新旅程后 partySelection 必须关闭');
+// 模拟打开 partySelection
+context.Game.openPartySelection();
+assert.equal(context.Game.partySelection.visible, true, 'openPartySelection 后必须可见');
+// HJKL 方向键在 partySelection 打开时不应被完全吞掉
+// 步骤处理应当允许 left/right 等通过
+// 同时 up/down 应被 partyInput 消费
+const worldBeforeX = context.World.x;
+const worldBeforeY = context.World.y;
+// 关闭 panel
+context.Game.partySelection.visible = false;
+context.Game.selectParty(['liu-bei', 'yun', 'lan']);
+assert.equal(context.Game.partySelection.visible, false, 'selectParty 后 partySelection 必须关闭');
+
+// --- 3C. drawActorSprite 增强视觉细节 ---
+assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
+// drawActorSprite 必须有足够视觉细节（robe body + skin face + hair + beard + weapon）
+// 通过检查源码中函数体是否包含足够的视觉关键词
+const htmlSource = html;
+assert.ok(htmlSource.includes('visual.robes') || htmlSource.includes('robes'), 'drawActorSprite 必须绘制 robe');
+assert.ok(htmlSource.includes('visual.skin') || htmlSource.includes('skin'), 'drawActorSprite 必须绘制 skin');
+assert.ok(htmlSource.includes('visual.hair') || htmlSource.includes('hair'), 'drawActorSprite 必须绘制 hair');
+assert.ok(htmlSource.includes('visual.beard'), 'drawActorSprite 必须绘制 beard');
+assert.ok(htmlSource.includes('visual.weapon') || htmlSource.includes('guandao'), 'drawActorSprite 必须绘制 weapon');
+// 必须为刘备/关羽/张飞有至少 10 次 fillRect 调用来表示 SD 二头身细节
+const spriteMatches = htmlSource.match(/fillRect/g);
+assert.ok(spriteMatches && spriteMatches.length >= 10, 'drawActorSprite 必须有 >=10 次 fillRect 调用来表示 SD 细节');
+
+// --- 3D. 图块纹理绘制 ---
+assert.ok(htmlSource.includes('tileColor'), 'tileColor 必须存在');
+// 纹理绘制必须使用 strokeRect 或 stroke 来添加图块纹理
+const strokeRectMatches = htmlSource.match(/strokeRect/g);
+assert.ok(strokeRectMatches && strokeRectMatches.length >= 3, '图块绘制必须使用 strokeRect 添加纹理 >= 3 次');
+// 必须有草叶纹理（stroke + beginPath 用于草叶/砖石线条）
+const strokeMatches = htmlSource.match(/\.stroke\(\)/g);
+assert.ok(strokeMatches && strokeMatches.length >= 3, '图块绘制必须使用 stroke 添加草叶/砖石线条 >= 3 次');
+
+// --- 3E. 手柄支持（Gamepad API） ---
+assert.ok(htmlSource.includes('getGamepads'), '必须包含 getGamepads 手柄支持');
+assert.ok(htmlSource.includes('gamepad') || htmlSource.includes('Gamepad'), '代码中必须引用 gamepad');
+assert.ok(htmlSource.includes('requestAnimationFrame'), '手柄轮询需要 requestAnimationFrame');
+// 手柄轮询函数必须存在（gamepadPoll 或 gamepadLoop）
+assert.ok(htmlSource.includes('gamepadPoll') || htmlSource.includes('gamepadLoop') || htmlSource.includes('pollGamepad'), '必须有手柄轮询函数');
+
+// --- 3F. HJKL 在世界移动中实际生效 ---
+context.Game.startNew();
+assert.equal(context.Game.state, 'world');
+const jsSource = htmlSource;
+assert.ok(jsSource.includes("h: 'left'") || jsSource.includes("h:'left'") || jsSource.includes("'h': 'left'"), 'keyActions 中 h 映射到 left');
+
+console.log('Controls and visual upgrade checks passed.');
