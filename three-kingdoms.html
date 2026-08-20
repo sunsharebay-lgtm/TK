@@ -196,6 +196,15 @@
           { id: 'pursuit-trail', label: '完成山道追击', flags: ['mountain-pursuit'] }
         ],
         finishObjective: '守住断云关'
+      },
+      'chapter-2': {
+        id: 'chapter-2', title: '第二章', chapter: 'chapter-2',
+        steps: [
+          { id: 'reach-old-road', label: '前往古驿道', flags: ['chapter-2-started'] },
+          { id: 'collect-intel', label: '搜集前方情报', flags: ['chapter-2-intel'] },
+          { id: 'return-camp', label: '回报静松营', flags: ['chapter-2-report'] }
+        ],
+        finishObjective: '前往古驿道寻求增援'
       }
     };
 
@@ -213,7 +222,7 @@
             '#......##......#', '#..............#', '#..............#', '################'
           ],
           interactions: [
-            { id: 'field-lantern', kind: 'npc', x: 4, y: 11, name: '守灯人', dialogue: 'field-lantern' },
+            { id: 'field-lantern', kind: 'npc', x: 4, y: 11, name: '守灯人', dialogue: 'field-lantern', conditionStoryFlag: 'military-book-found', revisitDialogue: 'field-lantern-revisit' },
             { id: 'field-grain-cache', kind: 'chest', x: 10, y: 10, name: '芦叶箱', content: { item: 'millet-cake', amount: 2 } },
             { id: 'field-military-book', kind: 'chest', x: 2, y: 4, name: '失军书残卷', storyEvent: 'military-book-found', content: { item: 'millet-cake', amount: 1 } },
             { id: 'field-skirmish', kind: 'battle', x: 12, y: 8, name: '烽火哨', encounter: 'reed-watch' },
@@ -233,7 +242,7 @@
           interactions: [
             { id: 'town-well', kind: 'recovery', x: 3, y: 4, name: '石轮井', area: 'town' },
             { id: 'town-supply', kind: 'loot', x: 9, y: 5, name: '檐下余粮', once: true, content: { item: 'millet-cake', amount: 1 }, storyEvent: 'town-supply-cache' },
-            { id: 'town-guan-yu', kind: 'npc', x: 7, y: 8, name: '青袍义士', actorId: 'guan-yu', dialogue: 'guan-yu-help' },
+            { id: 'town-guan-yu', kind: 'npc', x: 7, y: 8, name: '青袍义士', actorId: 'guan-yu', dialogue: 'guan-yu-help', conditionStoryFlag: 'town-rescue', revisitDialogue: 'guan-yu-revisit' },
             { id: 'town-cave-road', kind: 'exit', x: 13, y: 4, name: '芦洞口', to: 'reed-cave' },
             { id: 'town-camp-road', kind: 'exit', x: 13, y: 12, name: '松影门', to: 'camp' },
             { id: 'town-field-road', kind: 'exit', x: 1, y: 8, name: '石桥路', to: 'field' }
@@ -252,7 +261,8 @@
           interactions: [
             { id: 'camp-fire', kind: 'recovery', x: 8, y: 7, name: '松脂火', area: 'camp' },
             { id: 'camp-town-road', kind: 'exit', x: 1, y: 2, name: '镇北坡', to: 'town' },
-            { id: 'camp-mountain-road', kind: 'exit', x: 14, y: 8, name: '灰杉径', to: 'mountain' }
+            { id: 'camp-mountain-road', kind: 'exit', x: 14, y: 8, name: '灰杉径', to: 'mountain' },
+            { id: 'camp-old-road', kind: 'exit', x: 14, y: 12, name: '古驿道口', to: 'old-road', conditionStoryFlag: 'chapter-1-complete' }
           ],
           hint: '松脂火守着营地，补足兵粮后再沿灰杉径上山。'
         },
@@ -268,6 +278,7 @@
           interactions: [
             { id: 'mountain-recruit', kind: 'npc', x: 5, y: 5, name: '织火', dialogue: 'recruit-zhi' },
             { id: 'mountain-pursuit', kind: 'scene', x: 8, y: 9, name: '追击烟尘', dialogue: 'mountain-pursuit' },
+            { id: 'mountain-ridge-ambush', kind: 'battle', x: 10, y: 5, name: '折云山伏兵', encounter: 'ridge-ambush' },
             { id: 'mountain-cave-road', kind: 'exit', x: 7, y: 14, name: '碎藤缝', to: 'reed-cave' },
             { id: 'mountain-camp-road', kind: 'exit', x: 1, y: 12, name: '灰杉径', to: 'camp' },
             { id: 'mountain-gate-road', kind: 'exit', x: 13, y: 4, name: '断云关', to: 'boss-gate' }
@@ -301,10 +312,27 @@
           ],
           interactions: [
             { id: 'gate-mountain-road', kind: 'exit', x: 1, y: 8, name: '回山路', to: 'mountain' },
+            { id: 'gate-ambush', kind: 'battle', x: 6, y: 6, name: '关前伏兵', encounter: 'gate-ambush' },
             { id: 'stone-oath', kind: 'battle', x: 10, y: 8, name: '石誓台', encounter: 'stone-oath' },
             { id: 'gate-altar', kind: 'npc', x: 12, y: 6, name: '关前传令', dialogue: 'gate-sentinel' }
           ],
           hint: '断云关前没有捷径，先听传令，再决定是否叩响石门。'
+        },
+        'old-road': {
+          id: 'old-road', name: '古驿道', palette: ['#1c2433', '#3d5564', '#7a969e'],
+          start: { x: 2, y: 12 },
+          tiles: [
+            '################', '#..............#', '#..#...........#', '#..#...........#',
+            '#..............#', '#......##......#', '#......##......#', '#..............#',
+            '#....#.........#', '#....#.........#', '#..............#', '#..##......#...#',
+            '#..............#', '#..............#', '#..............#', '################'
+          ],
+          interactions: [
+            { id: 'old-road-veteran', kind: 'npc', x: 6, y: 4, name: '守关老兵', dialogue: 'old-road-veteran' },
+            { id: 'old-road-patrol', kind: 'battle', x: 10, y: 8, name: '驿道巡哨', encounter: 'old-road-patrol' },
+            { id: 'old-road-camp', kind: 'exit', x: 1, y: 12, name: '南坡小径', to: 'camp' }
+          ],
+          hint: '古驿道上石碑歪斜，守关老兵似乎知道前方的消息。'
         }
       },
       ACTORS: {
@@ -321,11 +349,15 @@
         'dusk-scout': { id: 'dusk-scout', name: '暮影斥候', troops: 31, spirit: 11, attack: 5, reward: 14 },
         'ridge-warden': { id: 'ridge-warden', name: '岭上守望者', troops: 48, spirit: 18, attack: 7, reward: 22 },
         'cave-shadow': { id: 'cave-shadow', name: '芦洞潜行者', troops: 29, spirit: 10, attack: 4, reward: 12 },
-        'stone-vow-captain': { id: 'stone-vow-captain', name: '石誓督军', troops: 58, spirit: 24, attack: 8, reward: 60, boss: true }
+        'stone-vow-captain': { id: 'stone-vow-captain', name: '石誓督军', troops: 58, spirit: 24, attack: 8, reward: 60, boss: true },
+        'mounted-scout': { id: 'mounted-scout', name: '骑哨斥候', troops: 36, spirit: 13, attack: 6, reward: 18 }
       },
       ENCOUNTERS: {
         'reed-watch': { id: 'reed-watch', kind: 'normal', name: '烽火哨 · 芦荡边', enemy: 'reed-bandit', seed: 1731 },
         'reed-cave-ambush': { id: 'reed-cave-ambush', kind: 'normal', name: '芦洞伏兵', enemy: 'cave-shadow', seed: 2841 },
+        'ridge-ambush': { id: 'ridge-ambush', kind: 'normal', name: '折云山伏兵', enemy: 'dusk-scout', seed: 5523 },
+        'gate-ambush': { id: 'gate-ambush', kind: 'chain', name: '断云关连战', chain: ['reed-bandit', 'ridge-warden'], seed: 7789, event: 'gate-ambush-complete' },
+        'old-road-patrol': { id: 'old-road-patrol', kind: 'normal', name: '古驿道巡哨', enemy: 'mounted-scout', seed: 3347 },
         'stone-oath': { id: 'stone-oath', kind: 'boss', name: '石誓台 · 断云关', enemy: 'stone-vow-captain', seed: 9047, event: 'stone-oath-complete' }
       },
       TACTICS: {
@@ -345,7 +377,10 @@
         'field-lantern': ['守灯人：北面的折云山道还留着一条路。', '守灯人：把脚步放在石桥上，别让风替你做决定。'],
         'recruit-zhi': ['织火：我会治伤，也会看火色。', '织火：让我替队伍守住最后一盏灯吧。'],
         'gate-sentinel': ['传令：关门之后，只有准备好的人能继续。'],
-        'camp-rest': ['营火：疲惫被松香慢慢带走。', '队伍恢复了精神。']
+        'camp-rest': ['营火：疲惫被松香慢慢带走。', '队伍恢复了精神。'],
+        'guan-yu-revisit': ['关羽：这里已安全，继续前进。'],
+        'field-lantern-revisit': ['守灯人：北面山道更危险。'],
+        'old-road-veteran': ['老兵：古驿道南端曾有一支巡逻队失联。', '老兵：若能找到他们的信号旗，或许能联络到后方的增援。']
       }
     };
 
@@ -436,7 +471,7 @@
         this.experience = 0;
         this.items = { 'millet-cake': 1 };
         this.events = {};
-        this.storyFlags = { 'chapter-1-opening': false, 'lost-military-book': false, 'military-book-found': false, 'town-rescue': false, 'guan-yu-joined': false, 'mountain-pursuit': false, 'chapter-1-complete': false, 'reed-cave-cleared': false, 'town-supply-cache': false, 'reed-cave-reward': false };
+        this.storyFlags = { 'chapter-1-opening': false, 'lost-military-book': false, 'military-book-found': false, 'town-rescue': false, 'guan-yu-joined': false, 'mountain-pursuit': false, 'chapter-1-complete': false, 'reed-cave-cleared': false, 'town-supply-cache': false, 'reed-cave-reward': false, 'chapter-2-started': false, 'chapter-2-intel': false, 'chapter-2-report': false, 'gate-ambush-complete': false };
         this.objective = '找到失军书';
         this.chapter = 'chapter-1';
         this.quests = { current: '找到失军书', completed: [] };
@@ -475,9 +510,13 @@
         const point = this._pointAt();
         let triggered = point ? { ...point, type: point.kind } : null;
         if (point && point.kind === 'exit') {
-          const to = point.to;
-          this.enterMap(to);
-          triggered = { ...point, type: point.kind, to };
+          if (point.conditionStoryFlag && !this.storyFlags[point.conditionStoryFlag]) {
+            triggered = null;
+          } else {
+            const to = point.to;
+            this.enterMap(to);
+            triggered = { ...point, type: point.kind, to };
+          }
         }
         return { moved: true, blocked: false, triggered };
       },
@@ -487,6 +526,11 @@
       interact() {
         const point = this._pointAt();
         if (!point) return { moved: false, blocked: false, triggered: null };
+        if (point.kind === 'npc') {
+          const flagSet = point.conditionStoryFlag ? !!this.storyFlags[point.conditionStoryFlag] : true;
+          const dialogueId = (flagSet && point.revisitDialogue) ? point.revisitDialogue : point.dialogue;
+          return { moved: false, blocked: false, triggered: { ...point, type: point.kind, dialogue: dialogueId } };
+        }
         if (point.kind === 'chest') {
           if (this.chests[point.id]) return { moved: false, blocked: false, triggered: null };
           this.chests[point.id] = true;
@@ -517,6 +561,7 @@
           return { moved: false, blocked: false, triggered: { ...point, type: point.kind, encounter: point.encounter } };
         }
         if (point.kind === 'exit') {
+          if (point.conditionStoryFlag && !this.storyFlags[point.conditionStoryFlag]) return { moved: false, blocked: false, triggered: null };
           const to = point.to;
           this.enterMap(to);
           return { moved: false, blocked: false, triggered: { ...point, type: point.kind, to } };
@@ -666,6 +711,34 @@
         this.state = 'chapter-summary';
         return 'chapter-summary';
       },
+      confirmChapterSummary() {
+        if (this.state !== 'chapter-summary') return false;
+        if (World.chapter === 'chapter-1' && World.storyFlags['chapter-1-complete']) {
+          this.state = 'chapter-transition';
+          this.message = '新章节即将开始……';
+          return 'chapter-transition';
+        }
+        this.returnToWorld(World.mapId || 'camp');
+        return 'world';
+      },
+      chapterTransition() {
+        this.state = 'chapter-transition';
+        this.message = '第二章：古驿道的征途';
+        return 'chapter-transition';
+      },
+      confirmChapterTransition() {
+        if (this.state !== 'chapter-transition') return false;
+        World.chapter = 'chapter-2';
+        this.chapter = 'chapter-2';
+        this.currentObjective = '前往古驿道寻求增援';
+        World.objective = this.currentObjective;
+        World.storyFlags['chapter-2-started'] = true;
+        World.enterMap('old-road');
+        this.state = 'world';
+        this.message = DATA.MAPS['old-road'].hint;
+        Save.save(World.toState());
+        return 'world';
+      },
       showDialogue(id) { return Dialogue.start(id); },
       openCamp() { this.state = 'camp'; return this.state; },
       openBattle() { this.state = 'battle'; return this.state; },
@@ -737,7 +810,7 @@
       commands: ['attack', 'tactic', 'defend', 'item', 'retreat'],
       state: 'idle', status: 'idle', encounter: null, enemy: null, party: {}, choices: {},
       partyMorale: 0, round: 0, log: [], tacticUsed: false, result: null, active: false,
-      random: () => 0.5,
+      chainQueue: undefined, chainAccumulatedReward: 0, random: () => 0.5,
       _rng(seed) {
         let value = Number(seed) >>> 0;
         return () => {
@@ -761,8 +834,8 @@
         if (!this.commands.includes(type)) return null;
         return { type, tacticId: command.tacticId, itemId: command.itemId };
       },
-      start(encounterId = 'reed-watch') {
-        const encounter = DATA.ENCOUNTERS[encounterId];
+      start(encounterId = 'reed-watch', encounterOverride = null) {
+        const encounter = encounterOverride || DATA.ENCOUNTERS[encounterId];
         const enemyData = encounter && DATA.ENEMIES[encounter.enemy];
         if (encounterId === 'stone-oath' && (!World.storyFlags['military-book-found'] || !World.storyFlags['guan-yu-joined'] || !World.storyFlags['mountain-pursuit'])) {
           Game.message = '断云关封锁：先找回失军书、请关羽同行并完成山道追击。';
@@ -884,14 +957,10 @@
           this.choices = {};
           return this._complete('retreated');
         }
-        if (this.enemy.troops <= 0 && !(this.encounter.kind === 'boss' && !this.tacticUsed)) {
+        if (this.enemy.troops <= 0) {
           this._writeLog(`${this.enemy.name}溃散。`);
           this.choices = {};
           return this._complete('victory');
-        }
-        if (this.enemy.troops <= 0) {
-          this.enemy.troops = 1;
-          this._writeLog('石誓督军抓住空隙重整阵脚，必须先以计策破局。');
         }
         const enemyDamage = Math.max(1, this.enemy.attack + Math.floor(this.enemy.troops / 20));
         const confused = this.enemy.morale <= 15 && this.tacticUsed && this.log.some((entry) => entry.text.includes('疑兵扰乱'));
@@ -951,6 +1020,31 @@
         Game.state = 'world';
         this.state = 'world';
         return 'world';
+      },
+      startChain(encounterId) {
+        const encounter = DATA.ENCOUNTERS[encounterId];
+        if (!encounter || encounter.kind !== 'chain' || !Array.isArray(encounter.chain)) return false;
+        this.chainQueue = encounter.chain.slice();
+        this.chainAccumulatedReward = 0;
+        const firstEnemyId = this.chainQueue.shift();
+        const chainEncounter = { id: firstEnemyId, kind: 'normal', name: encounter.name, enemy: firstEnemyId, seed: encounter.seed, chainParent: encounterId, chainEvent: encounter.event };
+        return this.start(firstEnemyId, chainEncounter);
+      },
+      chainNext() {
+        if (!this.chainQueue || this.chainQueue.length === 0) {
+          const chainParent = this.encounter && this.encounter.chainParent;
+          const chainEvent = this.encounter && this.encounter.chainEvent;
+          if (chainEvent) World.events[chainEvent] = true;
+          this.chainQueue = null;
+          return false;
+        }
+        const nextEnemyId = this.chainQueue.shift();
+        const parentEncounter = DATA.ENCOUNTERS[this.encounter.chainParent];
+        const chainEncounter = { id: nextEnemyId, kind: 'normal', name: parentEncounter.name, enemy: nextEnemyId, seed: parentEncounter.seed + nextEnemyId.length, chainParent: parentEncounter.id, chainEvent: parentEncounter.event, chainQueue: this.chainQueue };
+        this.chainQueue = chainEncounter.chainQueue;
+        delete chainEncounter.chainQueue;
+        this._syncWorld();
+        return this.start(nextEnemyId, chainEncounter);
       }
     };
 
@@ -1104,6 +1198,16 @@
       drawText('前往营地进行整备，准备进入下一阶段。', 128, 310, '#a99d86', 9, 'center');
       drawText('A 确认继续    X 返回标题', 128, 404, '#75b6cf', 9, 'center');
     }
+    function renderChapterTransition() {
+      if (!ctx) return;
+      ctx.fillStyle = '#0b0f1a'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      for (let y = 0; y < HEIGHT; y += 8) { ctx.fillStyle = y % 16 ? '#0d1522' : '#0f1928'; ctx.fillRect(0, y, WIDTH, 4); }
+      drawText('第二章', 128, 120, '#f0bd57', 24, 'center');
+      drawText('古 驿 道', 128, 160, '#c8dbdf', 14, 'center');
+      ctx.fillStyle = '#263f50'; ctx.fillRect(56, 195, 144, 2);
+      drawText('新的征途即将开始……', 128, 215, '#a99d86', 9, 'center');
+      drawText('A 确认继续', 128, 360, '#75b6cf', 9, 'center');
+    }
     function renderSpecialState() {
       if (!ctx) return;
       ctx.fillStyle = '#0e121c'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -1124,6 +1228,7 @@
       else if (Game.state === 'dialogue') renderDialogue();
       else if (Game.state === 'battle') renderBattle();
       else if (Game.state === 'chapter-summary') renderChapterSummary();
+      else if (Game.state === 'chapter-transition') renderChapterTransition();
       else renderSpecialState();
     }
 
@@ -1190,8 +1295,10 @@
         if (Input.consume('confirm')) Battle.finish();
         if (Input.consume('cancel')) Game.returnToTitle();
       } else if (Game.state === 'chapter-summary') {
-        if (Input.consume('confirm')) Game.returnToWorld('camp');
+        if (Input.consume('confirm')) Game.confirmChapterSummary();
         if (Input.consume('cancel')) Game.returnToTitle();
+      } else if (Game.state === 'chapter-transition') {
+        if (Input.consume('confirm')) Game.confirmChapterTransition();
       } else if (Game.state === 'game-over') {
         if (Input.consume('confirm')) Game.returnToTitle();
         if (Input.consume('cancel')) Game.returnToTitle();
