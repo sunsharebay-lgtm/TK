@@ -147,7 +147,7 @@ for (const action of ['up', 'down', 'left', 'right', 'confirm', 'cancel', 'battl
 assert.ok(context.World, 'World 必须暴露探索系统');
 assert.equal(typeof context.World.move, 'function', 'World.move 必须暴露');
 assert.equal(typeof context.World.interact, 'function', 'World.interact 必须暴露');
-assert.deepEqual(Object.keys(context.DATA.MAPS).sort(), ['boss-gate', 'camp', 'field', 'mountain', 'reed-cave', 'town'], '必须包含六个原创区域');
+assert.deepEqual(Object.keys(context.DATA.MAPS).sort(), ['boss-gate', 'camp', 'field', 'mountain', 'old-road', 'reed-cave', 'town'], '必须包含七个原创区域');
 for (const map of Object.values(context.DATA.MAPS)) {
   assert.equal(map.tiles.length, 16, `${map.id} 必须是 16 行地图`);
   assert.ok(map.tiles.every((row) => row.length === 16), `${map.id} 必须是 16x16 地图`);
@@ -381,5 +381,160 @@ context.Battle.start('stone-oath');
 context.World.party.forEach((id) => context.Battle.choose(id, 'defend'));
 context.Battle.resolveRound();
 assert.equal(context.Game.state, 'game-over', '全部 active actors 败退必须进入 game-over');
+
+// ============================================
+// 第二章过渡与难度曲线测试（新增）
+// ============================================
+
+// --- 2A. 第二章数据结构 ---
+assert.ok(context.DATA.MAPS['old-road'], 'DATA.MAPS 必须包含 old-road（古驿道）');
+const oldRoad = context.DATA.MAPS['old-road'];
+assert.equal(oldRoad.name, '古驿道', 'old-road 地名必须为古驿道');
+assert.equal(oldRoad.tiles.length, 16, 'old-road 必须是 16 行地图');
+assert.ok(oldRoad.tiles.every((row) => row.length === 16), 'old-road 必须是 16x16 地图');
+assert.ok(oldRoad.start && typeof oldRoad.start.x === 'number', 'old-road 必须有 start 坐标');
+
+assert.ok(context.DATA.ENEMIES['mounted-scout'], 'DATA.ENEMIES 必须包含 mounted-scout（骑哨斥候）');
+const mountedScout = context.DATA.ENEMIES['mounted-scout'];
+assert.ok(mountedScout.troops > 0, 'mounted-scout 必须有正数兵力');
+assert.ok(mountedScout.attack > 0, 'mounted-scout 必须有正数攻击');
+assert.ok(mountedScout.reward > 0, 'mounted-scout 必须有正数奖励');
+
+assert.ok(context.DATA.ENCOUNTERS['old-road-patrol'], 'DATA.ENCOUNTERS 必须包含 old-road-patrol');
+assert.equal(context.DATA.ENCOUNTERS['old-road-patrol'].enemy, 'mounted-scout', 'old-road-patrol 必须使用 mounted-scout');
+
+assert.ok(context.DATA.ENCOUNTERS['ridge-ambush'], 'DATA.ENCOUNTERS 必须包含 ridge-ambush（山道伏兵）');
+assert.equal(context.DATA.ENCOUNTERS['ridge-ambush'].enemy, 'dusk-scout', 'ridge-ambush 必须使用 dusk-scout');
+
+assert.ok(context.DATA.ENCOUNTERS['gate-ambush'], 'DATA.ENCOUNTERS 必须包含 gate-ambush（关前连战）');
+assert.ok(Array.isArray(context.DATA.ENCOUNTERS['gate-ambush'].chain), 'gate-ambush 必须有 chain 数组（连续遭遇）');
+assert.equal(context.DATA.ENCOUNTERS['gate-ambush'].chain.length, 2, 'gate-ambush chain 必须有两场战斗');
+assert.equal(context.DATA.ENCOUNTERS['gate-ambush'].chain[0], 'reed-bandit', 'gate-ambush 第一场必须是 reed-bandit');
+assert.equal(context.DATA.ENCOUNTERS['gate-ambush'].chain[1], 'ridge-warden', 'gate-ambush 第二场必须是 ridge-warden');
+
+assert.ok(context.DATA.QUESTS['chapter-2'], 'DATA.QUESTS 必须包含 chapter-2');
+const ch2 = context.DATA.QUESTS['chapter-2'];
+assert.ok(ch2.steps && ch2.steps.length > 0, 'chapter-2 必须有 steps');
+assert.equal(ch2.chapter, 'chapter-2', 'chapter-2 chapter 字段必须为 chapter-2');
+
+// --- 2B. old-road 地图交互 ---
+const oldRoadNpc = oldRoad.interactions.find((i) => i.kind === 'npc');
+assert.ok(oldRoadNpc, 'old-road 必须有一个 NPC（守关老兵）');
+assert.ok(oldRoadNpc.dialogue, 'old-road NPC 必须有 dialogue');
+const oldRoadBattle = oldRoad.interactions.find((i) => i.kind === 'battle');
+assert.ok(oldRoadBattle, 'old-road 必须有一个 battle 交互点');
+const oldRoadExit = oldRoad.interactions.find((i) => i.kind === 'exit');
+assert.ok(oldRoadExit, 'old-road 必须有一个 exit 交互点');
+assert.equal(oldRoadExit.to, 'camp', 'old-road 出口必须连接到 camp');
+
+// --- 2C. 章节过渡流程 ---
+context.Game.startNew();
+context.World.storyFlags['military-book-found'] = true;
+context.World.storyFlags['guan-yu-joined'] = true;
+context.World.storyFlags['mountain-pursuit'] = true;
+context.Battle.start('stone-oath');
+for (let round = 0; round < 12 && context.Game.state === 'battle'; round += 1) {
+  const choices = Object.fromEntries(context.World.party.map((id) => [id, 'attack']));
+  if (round === 0) choices[context.World.party[0]] = { type: 'tactic', tacticId: 'phantom-banner' };
+  context.World.party.forEach((id) => context.Battle.choose(id, choices[id]));
+  context.Battle.resolveRound();
+}
+assert.equal(context.Game.state, 'battle-result', 'boss 胜利后必须进入 battle-result');
+const summaryReward = context.Battle.finish();
+assert.equal(summaryReward, 'chapter-summary', 'boss 确认后必须进入 chapter-summary');
+assert.equal(context.Game.state, 'chapter-summary');
+
+// chapter-summary 确认后应进入 chapter-transition（不是直接回到 world）
+const transitionResult = context.Game.confirmChapterSummary();
+assert.equal(transitionResult, 'chapter-transition', '章节结算确认必须进入 chapter-transition');
+assert.equal(context.Game.state, 'chapter-transition', 'Game.state 必须为 chapter-transition');
+
+// chapter-transition 确认后应进入 world，且在 old-road，且 chapter 为 chapter-2
+const worldReturn = context.Game.confirmChapterTransition();
+assert.equal(worldReturn, 'world', '章节过渡确认后必须进入 world');
+assert.equal(context.Game.state, 'world', 'Game.state 必须为 world');
+assert.equal(context.Game.chapter, 'chapter-2', 'chapter 必须切换为 chapter-2');
+assert.equal(context.World.mapId, 'old-road', '过渡后必须出现在 old-road');
+assert.ok(context.World.storyFlags['chapter-1-complete'], 'chapter-1-complete 必须保持为 true');
+assert.equal(typeof context.Game.chapterTransition, 'function', 'Game.chapterTransition 必须暴露');
+assert.equal(typeof context.Game.confirmChapterTransition, 'function', 'Game.confirmChapterTransition 必须暴露');
+
+// --- 2D. 第二章开场目标 ---
+assert.equal(context.Game.currentObjective, '前往古驿道寻求增援', '第二章开场目标必须为前往古驿道寻求增援');
+
+// --- 2E. encounter chain 系统 ---
+assert.equal(typeof context.Battle.startChain, 'function', 'Battle.startChain 必须暴露');
+assert.equal(typeof context.Battle.chainNext, 'function', 'Battle.chainNext 必须暴露');
+assert.ok(context.Battle.chainQueue === undefined || Array.isArray(context.Battle.chainQueue), 'Battle.chainQueue 必须为 undefined 或数组');
+
+// startChain('gate-ambush') 应能启动连战
+context.Game.startNew();
+context.World.storyFlags['military-book-found'] = true;
+context.World.storyFlags['guan-yu-joined'] = true;
+context.World.storyFlags['mountain-pursuit'] = true;
+context.World.chapter = 'chapter-1';
+const chainStart = context.Battle.startChain('gate-ambush');
+assert.equal(chainStart, 'battle', 'startChain 必须返回 battle');
+assert.equal(context.Battle.encounter.id, 'reed-bandit', '连战第一场必须是 reed-bandit');
+assert.ok(Array.isArray(context.Battle.chainQueue), 'chainQueue 必须为数组');
+assert.equal(context.Battle.chainQueue.length, 1, 'chainQueue 必须剩余 1 场');
+
+// --- 2F. Boss 不再强制使用计策 ---
+context.Game.startNew();
+context.World.storyFlags['military-book-found'] = true;
+context.World.storyFlags['guan-yu-joined'] = true;
+context.World.storyFlags['mountain-pursuit'] = true;
+context.Battle.start('stone-oath');
+for (let round = 0; round < 15 && context.Game.state === 'battle'; round += 1) {
+  context.World.party.forEach((id) => context.Battle.choose(id, 'attack'));
+  context.Battle.resolveRound();
+}
+assert.equal(context.Battle.status, 'victory', 'Boss 只用 attack 也必须能胜利（计策不再强制）');
+
+// --- 2G. NPC 回访对话条件 ---
+assert.ok(context.DATA.MAPS.town.interactions.find((i) => i.id === 'town-guan-yu'), 'town 必须有 town-guan-yu NPC');
+const townGuanYu = context.DATA.MAPS.town.interactions.find((i) => i.id === 'town-guan-yu');
+assert.ok(townGuanYu.revisitDialogue, 'town-guan-yu 必须有 revisitDialogue');
+assert.ok(townGuanYu.conditionStoryFlag, 'town-guan-yu 必须有 conditionStoryFlag');
+assert.equal(townGuanYu.conditionStoryFlag, 'town-rescue', 'town-guan-yu conditionStoryFlag 必须为 town-rescue');
+
+assert.ok(context.DATA.MAPS.field.interactions.find((i) => i.id === 'field-lantern'), 'field 必须有 field-lantern NPC');
+const fieldLantern = context.DATA.MAPS.field.interactions.find((i) => i.id === 'field-lantern');
+assert.ok(fieldLantern.revisitDialogue, 'field-lantern 必须有 revisitDialogue');
+assert.ok(fieldLantern.conditionStoryFlag, 'field-lantern 必须有 conditionStoryFlag');
+assert.equal(fieldLantern.conditionStoryFlag, 'military-book-found', 'field-lantern conditionStoryFlag 必须为 military-book-found');
+
+// 验证回访条件触发机制
+context.Game.startNew();
+context.World.storyFlags['town-rescue'] = true;
+context.World.events['town-rescue'] = true;
+context.Game.enterWorld('town');
+const revisitGuanYu = context.DATA.MAPS.town.interactions.find((i) => i.id === 'town-guan-yu');
+context.World.x = revisitGuanYu.x;
+context.World.y = revisitGuanYu.y;
+const revisitResult = context.World.interact();
+assert.equal(revisitResult.triggered.type, 'npc', '回访 town-guan-yu 必须触发 npc');
+assert.equal(revisitResult.triggered.dialogue, townGuanYu.revisitDialogue, 'town-rescue 完成后 town-guan-yu 必须使用 revisitDialogue');
+
+// 未完成条件时不应触发回访对话
+context.Game.startNew();
+context.World.storyFlags['town-rescue'] = false;
+context.Game.enterWorld('town');
+context.World.x = revisitGuanYu.x;
+context.World.y = revisitGuanYu.y;
+const noRevisitResult = context.World.interact();
+assert.equal(noRevisitResult.triggered.dialogue, townGuanYu.dialogue, 'town-rescue 未完成时 town-guan-yu 必须使用原始 dialogue');
+
+// --- 2H. 断云关前 gate-ambush 连战入口 ---
+const bossGate = context.DATA.MAPS['boss-gate'];
+assert.ok(bossGate, 'boss-gate 地图必须存在');
+const gateAmbushPoint = bossGate.interactions.find((i) => i.kind === 'battle' && i.encounter === 'gate-ambush');
+assert.ok(gateAmbushPoint, 'boss-gate 必须有 gate-ambush 遭遇点');
+
+// --- 2I. 山道 ridge-ambush 入口 ---
+const mountainMap = context.DATA.MAPS.mountain;
+assert.ok(mountainMap, 'mountain 地图必须存在');
+const ridgeAmbushPoint = mountainMap.interactions.find((i) => i.kind === 'battle' && i.encounter === 'ridge-ambush');
+assert.ok(ridgeAmbushPoint, 'mountain 必须有 ridge-ambush 遭遇点');
 
 console.log('Three Kingdoms exploration and combat checks passed.');
