@@ -158,7 +158,7 @@
           <button class="control-button right" data-action="right" aria-label="右">▶</button>
           <button class="control-button down" data-action="down" aria-label="下">▼</button>
         </div>
-        <p class="hint"><strong>方向键 / WASD / 触控</strong><br>移动 · Enter / Z 确认<br>Esc / X 返回 · 1–5 战斗</p>
+        <p class="hint"><strong>方向键 / WASD / HJKL / 触控</strong><br>移动 · Enter / Space / Z 确认<br>Esc / X 返回 · 1–5 战斗</p>
         <div class="action-pad" aria-label="功能键">
           <button class="control-button face-button cancel" data-action="cancel" aria-label="取消">X</button>
           <button class="control-button face-button confirm" data-action="confirm" aria-label="确认">A</button>
@@ -387,9 +387,12 @@
 
     const ACTIONS = new Set(['up', 'down', 'left', 'right', 'confirm', 'cancel', 'battle-1', 'battle-2', 'battle-3', 'battle-4', 'battle-5']);
     const keyActions = {
-      ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down',
-      ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right',
-      Enter: 'confirm', z: 'confirm', Z: 'confirm', Escape: 'cancel', x: 'cancel', X: 'cancel',
+      ArrowUp: 'up', w: 'up', W: 'up', k: 'up', K: 'up',
+      ArrowDown: 'down', s: 'down', S: 'down', j: 'down', J: 'down',
+      ArrowLeft: 'left', a: 'left', A: 'left', h: 'left', H: 'left',
+      ArrowRight: 'right', d: 'right', D: 'right', l: 'right', L: 'right',
+      Enter: 'confirm', ' ': 'confirm', z: 'confirm', Z: 'confirm',
+      Escape: 'cancel', x: 'cancel', X: 'cancel',
       '1': 'battle-1', '2': 'battle-2', '3': 'battle-3', '4': 'battle-4', '5': 'battle-5'
     };
     const Input = {
@@ -1092,25 +1095,85 @@
       context.save();
       context.translate(ox, 0);
       context.scale(flip, 1);
+      // shadow
       context.fillStyle = 'rgba(0,0,0,.34)'; context.fillRect(-35, y + 92, 70, 10);
-      context.fillStyle = visual.hair; context.fillRect(-22, top + 5, 44, 30);
-      context.fillStyle = visual.skin; context.fillRect(-17, top + 15, 34, 25);
-      context.fillStyle = visual.head; context.fillRect(-25, top + 2, 50, 12);
-      context.fillStyle = visual.trim; context.fillRect(-15, top + 37, 30, 7);
+      // robe body
       context.fillStyle = visual.robes; context.fillRect(-27, top + 44, 54, 32);
-      context.fillStyle = visual.trim; context.fillRect(-7, top + 44, 14, 32);
+      // robe trim
+      context.fillStyle = visual.trim; context.fillRect(-15, top + 44, 30, 4); context.fillRect(-27, top + 44, 4, 32); context.fillRect(23, top + 44, 4, 32); context.fillRect(-7, top + 44, 14, 32);
+      // arms (skin)
       context.fillStyle = visual.skin; context.fillRect(-37, top + 47 + frame, 10, 25); context.fillRect(27, top + 47 - frame, 10, 25);
+      // sleeves
+      context.fillStyle = visual.robes; context.fillRect(-38, top + 44 + frame, 12, 8); context.fillRect(26, top + 44 - frame, 12, 8);
+      // head (large)
+      context.fillStyle = visual.head; context.fillRect(-25, top + 2, 50, 12);
+      // hair
+      context.fillStyle = visual.hair; context.fillRect(-22, top + 5, 44, 30);
+      // hair top knot
+      context.fillRect(-6, top - 3, 12, 10);
+      // face
+      context.fillStyle = visual.skin; context.fillRect(-15, top + 14, 30, 24);
+      // eyes
+      context.fillStyle = '#0f0f18'; context.fillRect(-9, top + 20, 4, 5); context.fillRect(5, top + 20, 4, 5);
+      // eye whites
+      context.fillStyle = '#f0eee8'; context.fillRect(-8, top + 20, 2, 2); context.fillRect(6, top + 20, 2, 2);
+      // mouth
+      context.fillStyle = '#c04040'; context.fillRect(-3, top + 30, 6, 2);
+      // beard
+      if (visual.beard) { context.fillStyle = visual.beard; context.fillRect(-12, top + 30, 24, 18); context.fillRect(-7, top + 44, 14, 10); }
+      // belt
+      context.fillStyle = visual.trim; context.fillRect(-27, top + 43, 54, 4);
+      // legs
       context.fillStyle = '#222333'; context.fillRect(-20, top + 76, 15, 17); context.fillRect(5, top + 76, 15, 17);
+      // shoes
       context.fillStyle = '#151722'; context.fillRect(-25, top + 92, 22, 7); context.fillRect(3, top + 92, 22, 7);
-      if (visual.beard) { context.fillStyle = visual.beard; context.fillRect(-12, top + 30, 24, 17); context.fillRect(-7, top + 44, 14, 10); }
+      // weapon
       context.strokeStyle = visual.trim; context.lineWidth = 3;
       if (visual.weapon === 'guandao') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(42, top - 5); context.lineTo(57, top + 10); context.stroke(); }
       else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(35, top + 92); context.lineTo(47, top - 10); context.stroke(); }
       else if (visual.weapon === 'fan') { context.fillStyle = '#f0d783'; context.fillRect(30, top + 50, 20, 15); context.stroke(); }
       else if (visual.weapon === 'bow') { context.beginPath(); context.arc(37, top + 57, 17, -1.2, 1.2); context.stroke(); }
+      else if (visual.weapon === 'scroll') { context.fillStyle = '#e8dbb5'; context.fillRect(30, top + 50, 8, 22); context.stroke(); }
+      else if (visual.weapon === 'shield') { context.fillStyle = visual.trim; context.fillRect(-42, top + 47, 14, 18); context.stroke(); }
+      else if (visual.weapon === 'staff') { context.fillStyle = visual.trim; context.fillRect(30, top + 50, 10, 30); context.stroke(); }
       else { context.fillStyle = visual.trim; context.fillRect(30, top + 50, 10, 30); }
       context.restore();
       return true;
+    }
+    function drawTileTexture(context, sx, sy, size, isWall, palette, tileX, tileY) {
+      const seed = (tileX * 17 + tileY * 31 + tileX * tileY) % 7;
+      const seed2 = (tileX * 31 + tileY * 17 + tileX + tileY) % 11;
+      if (isWall) {
+        // wall base
+        context.fillStyle = palette[2]; context.fillRect(sx, sy, size, size);
+        context.strokeStyle = 'rgba(255,255,255,.08)'; context.lineWidth = 1;
+        // brick rows
+        for (let row = 0; row < 5; row++) {
+          const ry = sy + row * 16;
+          context.beginPath(); context.moveTo(sx, ry); context.lineTo(sx + size, ry); context.stroke();
+          const offset = row % 2 === 0 ? 0 : 20;
+          for (let col = 0; col < 5; col++) {
+            const bx = sx + offset + col * 20;
+            context.beginPath(); context.moveTo(bx, ry); context.lineTo(bx, ry + 16); context.stroke();
+          }
+        }
+        // wall border highlight
+        context.strokeStyle = 'rgba(255,255,255,.04)'; context.lineWidth = 2;
+        context.strokeRect(sx + 2, sy + 2, size - 4, size - 4);
+      } else {
+        // open ground base
+        context.fillStyle = tileColor(tileX, tileY, palette); context.fillRect(sx, sy, size, size);
+        // grass blades
+        if (seed > 2) {
+          context.strokeStyle = 'rgba(255,255,255,.1)'; context.lineWidth = 1;
+          const gx = sx + 10 + seed * 7; const gy = sy + 10 + seed2 * 5;
+          context.beginPath(); context.moveTo(gx, gy + 14); context.lineTo(gx + 2, gy); context.stroke();
+          context.beginPath(); context.moveTo(gx + 10, gy + 10); context.lineTo(gx + 14, gy); context.stroke();
+        }
+        // tile border edge
+        context.strokeStyle = 'rgba(0,0,0,.06)'; context.lineWidth = 1;
+        context.strokeRect(sx + 1, sy + 1, size - 2, size - 2);
+      }
     }
     function viewportFor(worldX, worldY) {
       const maxX = Math.max(0, 16 * MAP_TILE_SIZE - MAP_VIEW_WIDTH);
@@ -1133,10 +1196,7 @@
       const endRow = Math.min(15, Math.ceil((camera.y + MAP_VIEW_HEIGHT) / cell));
       for (let y = startRow; y <= endRow; y++) for (let x = startCol; x <= endCol; x++) {
         const sx = x * cell - camera.x; const sy = y * cell - camera.y;
-        const wall = map.tiles[y][x] === '#';
-        ctx.fillStyle = wall ? map.palette[2] : tileColor(x, y, map.palette);
-        ctx.fillRect(sx, sy, cell, cell);
-        if (!wall) { ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(sx + 10, sy + 10, 8, 8); }
+        drawTileTexture(ctx, sx, sy, cell, map.tiles[y][x] === '#', map.palette, x, y);
       }
       for (const point of map.interactions) {
         if (point.x < startCol || point.x > endCol || point.y < startRow || point.y > endRow) continue;
@@ -1243,7 +1303,19 @@
     function step(action) {
       if (Game.state === 'world' && Game.partySelection.visible) {
         for (const actionName of ['up', 'down', 'confirm', 'cancel']) {
-          if (Input.consume(actionName)) Game.partyInput(actionName);
+          if (Input.consume(actionName)) {
+            if (actionName === 'up' || actionName === 'down') {
+              Game.partyInput(actionName);
+            } else {
+              Game.partyInput(actionName);
+            }
+          }
+        }
+        for (const dir of ['up', 'down', 'left', 'right']) {
+          if (Input.consume(dir)) {
+            const result = World.move(dir);
+            if (result.blocked) Game.message = '前方是无法通行的地形。';
+          }
         }
         render();
         return;
@@ -1316,6 +1388,7 @@
 
     window.DATA = DATA;
     window.Input = Input;
+    window.keyActions = keyActions;
     window.Quests = QUESTS;
     window.Game = Game;
     window.World = World;
@@ -1351,7 +1424,39 @@
         if (Input.enqueue(action)) step(action);
       });
     });
+    let gamepadLastState = {};
+    function gamepadPoll() {
+      let gamepads;
+      try { gamepads = navigator.getGamepads ? navigator.getGamepads() : []; } catch (_) { return; }
+      if (!gamepads) return;
+      for (let i = 0; i < gamepads.length; i++) {
+        const gp = gamepads[i];
+        if (!gp) continue;
+        const axisThreshold = 0.4;
+        const prev = gamepadLastState[i] || {};
+        const cur = { axes: gp.axes.slice(), buttons: gp.buttons.map((b) => b.pressed) };
+        const lx = gp.axes[0] || 0; const ly = gp.axes[1] || 0;
+        if (lx < -axisThreshold && !(prev.axes && prev.axes[0] < -axisThreshold)) Input.enqueue('left');
+        if (lx > axisThreshold && !(prev.axes && prev.axes[0] > axisThreshold)) Input.enqueue('right');
+        if (ly < -axisThreshold && !(prev.axes && prev.axes[1] < -axisThreshold)) Input.enqueue('up');
+        if (ly > axisThreshold && !(prev.axes && prev.axes[1] > axisThreshold)) Input.enqueue('down');
+        if (gp.buttons[0] && gp.buttons[0].pressed && !(prev.buttons && prev.buttons[0])) Input.enqueue('confirm');
+        if (gp.buttons[1] && gp.buttons[1].pressed && !(prev.buttons && prev.buttons[1])) Input.enqueue('cancel');
+        if (gp.buttons[2] && gp.buttons[2].pressed && !(prev.buttons && prev.buttons[2])) Input.enqueue('battle-1');
+        if (gp.buttons[3] && gp.buttons[3].pressed && !(prev.buttons && prev.buttons[3])) Input.enqueue('battle-2');
+        if (gp.buttons[4] && gp.buttons[4].pressed && !(prev.buttons && prev.buttons[4])) Input.enqueue('battle-3');
+        if (gp.buttons[5] && gp.buttons[5].pressed && !(prev.buttons && prev.buttons[5])) Input.enqueue('battle-4');
+        if (gp.buttons[8] && gp.buttons[8].pressed && !(prev.buttons && prev.buttons[8])) Input.enqueue('cancel');
+        gamepadLastState[i] = cur;
+      }
+    }
+    function gamepadLoop() {
+      gamepadPoll();
+      step();
+      requestAnimationFrame(gamepadLoop);
+    }
     render();
+    try { requestAnimationFrame(gamepadLoop); } catch (_) { /* gamepad loop is optional */ }
   })();
   </script>
 </body>
