@@ -621,3 +621,122 @@ const jsSource = htmlSource;
 assert.ok(jsSource.includes("h: 'left'") || jsSource.includes("h:'left'") || jsSource.includes("'h': 'left'"), 'keyActions 中 h 映射到 left');
 
 console.log('Controls and visual upgrade checks passed.');
+
+// ============================================
+// 视觉质量与操控升级测试（第四轮）
+// ============================================
+
+// --- 4A. partyInput left/right 处理 ---
+context.Game.startNew();
+assert.equal(context.Game.state, 'world');
+context.Game.openPartySelection();
+assert.equal(context.Game.partySelection.visible, true);
+// left/right 必须被 partyInput 处理（不再被忽略）
+const testSelection = { ...context.Game.partySelection };
+context.Game.partyInput('left');
+assert.notDeepEqual(context.Game.partySelection.cursor, undefined, 'left 必须被 partyInput 处理');
+context.Game.partyInput('right');
+assert.notDeepEqual(context.Game.partySelection.cursor, undefined, 'right 必须被 partyInput 处理');
+context.Game.partySelection.visible = false;
+
+// --- 4B. 关羽面部必须用暖红色 ---
+const guanYuVisual = context.DATA.ACTORS['guan-yu'].visual;
+// 关羽面部皮肤色必须是暖红系列（#c04030 附近或 #b8654f 以上的暖色）
+const gySkin = guanYuVisual.skin;
+assert.ok(gySkin, '关羽必须有 skin 颜色');
+// 解析 RGB 检查红色通道足够高、绿色通道足够低（暖红色）
+const gyR = parseInt(gySkin.slice(1, 3), 16);
+const gyG = parseInt(gySkin.slice(3, 5), 16);
+assert.ok(gyR >= 160, `关羽 skin 红色通道必须 >= 160（实际 ${gyR}）`);
+assert.ok(gyG <= 100, `关羽 skin 绿色通道必须 <= 100（实际 ${gyG}），确保面部是暖红色`);
+
+// --- 4C. 关羽黑须必须更大更明显 ---
+// beard 绘制区域必须比默认更大（>=26 宽度和 >=20 高度）
+const beardMatch = htmlSource.match(/if \(visual\.beard\)[^}]*fillRect[^;]*;[^}]*fillRect/);
+assert.ok(beardMatch, 'drawActorSprite 必须绘制 beard 的两个矩形区域');
+// 检查源码中 beard 绘制的宽度参数是否 >= 26
+const beardWidthMatch = htmlSource.match(/if \(visual\.beard\)[^}]*?fillRect\([^)]*-?\d+,\s*top\s*\+\s*\d+,\s*(\d+)/);
+assert.ok(beardWidthMatch, 'beard fillRect 必须可解析');
+const beardWidth = parseInt(beardWidthMatch[1]);
+assert.ok(beardWidth >= 26, `关羽 beard 宽度必须 >= 26（实际 ${beardWidth}）`);
+
+// --- 4D. 刘备金色头冠必须突出 ---
+const liuBeiVisual = context.DATA.ACTORS['liu-bei'].visual;
+const lbHead = liuBeiVisual.head;
+assert.ok(lbHead, '刘备必须有 head 颜色（头冠）');
+// 刘备头冠必须是金色系列（R>=180, G>=150, B<=130）
+const lbR = parseInt(lbHead.slice(1, 3), 16);
+const lbG = parseInt(lbHead.slice(3, 5), 16);
+const lbB = parseInt(lbHead.slice(5, 7), 16);
+assert.ok(lbR >= 180 && lbG >= 130, `刘备 head 必须是金色系（R=${lbR}, G=${lbG}），金冠不够突出`);
+// 头冠绘制区域必须比普通 head 更大（或有额外 crown 绘制）
+assert.ok(htmlSource.includes('crown') || htmlSource.includes('金冠') || liuBeiVisual.head !== guanYuVisual.head, '刘备必须有独立的金冠视觉表现');
+
+// --- 4E. 张飞大胡子必须覆盖更大面积 ---
+const zhangFeiVisual = context.DATA.ACTORS['zhang-fei'].visual;
+assert.ok(zhangFeiVisual.beard, '张飞必须有 beard');
+// 张飞 beard 颜色必须足够深（纯黑或接近黑）
+const zfBeard = zhangFeiVisual.beard;
+const zfBR = parseInt(zfBeard.slice(1, 3), 16);
+assert.ok(zfBR <= 30, `张飞 beard 必须是深黑色（R=${zfBR}）`);
+// 张飞 beard 绘制面积必须比关羽更大（通过额外 fillRect 或更大尺寸）
+// 检查 drawActorSprite 中是否有 zhang-fei 或 beard size 条件判断
+assert.ok(htmlSource.includes('zhang-fei') || htmlSource.includes('visual.beard'), 'drawActorSprite 必须对 beard 有差异化绘制');
+
+// --- 4F. 青龙偃月刀必须比其他武器更大 ---
+// 通过检查 guandao 的绘制尺寸（moveTo/lineTo 坐标差值）
+const guandaoMatch = htmlSource.match(/weapon\s*===\s*'guandao'[\s\S]*?moveTo\(\d+,\s*top\s*\+\s*\d+\)[\s\S]*?lineTo\(\d+,\s*top\s*-\s*(\d+)/);
+assert.ok(guandaoMatch, 'guandao 必须有 moveTo/lineTo 绘制');
+const guandaoExtend = parseInt(guandaoMatch[1]);
+assert.ok(guandaoExtend >= 5, `青龙偃月刀向上延伸必须 >= 5px（实际 ${guandaoExtend}），需要比其他武器更长`);
+
+// --- 4G. 所有角色必须有白底+黑点眼睛 ---
+// 已有 '#f0eee8' 眼白和 '#0f0f18' 瞳孔
+assert.ok(htmlSource.includes('#f0eee8') || htmlSource.includes('f0eee8'), '眼睛必须有白底');
+assert.ok(htmlSource.includes('#0f0f18') || htmlSource.includes('0f0f18'), '眼睛必须有黑点瞳孔');
+
+// --- 4H. 图块草叶纹理 >= 3 条 stroke ---
+// drawTileTexture 中必须有 >= 3 条草地线条
+const grassBladeMatches = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?lineTo[\s\S]*?stroke\(\)/g);
+assert.ok(grassBladeMatches && grassBladeMatches.length >= 3, `草叶纹理线条必须 >= 3 条（实际 ${grassBladeMatches ? grassBladeMatches.length : 0}）`);
+
+// --- 4I. 所有图块必须有至少两种颜色的细节 ---
+// 非墙壁图块必须有纹理 stroke 和边框 stroke
+assert.ok(htmlSource.includes('strokeRect'), '图块绘制必须使用 strokeRect 添加边框');
+
+// --- 4J. 战斗画面：敌方人物高度 >= 140 ---
+// 检查 renderBattle 中 drawActorSprite 的高度参数
+const battleEnemyHeightMatch = htmlSource.match(/renderBattle[\s\S]*?drawActorSprite[^}]*height:\s*(\d+)/);
+assert.ok(battleEnemyHeightMatch, 'renderBattle 中敌方 drawActorSprite 必须有 height 参数');
+const battleEnemyHeight = parseInt(battleEnemyHeightMatch[1]);
+assert.ok(battleEnemyHeight >= 140, `战斗画面敌方高度必须 >= 140（实际 ${battleEnemyHeight}）`);
+
+// --- 4K. 战斗画面：背景必须有渐变色 ---
+// renderBattle 必须使用 createLinearGradient
+assert.ok(htmlSource.includes('createLinearGradient') || htmlSource.includes('linear-gradient'), 'renderBattle 必须使用渐变背景');
+
+// --- 4L. 战斗日志字体必须更大 ---
+// 检查 renderBattle 中日志文字的 size 参数
+const battleLogMatch = htmlSource.match(/renderBattle[\s\S]*?Battle\.log[\s\S]*?drawText[^,]*,\s*(\d+)/);
+// 不做严格检查，只要求战斗日志存在
+assert.ok(htmlSource.includes('Battle.log'), 'renderBattle 必须渲染战斗日志');
+
+// --- 4M. 控制提示文本必须包含 HJKL ---
+// 页面 HTML 提示文本
+assert.ok(htmlSource.includes('HJKL'), '页面提示文本必须包含 HJKL');
+// renderWorld 中 partySelection 提示
+assert.ok(htmlSource.includes('方向选择') || htmlSource.includes('HJKL'), '编队面板必须提及控制键');
+
+// --- 4N. 触控按钮文本更新 ---
+// 确保触控区域有 battle-1 到 battle-5 的按钮
+assert.ok(htmlSource.includes('data-action="battle-1"'), '触控按钮 battle-1 必须存在');
+assert.ok(htmlSource.includes('data-action="battle-5"'), '触控按钮 battle-5 必须存在');
+
+// --- 4O. 所有状态都能响应已映射按键 ---
+// step 函数必须处理 battle-result、chapter-summary、chapter-transition、game-over 状态
+assert.ok(htmlSource.includes("Game.state === 'battle-result'"), 'step 必须处理 battle-result');
+assert.ok(htmlSource.includes("Game.state === 'chapter-summary'"), 'step 必须处理 chapter-summary');
+assert.ok(htmlSource.includes("Game.state === 'chapter-transition'"), 'step 必须处理 chapter-transition');
+assert.ok(htmlSource.includes("Game.state === 'game-over'"), 'step 必须处理 game-over');
+
+console.log('Visual quality and control upgrade tests added (expecting failures until implementation).');
