@@ -149,7 +149,7 @@
     </header>
     <section class="screen-shell" aria-label="九州烽烟游戏屏幕">
       <div class="screen-bezel">
-        <canvas id="game-canvas" width="256" height="240" aria-label="九州烽烟虚拟游戏画布"></canvas>
+        <canvas id="game-canvas" width="512" height="480" aria-label="九州烽烟虚拟游戏画布"></canvas>
       </div>
       <div class="control-deck" aria-label="移动控制器">
         <div class="dpad" aria-label="方向键">
@@ -178,13 +178,16 @@
   (() => {
     'use strict';
 
-    const WIDTH = 256;
-    const HEIGHT = 240;
+    const WIDTH = 512;
+    const HEIGHT = 480;
+    const MAP_TILE_SIZE = 32;
+    const MAP_VIEW_HEIGHT = 360;
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
     if (canvas) { canvas.width = WIDTH; canvas.height = HEIGHT; }
 
     const DATA = {
+      MAP_TILE_SIZE,
       MAPS: {
         field: {
           id: 'field', name: '青禾原', palette: ['#172b31', '#28504a', '#5e8b5c'],
@@ -198,6 +201,7 @@
           interactions: [
             { id: 'field-lantern', kind: 'npc', x: 4, y: 11, name: '守灯人', dialogue: 'field-lantern' },
             { id: 'field-grain-cache', kind: 'chest', x: 10, y: 10, name: '芦叶箱', content: { item: 'millet-cake', amount: 2 } },
+            { id: 'field-military-book', kind: 'chest', x: 2, y: 4, name: '失军书残卷', storyEvent: 'military-book-found', content: { item: 'millet-cake', amount: 1 } },
             { id: 'field-skirmish', kind: 'battle', x: 12, y: 8, name: '烽火哨', encounter: 'reed-watch' },
             { id: 'field-town-road', kind: 'exit', x: 13, y: 8, name: '石桥路', to: 'town' }
           ],
@@ -214,6 +218,7 @@
           ],
           interactions: [
             { id: 'town-well', kind: 'recovery', x: 3, y: 4, name: '石轮井', area: 'town' },
+            { id: 'town-guan-yu', kind: 'npc', x: 7, y: 8, name: '青袍义士', actorId: 'guan-yu', dialogue: 'guan-yu-help' },
             { id: 'town-camp-road', kind: 'exit', x: 13, y: 12, name: '松影门', to: 'camp' },
             { id: 'town-field-road', kind: 'exit', x: 1, y: 8, name: '石桥路', to: 'field' }
           ],
@@ -246,6 +251,7 @@
           ],
           interactions: [
             { id: 'mountain-recruit', kind: 'npc', x: 5, y: 5, name: '织火', dialogue: 'recruit-zhi' },
+            { id: 'mountain-pursuit', kind: 'scene', x: 8, y: 9, name: '追击烟尘', dialogue: 'mountain-pursuit' },
             { id: 'mountain-camp-road', kind: 'exit', x: 1, y: 12, name: '灰杉径', to: 'camp' },
             { id: 'mountain-gate-road', kind: 'exit', x: 13, y: 4, name: '断云关', to: 'boss-gate' }
           ],
@@ -269,10 +275,13 @@
         }
       },
       ACTORS: {
-        yun: { id: 'yun', name: '云策', role: '行军策士', level: 1, troops: 36, maxTroops: 36, spirit: 14, color: '#e6b85d' },
-        lan: { id: 'lan', name: '兰舟', role: '弦歌弓手', level: 1, troops: 30, maxTroops: 30, spirit: 12, color: '#75b6cf' },
-        he: { id: 'he', name: '何砺', role: '石甲卫', level: 1, troops: 42, maxTroops: 42, spirit: 9, color: '#d97862' },
-        zhi: { id: 'zhi', name: '织火', role: '流火医者', level: 1, troops: 27, maxTroops: 27, spirit: 16, color: '#b9d685' }
+        'liu-bei': { id: 'liu-bei', name: '刘备', role: '白河行军主将', level: 1, troops: 38, maxTroops: 38, spirit: 15, color: '#79a9d1', visual: { robes: '#315b8b', trim: '#f4ead1', skin: '#e0a078', head: '#d6c48b', hair: '#263044', weapon: 'fan' } },
+        'guan-yu': { id: 'guan-yu', name: '关羽', role: '青袍义士', level: 1, troops: 44, maxTroops: 44, spirit: 17, color: '#55a894', visual: { robes: '#17685f', trim: '#b7d8c5', skin: '#b8654f', head: '#3b9c86', hair: '#251d1b', beard: '#241b1a', weapon: 'guandao' } },
+        'zhang-fei': { id: 'zhang-fei', name: '张飞', role: '玄甲猛将', level: 1, troops: 46, maxTroops: 46, spirit: 14, color: '#756b88', visual: { robes: '#252a3b', trim: '#a49778', skin: '#9d5846', head: '#3d3a48', hair: '#0f1118', beard: '#101118', weapon: 'spear' } },
+        yun: { id: 'yun', name: '云策', role: '行军策士', level: 1, troops: 36, maxTroops: 36, spirit: 14, color: '#e6b85d', visual: { robes: '#795b37', trim: '#e6b85d', skin: '#d99a73', head: '#b48d4d', hair: '#33251f', weapon: 'scroll' } },
+        lan: { id: 'lan', name: '兰舟', role: '弦歌弓手', level: 1, troops: 30, maxTroops: 30, spirit: 12, color: '#75b6cf', visual: { robes: '#315c78', trim: '#9bd1dc', skin: '#e0a078', head: '#80b8cf', hair: '#252b3b', weapon: 'bow' } },
+        he: { id: 'he', name: '何砺', role: '石甲卫', level: 1, troops: 42, maxTroops: 42, spirit: 9, color: '#d97862', visual: { robes: '#59404a', trim: '#c98768', skin: '#ba7657', head: '#9e7562', hair: '#28252a', weapon: 'shield' } },
+        zhi: { id: 'zhi', name: '织火', role: '流火医者', level: 1, troops: 27, maxTroops: 27, spirit: 16, color: '#b9d685', visual: { robes: '#4c6b4c', trim: '#b9d685', skin: '#e4aa82', head: '#d2b870', hair: '#3a2a2c', weapon: 'staff' } }
       },
       ENEMIES: {
         'reed-bandit': { id: 'reed-bandit', name: '芦荡游骑', troops: 32, spirit: 8, attack: 4, reward: 10 },
@@ -294,6 +303,10 @@
       },
       DIALOGUES: {
         title: ['烽烟从远方压来。', '你要把这支小队带到哪里？'],
+        'chapter-1-opening': ['白河渡口失军书：乱军卷走了行军文书。', '必须找回失军书，才能辨清断云关的敌情。'],
+        'town-rescue': ['蒲渡镇求援：镇民把最后的灯挂上城门。', '有人在南面的山道见过青袍义士。'],
+        'guan-yu-help': ['关羽：失军书不能落入追兵之手。', '关羽：我愿随你走一程，先护住蒲渡镇的百姓。'],
+        'mountain-pursuit': ['山道追击：烟尘从折云山脊压下来。', '追兵已近，断云关前必须夺回主动。'],
         'field-lantern': ['守灯人：北面的折云山道还留着一条路。', '守灯人：把脚步放在石桥上，别让风替你做决定。'],
         'recruit-zhi': ['织火：我会治伤，也会看火色。', '织火：让我替队伍守住最后一盏灯吧。'],
         'gate-sentinel': ['传令：关门之后，只有准备好的人能继续。'],
@@ -352,7 +365,15 @@
         try {
           const raw = window.localStorage.getItem(SAVE_KEY);
           if (raw === null) return null;
-          return JSON.parse(raw);
+          const state = JSON.parse(raw);
+          return {
+            ...state,
+            roster: Array.isArray(state.roster) ? state.roster : ['liu-bei', 'yun', 'lan'],
+            party: Array.isArray(state.party) ? state.party : ['liu-bei', 'yun', 'lan'],
+            storyFlags: { 'chapter-1-opening': false, 'lost-military-book': false, 'military-book-found': false, 'town-rescue': false, 'guan-yu-joined': false, 'mountain-pursuit': false, 'chapter-1-complete': false, ...(state.storyFlags || {}) },
+            objective: state.objective || '找到失军书',
+            chapter: state.chapter || 'chapter-1'
+          };
         } catch (error) {
           return { ok: false, error: `存档读取失败：JSON 损坏或格式无效（${error.message || '未知错误'}）` };
         }
@@ -366,17 +387,20 @@
     const World = {
       mapId: 'field', x: 2, y: 13,
       roster: [], party: [], levels: {}, troops: {}, provisions: 20,
-      experience: 0, items: {}, events: {}, chests: {},
+      experience: 0, items: {}, events: {}, chests: {}, storyFlags: {}, objective: '找到失军书', chapter: 'chapter-1',
       reset() {
         this.mapId = 'field';
-        this.roster = ['yun', 'lan', 'he'];
-        this.party = ['yun', 'lan', 'he'];
-        this.levels = { yun: 1, lan: 1, he: 1 };
-        this.troops = { yun: 36, lan: 30, he: 42 };
+        this.roster = ['liu-bei', 'yun', 'lan'];
+        this.party = ['liu-bei', 'yun', 'lan'];
+        this.levels = { 'liu-bei': 1, yun: 1, lan: 1 };
+        this.troops = { 'liu-bei': 38, yun: 36, lan: 30 };
         this.provisions = 20;
         this.experience = 0;
         this.items = { 'millet-cake': 1 };
         this.events = {};
+        this.storyFlags = { 'chapter-1-opening': false, 'lost-military-book': false, 'military-book-found': false, 'town-rescue': false, 'guan-yu-joined': false, 'mountain-pursuit': false, 'chapter-1-complete': false };
+        this.objective = '找到失军书';
+        this.chapter = 'chapter-1';
         this.chests = {};
         this.x = DATA.MAPS.field.start.x;
         this.y = DATA.MAPS.field.start.y;
@@ -396,6 +420,7 @@
           Game.mapId = mapId;
           Game.cursor = { x: this.x, y: this.y };
           Game.message = DATA.MAPS[mapId].hint;
+          if (mapId === 'town' && !this.storyFlags['town-rescue'] && typeof Game.enterTownRescue === 'function') Game.enterTownRescue();
         }
         return mapId;
       },
@@ -425,6 +450,12 @@
         if (point.kind === 'chest') {
           if (this.chests[point.id]) return { moved: false, blocked: false, triggered: null };
           this.chests[point.id] = true;
+          if (point.storyEvent) {
+            this.storyFlags[point.storyEvent] = true;
+            this.objective = point.storyEvent === 'military-book-found' ? '前往蒲渡镇求援' : this.objective;
+            if (typeof Game !== 'undefined') Game.currentObjective = this.objective;
+            this.events[point.storyEvent] = true;
+          }
           if (point.content && point.content.item) this.items[point.content.item] = (this.items[point.content.item] || 0) + (point.content.amount || 1);
           return { moved: false, blocked: false, triggered: { ...point, type: point.kind, content: point.content } };
         }
@@ -443,6 +474,7 @@
           this.enterMap(to);
           return { moved: false, blocked: false, triggered: { ...point, type: point.kind, to } };
         }
+        if (point.kind === 'scene') return { moved: false, blocked: false, triggered: { ...point, type: point.kind } };
         return { moved: false, blocked: false, triggered: { ...point, type: point.kind } };
       },
       toState() {
@@ -451,7 +483,8 @@
           roster: this.roster.slice(), party: this.party.slice(),
           levels: { ...this.levels }, troops: { ...this.troops },
           provisions: this.provisions, experience: this.experience,
-          items: { ...this.items }, events: { ...this.events }, chests: { ...this.chests }
+          items: { ...this.items }, events: { ...this.events }, chests: { ...this.chests },
+          storyFlags: { ...this.storyFlags }, objective: this.objective, chapter: this.chapter
         };
       },
       save() { return Save.save(this.toState()); }
@@ -464,20 +497,93 @@
 
     const Game = {
       state: 'title', mapId: 'field', party: [], cursor: { x: 2, y: 13 },
+      chapter: 'chapter-1', currentObjective: '找到失军书',
       dialogue: [], dialoguePage: 0,
-      partySelection: { visible: false, cursor: 0, options: [] },
+      partySelection: { visible: false, cursor: 0, options: [], selected: [] },
       message: '按确认键开始新的旅程',
       startNew() {
         World.reset();
         this.party = World.party.map((id) => ({ ...DATA.ACTORS[id] }));
         this.mapId = World.mapId;
+        this.chapter = World.chapter;
+        this.currentObjective = World.objective;
         this.cursor = { x: World.x, y: World.y };
         this.dialogue = []; this.dialoguePage = 0;
-        this.partySelection = { visible: false, cursor: 0, options: [] };
+        this.partySelection = { visible: false, cursor: 0, options: [], selected: [] };
         this.message = DATA.MAPS.field.hint;
         this.state = 'world';
         tone(440, .08);
         return this.state;
+      },
+      _setObjective(text) {
+        this.currentObjective = text;
+        World.objective = text;
+      },
+      beginChapterOpening() {
+        if (!World.storyFlags['chapter-1-opening']) {
+          World.storyFlags['chapter-1-opening'] = true;
+          World.storyFlags['lost-military-book'] = true;
+          this._setObjective('找到失军书');
+        }
+        return Dialogue.start('chapter-1-opening');
+      },
+      enterTownRescue() {
+        World.storyFlags['town-arrival'] = true;
+        if (World.mapId !== 'town') {
+          World.enterMap('town');
+          if (this.state === 'dialogue') return 'dialogue';
+        }
+        if (!World.storyFlags['town-rescue']) return Dialogue.start('town-rescue');
+        return 'world';
+      },
+      talkGuanYu() {
+        if (!World.storyFlags['town-rescue']) return false;
+        return Dialogue.start('guan-yu-help');
+      },
+      triggerMountainPursuit() {
+        if (!World.storyFlags['guan-yu-joined']) return false;
+        if (World.mapId !== 'mountain') World.enterMap('mountain');
+        return Dialogue.start('mountain-pursuit');
+      },
+      openPartySelection() {
+        this.partySelection = { visible: true, cursor: 0, options: World.roster.slice(), selected: World.party.slice() };
+        return this.partySelection;
+      },
+      selectParty(selection) {
+        if (Array.isArray(selection)) {
+          const chosen = selection.filter((id, index) => World.roster.includes(id) && selection.indexOf(id) === index).slice(0, 3);
+          if (chosen.length === 3) {
+            World.party = chosen;
+            this.party = chosen.map((id) => ({ ...DATA.ACTORS[id] }));
+            this.partySelection = { visible: false, cursor: 0, options: [], selected: chosen.slice() };
+            Save.save(World.toState());
+            return chosen.slice();
+          }
+        }
+        if (!this.partySelection.visible) this.openPartySelection();
+        const chosen = this.partySelection.selected.length === 3 ? this.partySelection.selected : World.roster.slice(0, 3);
+        World.party = chosen.slice();
+        this.party = chosen.map((id) => ({ ...DATA.ACTORS[id] }));
+        this.partySelection = { visible: false, cursor: 0, options: [], selected: chosen.slice() };
+        Save.save(World.toState());
+        return chosen.slice();
+      },
+      partyInput(action) {
+        if (!this.partySelection.visible) return false;
+        const selection = this.partySelection;
+        if (action === 'up') selection.cursor = (selection.cursor + selection.options.length - 1) % selection.options.length;
+        else if (action === 'down') selection.cursor = (selection.cursor + 1) % selection.options.length;
+        else if (action === 'confirm') {
+          const id = selection.options[selection.cursor];
+          const index = selection.selected.indexOf(id);
+          if (index >= 0) selection.selected.splice(index, 1);
+          else if (selection.selected.length < 3) selection.selected.push(id);
+          if (selection.selected.length === 3) return this.selectParty(selection.selected);
+        } else if (action === 'cancel') {
+          selection.visible = false;
+          return World.party.slice();
+        }
+        return selection.selected.slice();
       },
       enterWorld(mapId) {
         if (!DATA.MAPS[mapId]) return false;
@@ -518,10 +624,29 @@
           if (!World.roster.includes('zhi')) World.roster.push('zhi');
           if (!World.levels.zhi) World.levels.zhi = 1;
           if (!World.troops.zhi) World.troops.zhi = DATA.ACTORS.zhi.troops;
-          Game.partySelection = { visible: true, cursor: 0, options: World.roster.slice() };
+          Game.openPartySelection();
           Save.save(World.toState());
         }
-        Game.message = id === 'recruit-zhi' ? '织火加入队伍，请选择出战成员。' : '对话结束。';
+        if (id === 'chapter-1-opening') {
+          World.storyFlags['chapter-1-opening'] = true;
+          World.storyFlags['lost-military-book'] = true;
+          Game._setObjective('找到失军书');
+        } else if (id === 'town-rescue') {
+          World.storyFlags['town-rescue'] = true;
+          Game._setObjective('与关羽会面');
+        } else if (id === 'guan-yu-help') {
+          World.storyFlags['guan-yu-joined'] = true;
+          if (!World.roster.includes('guan-yu')) World.roster.push('guan-yu');
+          if (!World.levels['guan-yu']) World.levels['guan-yu'] = 1;
+          if (!World.troops['guan-yu']) World.troops['guan-yu'] = DATA.ACTORS['guan-yu'].troops;
+          Game._setObjective('前往山道');
+          Game.openPartySelection();
+        } else if (id === 'mountain-pursuit') {
+          World.storyFlags['mountain-pursuit'] = true;
+          Game._setObjective('前往断云关');
+        }
+        Save.save(World.toState());
+        Game.message = id === 'recruit-zhi' ? '织火加入队伍，请选择出战成员。' : '情景完成：' + (Game.currentObjective || '继续前进');
         this.activeId = null;
         return 'world';
       }
@@ -558,6 +683,10 @@
       start(encounterId = 'reed-watch') {
         const encounter = DATA.ENCOUNTERS[encounterId];
         const enemyData = encounter && DATA.ENEMIES[encounter.enemy];
+        if (encounterId === 'stone-oath' && (!World.storyFlags['military-book-found'] || !World.storyFlags['guan-yu-joined'] || !World.storyFlags['mountain-pursuit'])) {
+          Game.message = '断云关封锁：先找回失军书、请关羽同行并完成山道追击。';
+          return false;
+        }
         if (!encounter || !enemyData || !World.party.length) return false;
         this.state = 'battle'; this.status = 'active'; this.active = true;
         this.encounter = { ...encounter };
@@ -712,6 +841,10 @@
             }
           }
           if (this.encounter.event) World.events[this.encounter.event] = true;
+          if (this.encounter.kind === 'boss') {
+            World.storyFlags['chapter-1-complete'] = true;
+            Game._setObjective('第一章完成：守住断云关');
+          }
           Game.message = `战果确认：获得${reward}军粮，经验累计${World.experience}。`;
         } else if (this.status === 'retreated') {
           Game.message = '队伍回到了原来的道路。';
@@ -755,35 +888,79 @@
       drawText('原创开发版  0.1', 128, 188, '#65768b', 7, 'center');
       drawText('CONFIRM / ENTER', 128, 207, '#5da3c9', 7, 'center');
     }
+    function drawActorSprite(context, actorId, x, y, options = {}) {
+      const actor = DATA.ACTORS[actorId] || { visual: { robes: '#6b638a', trim: '#d97862', skin: '#9d5846', head: '#493b52', hair: '#15131b', weapon: 'spear' } };
+      if (!context) return false;
+      const visual = actor.visual || { robes: actor.color, trim: '#f6e9c9', skin: '#d99a73', head: actor.color, hair: '#202020', weapon: 'staff' };
+      const frame = options.frame === 1 ? 2 : 0;
+      const flip = options.flip ? -1 : 1;
+      const ox = x + (options.width || 32) / 2;
+      const top = y + (options.height || 40) - 37;
+      context.save();
+      context.translate(ox, 0);
+      context.scale(flip, 1);
+      context.fillStyle = 'rgba(0,0,0,.34)'; context.fillRect(-14, y + 37, 28, 4);
+      context.fillStyle = visual.hair; context.fillRect(-9, top + 2, 18, 12);
+      context.fillStyle = visual.skin; context.fillRect(-7, top + 6, 14, 10);
+      context.fillStyle = visual.head; context.fillRect(-10, top + 1, 20, 5);
+      context.fillStyle = visual.trim; context.fillRect(-6, top + 15, 12, 3);
+      context.fillStyle = visual.robes; context.fillRect(-11, top + 18, 22, 13);
+      context.fillStyle = visual.trim; context.fillRect(-3, top + 18, 6, 13);
+      context.fillStyle = visual.skin; context.fillRect(-15, top + 19 + frame, 4, 10); context.fillRect(11, top + 19 - frame, 4, 10);
+      context.fillStyle = '#222333'; context.fillRect(-8, top + 31, 6, 7); context.fillRect(2, top + 31, 6, 7);
+      context.fillStyle = '#151722'; context.fillRect(-10, top + 37, 9, 3); context.fillRect(1, top + 37, 9, 3);
+      if (visual.beard) { context.fillStyle = visual.beard; context.fillRect(-5, top + 12, 10, 7); context.fillRect(-3, top + 18, 6, 4); }
+      context.strokeStyle = visual.trim; context.lineWidth = 2;
+      if (visual.weapon === 'guandao') { context.beginPath(); context.moveTo(14, top + 37); context.lineTo(17, top - 2); context.lineTo(23, top + 4); context.stroke(); }
+      else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(14, top + 37); context.lineTo(19, top - 4); context.stroke(); }
+      else if (visual.weapon === 'fan') { context.fillStyle = '#f0d783'; context.fillRect(12, top + 20, 8, 6); context.stroke(); }
+      else if (visual.weapon === 'bow') { context.beginPath(); context.arc(15, top + 23, 7, -1.2, 1.2); context.stroke(); }
+      else { context.fillStyle = visual.trim; context.fillRect(12, top + 20, 4, 12); }
+      context.restore();
+      return true;
+    }
+    function viewportFor(worldX, worldY) {
+      const maxX = Math.max(0, 16 * MAP_TILE_SIZE - WIDTH);
+      const maxY = Math.max(0, 16 * MAP_TILE_SIZE - MAP_VIEW_HEIGHT);
+      return {
+        x: Math.max(0, Math.min(maxX, worldX * MAP_TILE_SIZE - WIDTH / 2 + MAP_TILE_SIZE / 2)),
+        y: Math.max(0, Math.min(maxY, worldY * MAP_TILE_SIZE - MAP_VIEW_HEIGHT / 2 + MAP_TILE_SIZE / 2))
+      };
+    }
     function renderWorld() {
       if (!ctx) return;
       const map = DATA.MAPS[World.mapId] || DATA.MAPS.field;
-      ctx.fillStyle = map.palette[0]; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      const cell = 16;
+      const camera = viewportFor(World.x, World.y);
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, WIDTH, MAP_VIEW_HEIGHT); ctx.clip();
+      ctx.fillStyle = map.palette[0]; ctx.fillRect(0, 0, WIDTH, MAP_VIEW_HEIGHT);
+      const cell = MAP_TILE_SIZE;
       for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const sx = x * cell - camera.x; const sy = y * cell - camera.y;
         const wall = map.tiles[y][x] === '#';
         ctx.fillStyle = wall ? map.palette[2] : tileColor(x, y, map.palette);
-        ctx.fillRect(x * cell, y * cell, cell, cell);
-        if (!wall) { ctx.fillStyle = 'rgba(255,255,255,.035)'; ctx.fillRect(x * cell + 2, y * cell + 2, 2, 2); }
+        ctx.fillRect(sx, sy, cell, cell);
+        if (!wall) { ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(sx + 5, sy + 5, 4, 4); }
       }
       for (const point of map.interactions) {
-        const px = point.x * cell + 5; const py = point.y * cell + 5;
-        ctx.fillStyle = point.kind === 'npc' ? '#d1b66a' : point.kind === 'chest' ? '#a96d4f' : point.kind === 'recovery' ? '#79b89b' : '#78a6cf';
-        ctx.fillRect(px, py, 6, 6);
+        const px = point.x * cell - camera.x + 10; const py = point.y * cell - camera.y + 10;
+        if (point.actorId) drawActorSprite(ctx, point.actorId, point.x * cell - camera.x, point.y * cell - camera.y - 7, { frame: 0 });
+        else { ctx.fillStyle = point.kind === 'npc' ? '#d1b66a' : point.kind === 'chest' ? '#a96d4f' : point.kind === 'recovery' ? '#79b89b' : '#78a6cf'; ctx.fillRect(px, py, 12, 12); }
       }
-      const px = World.x * cell + 5; const py = World.y * cell + 3;
-      ctx.fillStyle = '#f4e3a7'; ctx.fillRect(px, py, 6, 10); ctx.fillStyle = '#bd655b'; ctx.fillRect(px + 1, py - 3, 4, 4);
-      panel(0, 194, WIDTH, 46, '#111522', '#5a4a34');
-      drawText(map.name, 9, 201, '#f0bd57', 9);
-      drawText(Game.message || map.hint, 9, 214, '#c3bba9', 7);
-      drawText(`队伍 ${World.party.length || 0}/4`, 246, 202, '#75b6cf', 7, 'right');
+      drawActorSprite(ctx, World.party[0] || 'liu-bei', World.x * cell - camera.x, World.y * cell - camera.y - 7, { frame: (World.x + World.y) % 2 });
+      ctx.restore();
+      panel(0, MAP_VIEW_HEIGHT, WIDTH, HEIGHT - MAP_VIEW_HEIGHT, '#111522', '#5a4a34');
+      drawText(map.name, 18, MAP_VIEW_HEIGHT + 14, '#f0bd57', 18);
+      drawText(`章 ${Game.chapter} · 目标：${Game.currentObjective || World.objective}`, 18, MAP_VIEW_HEIGHT + 43, '#c3bba9', 13);
+      drawText(Game.message || map.hint, 18, MAP_VIEW_HEIGHT + 69, '#c3bba9', 12);
+      drawText(`队伍 ${World.party.length || 0}/3`, 474, MAP_VIEW_HEIGHT + 18, '#75b6cf', 12, 'right');
+      World.party.slice(0, 3).forEach((id, index) => { drawActorSprite(ctx, id, 340 + index * 54, MAP_VIEW_HEIGHT + 45, { frame: index % 2, height: 40 }); drawText(DATA.ACTORS[id].name, 356 + index * 54, MAP_VIEW_HEIGHT + 91, '#f6e9c9', 10, 'center'); });
       if (Game.partySelection.visible) {
-        panel(26, 40, 204, 112, '#101522', '#e2b75f');
-        drawText('出战编成', 38, 51, '#f0bd57', 10);
-        drawText('织火已加入，请选择三名同行者', 38, 68, '#c3bba9', 7);
+        panel(72, 76, 368, 218, '#101522', '#e2b75f');
+        drawText('出战编成', 94, 96, '#f0bd57', 18);
+        drawText('方向选择 · A 切换 · 选满三人自动出战 · X 保留当前队伍', 94, 125, '#c3bba9', 11);
         Game.partySelection.options.forEach((id, index) => {
-          const actor = DATA.ACTORS[id];
-          drawText(`${index === Game.partySelection.cursor ? '▶' : ' '} ${actor.name}`, 44, 84 + index * 14, index === Game.partySelection.cursor ? '#f6e9c9' : '#8f9aaa', 8);
+          const selected = Game.partySelection.selected.includes(id);
+          drawText(`${index === Game.partySelection.cursor ? '▶' : ' '} ${selected ? '■' : '□'} ${DATA.ACTORS[id].name}`, 105, 155 + index * 22, index === Game.partySelection.cursor ? '#f6e9c9' : '#8f9aaa', 14);
         });
       }
     }
@@ -799,23 +976,25 @@
       if (!ctx) return;
       const enemy = Battle.enemy || { name: '未定敌阵', troops: 0, morale: 0 };
       ctx.fillStyle = '#151424'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      drawText(Battle.encounter ? Battle.encounter.name : '遭遇战', 12, 11, '#f0bd57', 10);
-      ctx.fillStyle = '#383458'; ctx.fillRect(14, 34, 228, 55);
-      ctx.fillStyle = '#6b638a'; ctx.fillRect(14, 82, Math.max(0, Math.round(228 * enemy.troops / Math.max(1, DATA.ENEMIES[Battle.encounter.enemy].troops))), 7);
-      drawText('敌阵', 22, 42, '#f2d895', 7);
-      drawText(enemy.name, 128, 43, '#e89b81', 10, 'center');
-      drawText(`兵力 ${String(enemy.troops).padStart(2, '0')}  士气 ${String(enemy.morale).padStart(2, '0')}`, 128, 64, '#c3bba9', 7, 'center');
-      let line = 103;
-      Object.values(Battle.party || {}).forEach((actor) => {
-        drawText(`${actor.name} ${String(actor.troops).padStart(2, '0')}/${actor.maxTroops}`, 18, line, actor.troops > 0 ? '#f6e9c9' : '#6e6670', 7);
-        line += 11;
+      drawText(Battle.encounter ? Battle.encounter.name : '遭遇战', 24, 22, '#f0bd57', 20);
+      ctx.fillStyle = '#383458'; ctx.fillRect(24, 60, 464, 148);
+      const enemyId = Battle.encounter && DATA.ENEMIES[Battle.encounter.enemy] ? Battle.encounter.enemy : null;
+      drawText('敌阵', 44, 76, '#f2d895', 13);
+      drawText(enemy.name, 256, 78, '#e89b81', 18, 'center');
+      drawText(`兵力 ${String(enemy.troops).padStart(2, '0')}  士气 ${String(enemy.morale).padStart(2, '0')}`, 256, 111, '#c3bba9', 13, 'center');
+      if (enemyId) drawActorSprite(ctx, enemyId, 426, 120, { flip: true, height: 40 });
+      ctx.fillStyle = '#6b638a'; ctx.fillRect(44, 180, Math.max(0, Math.round(424 * enemy.troops / Math.max(1, DATA.ENEMIES[Battle.encounter.enemy].troops))), 12);
+      let line = 238;
+      Object.values(Battle.party || {}).forEach((actor, index) => {
+        drawActorSprite(ctx, actor.id, 36 + (index % 4) * 92, line - 10, { frame: index % 2 });
+        drawText(`${actor.name} ${String(actor.troops).padStart(2, '0')}/${actor.maxTroops}`, 74 + (index % 4) * 92, line + 4, actor.troops > 0 ? '#f6e9c9' : '#6e6670', 11, 'center');
       });
-      panel(10, 140, 236, 90, '#111522', '#5a4a34');
-      drawText('1 进击  2 计策  3 防守  4 道具  5 撤退', 18, 151, '#f6e9c9', 7);
+      panel(18, 326, 476, 138, '#111522', '#5a4a34');
+      drawText('1 进击  2 计策  3 防守  4 道具  5 撤退', 36, 344, '#f6e9c9', 13);
       const latest = Battle.log && Battle.log[Battle.log.length - 1];
-      drawText(latest ? latest.text : '选择行动，守住这条路。', 18, 177, '#c3bba9', 7);
-      drawText(`回合 ${Battle.round}  ${Battle.pendingActors ? '等待队伍指令' : ''}`, 18, 194, '#a99d86', 7);
-      drawText('数字键 / 触控按钮 · X 返回', 18, 214, '#5da3c9', 7);
+      drawText(latest ? latest.text : '选择行动，守住这条路。', 36, 378, '#c3bba9', 12);
+      drawText(`回合 ${Battle.round}  · ${Battle.pendingActors ? '等待队伍指令' : '行动焦点：全队'}`, 36, 411, '#a99d86', 12);
+      drawText('数字键 / 触控按钮 · X 返回', 36, 440, '#5da3c9', 12);
     }
     function renderSpecialState() {
       if (!ctx) return;
@@ -840,6 +1019,13 @@
     }
 
     function step(action) {
+      if (Game.state === 'world' && Game.partySelection.visible) {
+        for (const actionName of ['up', 'down', 'confirm', 'cancel']) {
+          if (Input.consume(actionName)) Game.partyInput(actionName);
+        }
+        render();
+        return;
+      }
       if (Game.state === 'title' && Input.consume('confirm')) { Game.startNew(); render(); return; }
       if (Game.state === 'world') {
         for (const direction of ['up', 'down', 'left', 'right']) {
@@ -853,6 +1039,7 @@
           const result = World.interact();
           const point = result.triggered;
           if (point && point.type === 'npc' && point.dialogue) Dialogue.start(point.dialogue);
+          else if (point && point.type === 'scene' && point.dialogue) Dialogue.start(point.dialogue);
           else if (point && point.type === 'battle' && point.encounter) Battle.start(point.encounter);
           else if (point && point.type === 'chest') Game.message = `获得：${DATA.ITEMS[point.content.item].name}`;
           else if (point && point.type === 'recovery') Game.message = '队伍恢复了兵力。';
@@ -901,6 +1088,7 @@
     window.GameCanvas = canvas;
     window.GameRender = render;
     window.GameStep = step;
+    window.drawActorSprite = drawActorSprite;
 
     window.addEventListener('keydown', (event) => {
       if (event.repeat) return;

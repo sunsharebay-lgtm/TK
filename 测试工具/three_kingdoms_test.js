@@ -123,8 +123,20 @@ for (const table of ['MAPS', 'ACTORS', 'ENEMIES', 'TACTICS', 'ITEMS', 'DIALOGUES
   assert.ok(Object.keys(context.DATA[table]).length > 0, `DATA.${table} 不能为空`);
 }
 const canvas = context.document.getElementById('game-canvas');
-assert.equal(canvas.width, 256, 'virtual canvas 宽度必须为 256');
-assert.equal(canvas.height, 240, 'virtual canvas高度必须为 240');
+assert.equal(canvas.width, 512, 'virtual canvas 宽度必须为 512');
+assert.equal(canvas.height, 480, 'virtual canvas高度必须为 480');
+assert.equal(context.DATA.MAP_TILE_SIZE, 32, '地图 tileSize 必须为 32');
+assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
+for (const actorId of ['liu-bei', 'guan-yu', 'zhang-fei']) {
+  const actor = context.DATA.ACTORS[actorId];
+  assert.ok(actor, `${actorId} actor 数据必须存在`);
+  assert.ok(actor.visual, `${actorId} 必须有 visual traits`);
+  assert.ok(actor.visual.robes && actor.visual.head && actor.visual.weapon, `${actorId} visual traits 必须包含衣着、头部和武器`);
+}
+assert.equal(context.Game.chapter, 'chapter-1', '新旅程必须从 chapter-1 开始');
+assert.equal(context.Game.currentObjective, '找到失军书', '第一章开场目标必须是找到失军书');
+assert.ok(context.World.storyFlags && typeof context.World.storyFlags === 'object', '必须有 storyFlags');
+assert.equal(context.Game.selectParty().length, 3, 'party selection 完成后必须正好有三名出战成员');
 context.Game.returnToTitle();
 assert.equal(context.Game.state, 'title', 'Game.returnToTitle() 应返回 title');
 for (const action of ['up', 'down', 'left', 'right', 'confirm', 'cancel', 'battle-1', 'battle-5']) {
@@ -196,6 +208,28 @@ const rosterAfterRecruit = context.World.roster.length;
 assert.equal(context.Dialogue.start(recruitPoint.dialogue), false, '已完成招募事件不能重复开始');
 assert.equal(context.World.roster.length, rosterAfterRecruit, '招募事件不能重复增加武将');
 
+context.Game.startNew();
+assert.equal(context.Game.beginChapterOpening(), 'dialogue', '第一章开场应进入情景对话');
+while (context.Game.state === 'dialogue') context.Dialogue.confirm();
+assert.equal(context.World.storyFlags['lost-military-book'], true, '开场应设置失军书事件标记');
+assert.equal(context.Game.currentObjective, '找到失军书', '开场目标应为找到失军书');
+assert.equal(context.Game.enterTownRescue(), 'dialogue', '进入蒲渡镇应触发求援场景');
+while (context.Game.state === 'dialogue') context.Dialogue.confirm();
+assert.equal(context.World.storyFlags['town-rescue'], true, '蒲渡镇求援应完成');
+assert.equal(context.Game.talkGuanYu(), 'dialogue', '与关羽对话应进入情景');
+while (context.Game.state === 'dialogue') context.Dialogue.confirm();
+assert.equal(context.World.storyFlags['guan-yu-joined'], true, '关羽事件应完成');
+assert.ok(context.World.roster.includes('guan-yu'), '关羽必须加入 roster');
+assert.equal(context.Game.triggerMountainPursuit(), 'dialogue', '山道应触发追击场景');
+while (context.Game.state === 'dialogue') context.Dialogue.confirm();
+assert.equal(context.World.storyFlags['mountain-pursuit'], true, '山道追击应完成');
+assert.equal(context.Game.currentObjective, '前往断云关', '追击后目标应指向断云关');
+assert.equal(context.Battle.start('stone-oath'), false, '前置事件完成前首领战必须被阻止');
+context.World.storyFlags['military-book-found'] = true;
+assert.equal(context.Battle.start('stone-oath'), 'battle', '失军书、关羽和追击完成后首领战应允许开始');
+context.Battle.active = false;
+context.Game.state = 'world';
+
 const savedState = {
   mapId: 'camp', x: 4, y: 6,
   roster: ['yun', 'lan', 'he', 'zhi'], party: ['yun', 'lan', 'he'],
@@ -205,7 +239,12 @@ const savedState = {
 assert.equal(context.Save.save(savedState), true, 'Save.save 应成功保存');
 assert.ok(context.__storage.has('tk-three-kingdoms-v0'), '只能使用三国探索存档 key');
 assert.equal(context.__storage.size, 1, 'Save 不能触碰其他游戏存档');
-assert.deepEqual(context.Save.load(), savedState, 'Save.load 应恢复完整探索状态');
+const loadedState = context.Save.load();
+assert.equal(loadedState.mapId, savedState.mapId, 'Save.load 应恢复旧存档地图');
+assert.deepEqual(loadedState.party, savedState.party, 'Save.load 应恢复旧存档队伍');
+assert.equal(loadedState.objective, '找到失军书', '旧存档应补默认 objective');
+assert.equal(loadedState.chapter, 'chapter-1', '旧存档应补默认 chapter');
+assert.ok(loadedState.storyFlags && typeof loadedState.storyFlags === 'object', '旧存档应补默认 storyFlags');
 context.__storage.set('tk-three-kingdoms-v0', '{坏 JSON');
 const corrupt = context.Save.load();
 assert.equal(corrupt.ok, false, '损坏 JSON 必须返回可处理错误状态');
@@ -282,6 +321,9 @@ assert.equal(context.Battle.finish(), 'world', '撤退确认后必须回到原�
 assert.equal(context.Game.state, 'world');
 
 context.Game.startNew();
+context.World.storyFlags['military-book-found'] = true;
+context.World.storyFlags['guan-yu-joined'] = true;
+context.World.storyFlags['mountain-pursuit'] = true;
 const originalMap = context.World.mapId;
 context.Battle.start('stone-oath');
 context.Battle.choose('yun', 'retreat');
@@ -291,6 +333,9 @@ assert.notEqual(bossRetreat.status, 'retreated', '首领战不得通过撤退结
 assert.equal(context.World.mapId, originalMap, '结果确认前不得推进世界地图');
 
 context.Game.startNew();
+context.World.storyFlags['military-book-found'] = true;
+context.World.storyFlags['guan-yu-joined'] = true;
+context.World.storyFlags['mountain-pursuit'] = true;
 const bossStart = context.Battle.start('stone-oath');
 assert.equal(bossStart, 'battle');
 let bossResult = null;
@@ -314,6 +359,9 @@ assert.ok(Object.values(context.World.levels).some((level) => level >= 2), '首�
 assert.equal(context.Game.state, 'world');
 
 context.Game.startNew();
+context.World.storyFlags['military-book-found'] = true;
+context.World.storyFlags['guan-yu-joined'] = true;
+context.World.storyFlags['mountain-pursuit'] = true;
 context.World.party.forEach((id) => { context.World.troops[id] = 1; });
 context.Battle.start('stone-oath');
 context.World.party.forEach((id) => context.Battle.choose(id, 'defend'));
