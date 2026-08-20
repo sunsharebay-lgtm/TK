@@ -543,17 +543,18 @@ console.log('Three Kingdoms exploration and combat checks passed.');
 // HJKL 键位 / 控制器 / 视觉升级 / 手柄测试（新增）
 // ============================================
 
-// --- 3A. HJKL 移动键位 ---
+// --- 3A. HJKL 重构为 UI 功能键 ---
 assert.equal(typeof context.keyActions, 'object', 'keyActions 必须暴露');
 const keys = context.keyActions;
-assert.equal(keys.h, 'left', 'h 必须映射到 left');
-assert.equal(keys.H, 'left', 'H 必须映射到 left');
-assert.equal(keys.j, 'down', 'j 必须映射到 down');
-assert.equal(keys.J, 'down', 'J 必须映射到 down');
-assert.equal(keys.k, 'up', 'k 必须映射到 up');
-assert.equal(keys.K, 'up', 'K 必须映射到 up');
-assert.equal(keys.l, 'right', 'l 必须映射到 right');
-assert.equal(keys.L, 'right', 'L 必须映射到 right');
+// HJKL 现在是 UI 功能键，不再是移动键
+assert.equal(keys.h, 'confirm', 'h 必须映射到 confirm');
+assert.equal(keys.H, 'confirm', 'H 必须映射到 confirm');
+assert.equal(keys.j, 'cancel', 'j 必须映射到 cancel');
+assert.equal(keys.J, 'cancel', 'J 必须映射到 cancel');
+assert.equal(keys.k, 'menu', 'k 必须映射到 menu');
+assert.equal(keys.K, 'menu', 'K 必须映射到 menu');
+assert.equal(keys.l, 'status', 'l 必须映射到 status');
+assert.equal(keys.L, 'status', 'L 必须映射到 status');
 
 // 原有键位必须保留
 assert.equal(keys.ArrowUp, 'up', '方向键上必须保留');
@@ -574,9 +575,8 @@ assert.equal(context.Game.partySelection.visible, false, '新旅程后 partySele
 // 模拟打开 partySelection
 context.Game.openPartySelection();
 assert.equal(context.Game.partySelection.visible, true, 'openPartySelection 后必须可见');
-// HJKL 方向键在 partySelection 打开时不应被完全吞掉
-// 步骤处理应当允许 left/right 等通过
-// 同时 up/down 应被 partyInput 消费
+// 方向键和 WASD 在 partySelection 打开时应被 partyInput 消费
+// HJKL 现在是 UI 功能键
 const worldBeforeX = context.World.x;
 const worldBeforeY = context.World.y;
 // 关闭 panel
@@ -614,11 +614,11 @@ assert.ok(htmlSource.includes('requestAnimationFrame'), '手柄轮询需要 requ
 // 手柄轮询函数必须存在（gamepadPoll 或 gamepadLoop）
 assert.ok(htmlSource.includes('gamepadPoll') || htmlSource.includes('gamepadLoop') || htmlSource.includes('pollGamepad'), '必须有手柄轮询函数');
 
-// --- 3F. HJKL 在世界移动中实际生效 ---
+// --- 3F. HJKL 现在是 UI 功能键 ---
 context.Game.startNew();
 assert.equal(context.Game.state, 'world');
 const jsSource = htmlSource;
-assert.ok(jsSource.includes("h: 'left'") || jsSource.includes("h:'left'") || jsSource.includes("'h': 'left'"), 'keyActions 中 h 映射到 left');
+assert.ok(jsSource.includes("h: 'confirm'") || jsSource.includes("h:'confirm'") || jsSource.includes("'h': 'confirm'"), 'keyActions 中 h 映射到 confirm');
 
 console.log('Controls and visual upgrade checks passed.');
 
@@ -721,11 +721,11 @@ const battleLogMatch = htmlSource.match(/renderBattle[\s\S]*?Battle\.log[\s\S]*?
 // 不做严格检查，只要求战斗日志存在
 assert.ok(htmlSource.includes('Battle.log'), 'renderBattle 必须渲染战斗日志');
 
-// --- 4M. 控制提示文本必须包含 HJKL ---
+// --- 4M. 控制提示文本必须包含新按键标注 ---
 // 页面 HTML 提示文本
-assert.ok(htmlSource.includes('HJKL'), '页面提示文本必须包含 HJKL');
+assert.ok(htmlSource.includes('H 确认') || htmlSource.includes('H/Enter'), '页面提示文本必须包含 H 确认');
 // renderWorld 中 partySelection 提示
-assert.ok(htmlSource.includes('方向选择') || htmlSource.includes('HJKL'), '编队面板必须提及控制键');
+assert.ok(htmlSource.includes('方向键选择') || htmlSource.includes('H 确认'), '编队面板必须提及控制键');
 
 // --- 4N. 触控按钮文本更新 ---
 // 确保触控区域有 battle-1 到 battle-5 的按钮
@@ -740,3 +740,126 @@ assert.ok(htmlSource.includes("Game.state === 'chapter-transition'"), 'step 必�
 assert.ok(htmlSource.includes("Game.state === 'game-over'"), 'step 必须处理 game-over');
 
 console.log('Visual quality and control upgrade tests added (expecting failures until implementation).');
+
+// ============================================
+// HJKL 重构为 UI 功能键测试（第五轮）
+// ============================================
+
+// --- 5A. HJKL 不再是移动键 ---
+// H = confirm（确认，对应 NES A 键）
+// J = cancel（取消，对应 NES B 键）
+// K = menu（呼出菜单/状态，对应 NES START 键）
+// L = status（查看队伍状态/信息）
+assert.equal(typeof context.keyActions, 'object', 'keyActions 必须暴露');
+const k = context.keyActions;
+assert.equal(k.h, 'confirm', 'h 必须映射到 confirm');
+assert.equal(k.H, 'confirm', 'H 必须映射到 confirm');
+assert.equal(k.j, 'cancel', 'j 必须映射到 cancel');
+assert.equal(k.J, 'cancel', 'J 必须映射到 cancel');
+assert.equal(k.k, 'menu', 'k 必须映射到 menu');
+assert.equal(k.K, 'menu', 'K 必须映射到 menu');
+assert.equal(k.l, 'status', 'l 必须映射到 status');
+assert.equal(k.L, 'status', 'L 必须映射到 status');
+
+// HJKL 不应再映射到移动
+assert.notEqual(k.h, 'left', 'h 不再映射到 left');
+assert.notEqual(k.j, 'down', 'j 不再映射到 down');
+assert.notEqual(k.k, 'up', 'k 不再映射到 up');
+assert.notEqual(k.l, 'right', 'l 不再映射到 right');
+
+// --- 5B. 方向键和 WASD 保留为移动 ---
+assert.equal(k.ArrowUp, 'up', '方向键上必须保留');
+assert.equal(k.ArrowDown, 'down', '方向键下必须保留');
+assert.equal(k.ArrowLeft, 'left', '方向键左必须保留');
+assert.equal(k.ArrowRight, 'right', '方向键右必须保留');
+assert.equal(k.w, 'up', 'WASD w 必须保留');
+assert.equal(k.a, 'left', 'WASD a 必须保留');
+assert.equal(k.s, 'down', 'WASD s 必须保留');
+assert.equal(k.d, 'right', 'WASD d 必须保留');
+assert.equal(k.Enter, 'confirm', 'Enter 必须保留');
+assert.equal(k[' '], 'confirm', '空格必须映射到 confirm');
+assert.equal(k.z, 'confirm', 'z 必须保留为 confirm');
+assert.equal(k.Escape, 'cancel', 'Escape 必须保留');
+assert.equal(k.x, 'cancel', 'x 必须保留为 cancel');
+
+// --- 5C. ACTIONS 必须包含 menu 和 status ---
+const actions = context.ACTIONS;
+assert.ok(actions.has('menu'), 'ACTIONS 必须包含 menu');
+assert.ok(actions.has('status'), 'ACTIONS 必须包含 status');
+assert.ok(actions.has('confirm'), 'ACTIONS 必须包含 confirm');
+assert.ok(actions.has('cancel'), 'ACTIONS 必须包含 cancel');
+assert.ok(actions.has('up'), 'ACTIONS 必须包含 up');
+assert.ok(actions.has('down'), 'ACTIONS 必须包含 down');
+assert.ok(actions.has('left'), 'ACTIONS 必须包含 left');
+assert.ok(actions.has('right'), 'ACTIONS 必须包含 right');
+
+// --- 5D. menu 和 status 输入可被识别 ---
+context.Input.enqueue('menu');
+assert.equal(context.Input.consume('menu'), 'menu', 'menu 输入应可识别');
+context.Input.enqueue('status');
+assert.equal(context.Input.consume('status'), 'status', 'status 输入应可识别');
+
+// --- 5E. step() 在 world 状态下处理 menu（打开营地） ---
+context.Game.startNew();
+assert.equal(context.Game.state, 'world');
+context.Input.enqueue('menu');
+context.GameStep();
+assert.equal(context.Game.state, 'camp', 'world 状态下 menu 应打开营地');
+
+// --- 5F. step() 在 world 状态下处理 status ---
+context.Game.startNew();
+assert.equal(context.Game.state, 'world');
+// status 应该在 world 状态下显示队伍状态（不改变状态或设置状态为 status）
+context.Input.enqueue('status');
+context.GameStep();
+// status 可能设置 Game.message 或进入特定状态，但不应 crash
+assert.ok(true, 'status 在 world 状态下不应 crash');
+
+// --- 5G. step() 在 world 状态下 cancel 不再打开营地 ---
+context.Game.startNew();
+assert.equal(context.Game.state, 'world');
+const campBefore = context.Game.state;
+context.Input.enqueue('cancel');
+context.GameStep();
+// cancel 在 world 下不应打开营地（camp 已由 menu 处理）
+// 可能什么都不做或返回标题，但不能打开营地
+assert.notEqual(context.Game.state, 'camp', 'world 状态下 cancel 不应打开营地');
+
+// --- 5H. 触控按钮必须包含 menu 和 status ---
+assert.ok(htmlSource.includes('data-action="menu"'), '触控按钮 menu 必须存在');
+assert.ok(htmlSource.includes('data-action="status"'), '触控按钮 status 必须存在');
+
+// --- 5I. renderBattle 使用第一人称布局 ---
+// 战斗标题必须显示在画面最上方
+assert.ok(htmlSource.includes('renderBattle'), 'renderBattle 必须存在');
+// 敌方精灵居中偏右
+assert.ok(htmlSource.includes('780') || htmlSource.includes('1060') || htmlSource.includes('1020') || htmlSource.includes('980'), 'renderBattle 敌方精灵必须在右侧');
+// 战斗日志
+assert.ok(htmlSource.includes('Battle.log'), 'renderBattle 必须渲染战斗日志');
+
+// --- 5J. renderDialogue 使用新版对话框布局 ---
+// 窗口从 y=420 开始，高度 260
+assert.ok(htmlSource.includes('renderDialogue'), 'renderDialogue 必须存在');
+
+// --- 5K. UI 提示文本使用新按键标注 ---
+// "H 确认" 出现在提示中
+assert.ok(htmlSource.includes('H 确认'), '提示文本必须包含 "H 确认"');
+// "J 取消" 出现在提示中
+assert.ok(htmlSource.includes('J 取消'), '提示文本必须包含 "J 取消"');
+// 兼容提示
+assert.ok(htmlSource.includes('Enter') || htmlSource.includes('Enter / 空格'), '必须保留 Enter 兼容提示');
+
+// --- 5L. renderBattle 布局区域检查 ---
+// 战斗标题区域 y: 0-50
+// 敌方区域 y: 50-380
+// 我方区域 y: 420-540
+// 指令菜单 y: 540-580
+// 战斗日志 y: 580-640
+// 回合信息 y: 640-680
+// 检查 renderBattle 中引用了这些区域的坐标
+const battleSource = htmlSource.substring(htmlSource.indexOf('function renderBattle'));
+assert.ok(battleSource.includes('420') || battleSource.includes('430'), 'renderBattle 必须在 y≈420 区域绘制我方队伍');
+assert.ok(battleSource.includes('540') || battleSource.includes('550'), 'renderBattle 必须在 y≈540 区域绘制指令菜单');
+assert.ok(battleSource.includes('580') || battleSource.includes('590'), 'renderBattle 必须在 y≈580 区域绘制战斗日志');
+
+console.log('HJKL remap and visual redesign tests added (expecting failures until implementation).');
