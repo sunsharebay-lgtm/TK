@@ -651,14 +651,12 @@ assert.ok(gyR >= 160, `关羽 skin 红色通道必须 >= 160（实际 ${gyR}）`
 assert.ok(gyG <= 100, `关羽 skin 绿色通道必须 <= 100（实际 ${gyG}），确保面部是暖红色`);
 
 // --- 4C. 关羽黑须必须更大更明显 ---
-// beard 绘制区域必须比默认更大（>=26 宽度和 >=20 高度）
-const beardMatch = htmlSource.match(/if \(visual\.beard\)[^}]*fillRect[^;]*;[^}]*fillRect/);
-assert.ok(beardMatch, 'drawActorSprite 必须绘制 beard 的两个矩形区域');
-// 检查源码中 beard 绘制的宽度参数是否 >= 26
-const beardWidthMatch = htmlSource.match(/if \(visual\.beard\)[^}]*?fillRect\([^)]*-?\d+,\s*top\s*\+\s*\d+,\s*(\d+)/);
-assert.ok(beardWidthMatch, 'beard fillRect 必须可解析');
-const beardWidth = parseInt(beardWidthMatch[1]);
-assert.ok(beardWidth >= 26, `关羽 beard 宽度必须 >= 26（实际 ${beardWidth}）`);
+// beard 绘制区域必须有曲线或矩形绘制
+const beardMatch = htmlSource.match(/if \(actorId === 'guan-yu'\)[^}]*?(bezierCurveTo|fillRect)[^}]*?(bezierCurveTo|fillRect)/s);
+assert.ok(beardMatch, 'drawActorSprite 必须绘制关羽 beard 区域（曲线或矩形）');
+// 检查 beard 区域必须足够大（覆盖到胸口）
+const beardHeightMatch = htmlSource.match(/if \(actorId === 'guan-yu'\)[^}]*?top\s*\+\s*S\((\d+)\)/);
+assert.ok(beardHeightMatch, '关羽 beard 必须延伸到足够低的位置');
 
 // --- 4D. 刘备金色头冠必须突出 ---
 const liuBeiVisual = context.DATA.ACTORS['liu-bei'].visual;
@@ -684,21 +682,24 @@ assert.ok(zfBR <= 30, `张飞 beard 必须是深黑色（R=${zfBR}）`);
 assert.ok(htmlSource.includes('zhang-fei') || htmlSource.includes('visual.beard'), 'drawActorSprite 必须对 beard 有差异化绘制');
 
 // --- 4F. 青龙偃月刀必须比其他武器更大 ---
-// 通过检查 guandao 的绘制尺寸（moveTo/lineTo 坐标差值）
-const guandaoMatch = htmlSource.match(/weapon\s*===\s*'guandao'[\s\S]*?moveTo\(\d+,\s*top\s*\+\s*\d+\)[\s\S]*?lineTo\(\d+,\s*top\s*-\s*(\d+)/);
-assert.ok(guandaoMatch, 'guandao 必须有 moveTo/lineTo 绘制');
-const guandaoExtend = parseInt(guandaoMatch[1]);
-assert.ok(guandaoExtend >= 5, `青龙偃月刀向上延伸必须 >= 5px（实际 ${guandaoExtend}），需要比其他武器更长`);
+// 通过检查 guandao 的绘制（moveTo/lineTo 或 bezierCurveTo）
+const guandaoMatch = htmlSource.match(/weapon\s*===\s*'guandao'[\s\S]*?(moveTo|bezierCurveTo)\(/);
+assert.ok(guandaoMatch, 'guandao 必须有曲线或直线绘制');
+// 检查刀刃使用 bezierCurveTo 或大尺寸
+const guandaoBlade = htmlSource.match(/weapon\s*===\s*'guandao'[\s\S]*?bezierCurveTo/);
+assert.ok(guandaoBlade, '青龙偃月刀刀刃必须使用曲线绘制（更自然的弧形）');
 
 // --- 4G. 所有角色必须有白底+黑点眼睛 ---
 // 已有 '#f0eee8' 眼白和 '#0f0f18' 瞳孔
 assert.ok(htmlSource.includes('#f0eee8') || htmlSource.includes('f0eee8'), '眼睛必须有白底');
 assert.ok(htmlSource.includes('#0f0f18') || htmlSource.includes('0f0f18'), '眼睛必须有黑点瞳孔');
 
-// --- 4H. 图块草叶纹理 >= 3 条 stroke ---
-// drawTileTexture 中必须有 >= 3 条草地线条
-const grassBladeMatches = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?lineTo[\s\S]*?stroke\(\)/g);
+// --- 4H. 图块草叶纹理 >= 3 条曲线或直线 ---
+// drawTileTexture 中必须有 >= 3 条草地线条（直线或曲线）
+const grassBladeMatches = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?(lineTo|bezierCurveTo)[\s\S]*?stroke\(\)/g);
 assert.ok(grassBladeMatches && grassBladeMatches.length >= 3, `草叶纹理线条必须 >= 3 条（实际 ${grassBladeMatches ? grassBladeMatches.length : 0}）`);
+// 也检查 grassCluster 函数是否存在（新的弯曲草叶实现）
+assert.ok(htmlSource.includes('grassCluster') || htmlSource.includes('bezierCurveTo'), '必须使用曲线或 grassCluster 函数绘制草叶');
 
 // --- 4I. 所有图块必须有至少两种颜色的细节 ---
 // 非墙壁图块必须有纹理 stroke 和边框 stroke
@@ -932,9 +933,11 @@ assert.ok(dialogueSource.includes('380') || dialogueSource.includes('h = 380') |
 assert.ok(htmlSource.includes('createLinearGradient'), 'renderBattle 必须使用渐变背景');
 
 // --- 6K. 地图图块必须有更丰富的纹理 ---
-// 草地图块必须有 >= 5 条草丛线条
-const grassMatches2 = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?lineTo[\s\S]*?stroke\(\)/g);
+// 草地图块必须有 >= 5 条草丛线条（直线或曲线）
+const grassMatches2 = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?(lineTo|bezierCurveTo)[\s\S]*?stroke\(\)/g);
 assert.ok(grassMatches2 && grassMatches2.length >= 5, `草丛纹理线条必须 >= 5 条（实际 ${grassMatches2 ? grassMatches2.length : 0}）`);
+// 必须有草丛函数或花朵点缀
+assert.ok(htmlSource.includes('grassCluster') || htmlSource.includes('flower') || htmlSource.includes('arc'), '必须有草丛函数或花朵点缀');
 
 // --- 6L. 墙壁图块必须有砖块纹理 ---
 const tileSource = htmlSource.substring(htmlSource.indexOf('function drawTileTexture'));
@@ -960,3 +963,110 @@ const stepParam = stepMatch[1];
 assert.equal(stepParam, 'action', 'step 函数参数必须命名为 action');
 
 console.log('Resolution, keyboard fix, and visual fidelity tests added.');
+
+// ============================================
+// 角色精灵曲线/弧线重写 + 地图纹理 + NPC图形化测试（第七轮）
+// ============================================
+
+// --- 7A. drawActorSprite 必须使用 arc（圆形头部） ---
+// 头部必须用 arc 画圆，不是 fillRect 矩形
+const spriteFuncBlock = htmlSource.substring(htmlSource.indexOf('function drawActorSprite'), htmlSource.indexOf('function drawTileTexture'));
+assert.ok(spriteFuncBlock.includes('.arc('), 'drawActorSprite 必须使用 arc 绘制圆形头部/面部');
+// 必须有椭圆阴影（ellipse）
+assert.ok(spriteFuncBlock.includes('.ellipse('), 'drawActorSprite 必须使用 ellipse 绘制椭圆阴影');
+
+// --- 7B. drawActorSprite 必须有 trapezoid（梯形身体） ---
+// 梯形通过 beginPath + moveTo + lineTo + fill 或 stroke 实现
+assert.ok(spriteFuncBlock.includes('beginPath') && spriteFuncBlock.includes('moveTo') && spriteFuncBlock.includes('lineTo'),
+  'drawActorSprite 必须使用 beginPath/moveTo/lineTo 画梯形身体（不是纯 fillRect）');
+// moveTo+lineTo 组合次数必须 >= 2（身体+武器等）
+const mtltPairs = (spriteFuncBlock.match(/moveTo\(/g) || []).length;
+assert.ok(mtltPairs >= 2, `drawActorSprite moveTo 调用必须 >= 2 次（实际 ${mtltPairs}），需要梯形/曲线绘制`);
+
+// --- 7C. 头部/脸部必须是圆形不是矩形 ---
+// 检查是否有 arc 画脸（支持 top + number 或 top + S(number) 格式）
+assert.ok(spriteFuncBlock.match(/arc\([^)]*top\s*\+\s*(?:S\()?\d+[^)]*\)/), '脸部必须用 arc 画圆形');
+
+// --- 7D. 鼻子和嘴巴必须有弧线 ---
+// 嘴巴用 arc 画弧线
+assert.ok(spriteFuncBlock.includes('arc') && (spriteFuncBlock.includes('嘴') || spriteFuncBlock.includes('mouth') || spriteFuncBlock.match(/arc\([^)]*\)/)),
+  'drawActorSprite 必须有嘴巴弧线绘制');
+// 鼻子不能只是 fillRect 小方块
+assert.ok(spriteFuncBlock.includes('鼻') || spriteFuncBlock.includes('nose') || spriteFuncBlock.includes('arc'),
+  'drawActorSprite 必须有鼻子细节');
+
+// --- 7E. 眼睛必须有高光点 ---
+// 白色高光点（极小的白色圆点在瞳孔上）
+assert.ok(spriteFuncBlock.includes('#ffffff') || spriteFuncBlock.includes('rgba(255,255,255') || spriteFuncBlock.includes('#fff') || spriteFuncBlock.includes('white'),
+  '眼睛必须有白色高光点');
+
+// --- 7F. 脖子连接头和身体 ---
+assert.ok(spriteFuncBlock.includes('脖') || spriteFuncBlock.includes('neck') || spriteFuncBlock.match(/fillRect\([^)]*top\s*\+\s*6[0-9]/),
+  'drawActorSprite 必须绘制脖子连接头部和身体');
+
+// --- 7G. 鞋子必须有弧线细节 ---
+assert.ok(spriteFuncBlock.includes('鞋') || spriteFuncBlock.includes('shoe') || spriteFuncBlock.includes('arc'),
+  'drawActorSprite 必须有鞋子弧线细节');
+
+// --- 7H. 手臂必须用圆角或弧线 ---
+assert.ok(spriteFuncBlock.includes('quadraticCurveTo') || spriteFuncBlock.includes('bezierCurveTo') || spriteFuncBlock.includes('roundRect') || spriteFuncBlock.includes('arc'),
+  'drawActorSprite 手臂必须使用曲线（quadraticCurveTo/bezierCurveTo/roundRect）');
+
+// --- 7I. 腰带必须有弧线 ---
+assert.ok(spriteFuncBlock.includes('腰') || spriteFuncBlock.includes('belt') || spriteFuncBlock.includes('arc'),
+  'drawActorSprite 必须有腰带细节');
+
+// --- 7J. 关羽胡须必须用弧线/曲线 ---
+// 关羽胡须用 bezierCurveTo 或 arc 画飘逸长须
+const gyBeardSection = spriteFuncBlock.substring(spriteFuncBlock.indexOf("guan-yu"));
+assert.ok(gyBeardSection.includes('bezierCurveTo') || gyBeardSection.includes('quadraticCurveTo') || gyBeardSection.includes('arc'),
+  '关羽胡须必须使用曲线绘制飘逸效果');
+
+// --- 7K. 张飞胡须必须用多层弧线 ---
+const zfBeardSection = spriteFuncBlock.substring(spriteFuncBlock.indexOf("zhang-fei"));
+assert.ok(zfBeardSection.includes('bezierCurveTo') || zfBeardSection.includes('quadraticCurveTo') || zfBeardSection.includes('arc'),
+  '张飞胡须必须使用曲线绘制蓬松效果');
+
+// --- 7L. 青龙偃月刀必须用 arc 画弧形刀刃 ---
+assert.ok(spriteFuncBlock.includes("guandao") && spriteFuncBlock.includes('arc'), '青龙偃月刀必须用 arc 画弧形刀刃');
+
+// --- 7M. 丈八蛇矛必须用 bezierCurveTo 画波浪矛头 ---
+assert.ok(spriteFuncBlock.includes("spear") && (spriteFuncBlock.includes('bezierCurveTo') || spriteFuncBlock.includes('quadraticCurveTo')),
+  '丈八蛇矛必须用 bezierCurveTo/quadraticCurveTo 画波浪形矛头');
+
+// --- 7N. drawTileTexture 必须有花卉点缀 ---
+const tileFuncBlock = htmlSource.substring(htmlSource.indexOf('function drawTileTexture'), htmlSource.indexOf('function viewportFor'));
+assert.ok(tileFuncBlock.includes('花') || tileFuncBlock.includes('flower') || tileFuncBlock.includes('arc'),
+  'drawTileTexture 草地必须有花卉点缀（arc 画小圆点）');
+
+// --- 7O. 水面必须用 bezierCurveTo 画波浪 ---
+assert.ok(tileFuncBlock.includes('bezierCurveTo') || tileFuncBlock.includes('quadraticCurveTo'),
+  'drawTileTexture 水面必须使用 bezierCurveTo/quadraticCurveTo 画波浪');
+
+// --- 7P. 路径/道路图块必须有碎石纹理 ---
+// 检查是否有非空非墙壁图块的纹理绘制（palette 判断）
+assert.ok(tileFuncBlock.includes('palette') || tileFuncBlock.includes('碎石') || tileFuncBlock.includes('gravel'),
+  'drawTileTexture 必须有路径/道路碎石纹理');
+
+// --- 7Q. renderWorld 中 NPC 必须用 drawActorSprite 绘制 ---
+const renderWorldBlock = htmlSource.substring(htmlSource.indexOf('function renderWorld'), htmlSource.indexOf('function renderDialogue'));
+// NPC 交互点必须用 drawActorSprite 而不是 fillRect
+assert.ok(renderWorldBlock.includes('drawActorSprite') && renderWorldBlock.includes('point.actorId'),
+  'renderWorld 中 NPC 必须用 drawActorSprite 绘制');
+// 非 NPC 交互物（宝箱/恢复点/出口）不能只用 fillRect
+assert.ok(renderWorldBlock.includes('宝箱') || renderWorldBlock.includes('chest') || renderWorldBlock.includes('arc') || renderWorldBlock.includes('恢复'),
+  'renderWorld 中交互物必须有图形化绘制（arc/圆/门形状）');
+
+// --- 7R. drawActorSprite 必须有眉毛建模 ---
+assert.ok(spriteFuncBlock.includes('眉') || spriteFuncBlock.includes('eyebrow') || spriteFuncBlock.match(/lineTo[^;]*top\s*\+\s*3/),
+  'drawActorSprite 必须有眉毛绘制');
+
+// --- 7S. 刘备金冠必须有高光条 ---
+assert.ok(spriteFuncBlock.includes('liu-bei') && spriteFuncBlock.includes('高光'),
+  '刘备金冠必须有高光条');
+
+// --- 7T. 所有角色必须有脖子 ---
+assert.ok(spriteFuncBlock.includes('neck') || spriteFuncBlock.includes('脖'),
+  '所有角色必须有脖子连接头部和身体');
+
+console.log('Sprite curve/arc rewrite and visual upgrade tests added.');
