@@ -1101,86 +1101,357 @@
       const sh = options.height || 160;
       const ox = x + sw / 2;
       const top = y + sh - 152;
+      const sc = sh / 160;
       context.save();
       context.translate(ox, 0);
       context.scale(flip, 1);
-      // shadow (ellipse)
-      context.fillStyle = 'rgba(0,0,0,.34)';
+
+      function S(v) { return v * sc; }
+
+      // ── shadow ──
+      context.fillStyle = 'rgba(0,0,0,.30)';
       context.beginPath();
-      context.ellipse(0, y + sh - 8, 40, 10, 0, 0, Math.PI * 2);
+      context.ellipse(0, y + sh - 6, S(42), S(10), 0, 0, Math.PI * 2);
       context.fill();
-      // robe body
-      context.fillStyle = visual.robes; context.fillRect(-42, top + 70, 84, 56);
-      // robe trim (vertical center line + edges)
+
+      // ── back arm (behind body) ──
+      context.fillStyle = visual.robes;
+      context.beginPath();
+      context.moveTo(S(-38), top + S(74));
+      context.lineTo(S(-54), top + S(74 + frame));
+      context.lineTo(S(-56), top + S(110 + frame));
+      context.lineTo(S(-40), top + S(110));
+      context.closePath();
+      context.fill();
+      // back hand
+      context.fillStyle = visual.skin;
+      context.beginPath();
+      context.ellipse(S(-50), top + S(114 + frame), S(7), S(5), 0, 0, Math.PI * 2);
+      context.fill();
+
+      // ── robe body (trapezoid, wider at bottom) ──
+      context.fillStyle = visual.robes;
+      context.beginPath();
+      context.moveTo(S(-30), top + S(62));
+      context.lineTo(S(30), top + S(62));
+      context.lineTo(S(40), top + S(122));
+      context.lineTo(S(-40), top + S(122));
+      context.closePath();
+      context.fill();
+      // robe collar (V-shape)
       context.fillStyle = visual.trim;
-      context.fillRect(-22, top + 70, 44, 4);
-      context.fillRect(-42, top + 70, 5, 56);
-      context.fillRect(37, top + 70, 5, 56);
-      context.fillRect(-10, top + 70, 20, 56);
+      context.beginPath();
+      context.moveTo(S(-12), top + S(62));
+      context.lineTo(S(0), top + S(80));
+      context.lineTo(S(12), top + S(62));
+      context.closePath();
+      context.fill();
+      // robe center line
+      context.fillStyle = 'rgba(255,255,255,.08)';
+      context.fillRect(S(-1.5), top + S(78), S(3), S(44));
+      // robe edge trim
+      context.fillStyle = visual.trim;
+      context.fillRect(S(-31), top + S(62), S(3), S(60));
+      context.fillRect(S(28), top + S(62), S(3), S(60));
+      // robe hem detail
+      context.fillStyle = 'rgba(0,0,0,.15)';
+      context.fillRect(S(-40), top + S(118), S(80), S(4));
       // belt
-      context.fillStyle = visual.trim; context.fillRect(-42, top + 68, 84, 6);
-      // arms (with sleeves)
-      context.fillStyle = visual.skin; context.fillRect(-56, top + 76 + frame, 16, 40); context.fillRect(40, top + 76 - frame, 16, 40);
-      context.fillStyle = visual.robes; context.fillRect(-58, top + 72 + frame, 18, 12); context.fillRect(40, top + 72 - frame, 18, 12);
-      // legs
-      context.fillStyle = '#222333'; context.fillRect(-32, top + 126, 24, 28); context.fillRect(8, top + 126, 24, 28);
+      context.fillStyle = visual.trim;
+      context.fillRect(S(-32), top + S(96), S(64), S(5));
+      // belt buckle
+      context.fillStyle = '#f0d868';
+      context.beginPath();
+      context.ellipse(0, top + S(98), S(5), S(4), 0, 0, Math.PI * 2);
+      context.fill();
+
+      // ── front arm ──
+      context.fillStyle = visual.robes;
+      context.beginPath();
+      context.moveTo(S(30), top + S(66));
+      context.lineTo(S(50), top + S(66 - frame));
+      context.lineTo(S(52), top + S(106 - frame));
+      context.lineTo(S(34), top + S(106));
+      context.closePath();
+      context.fill();
+      // front hand
+      context.fillStyle = visual.skin;
+      context.beginPath();
+      context.ellipse(S(48), top + S(110 - frame), S(7), S(5), 0, 0, Math.PI * 2);
+      context.fill();
+
+      // ── legs ──
+      context.fillStyle = '#1e1e30';
+      context.fillRect(S(-24), top + S(122), S(18), S(28));
+      context.fillRect(S(6), top + S(122), S(18), S(28));
       // shoes
-      context.fillStyle = '#151722'; context.fillRect(-38, top + 152, 34, 12); context.fillRect(4, top + 152, 34, 12);
-      // head base (hair volume)
-      context.fillStyle = visual.hair; context.fillRect(-32, top + 4, 64, 52);
-      // hair top knot
-      context.fillRect(-10, top - 6, 20, 16);
-      // head/crown area
-      context.fillStyle = visual.head; context.fillRect(-36, top + 2, 72, 16);
-      // face (skin)
-      context.fillStyle = visual.skin; context.fillRect(-24, top + 22, 48, 40);
-      // eye whites (larger)
-      context.fillStyle = '#f0eee8'; context.fillRect(-18, top + 30, 12, 10); context.fillRect(6, top + 30, 12, 10);
-      // eye pupils (black)
-      context.fillStyle = '#0f0f18'; context.fillRect(-14, top + 33, 8, 6); context.fillRect(8, top + 33, 8, 6);
-      // mouth
-      context.fillStyle = '#c04040'; context.fillRect(-5, top + 50, 10, 3);
-      // beard (enhanced: wider coverage for all beard-bearing characters)
-      if (visual.beard) {
-        context.fillStyle = visual.beard;
-        context.fillRect(-22, top + 52, 44, 32);
-        context.fillRect(-16, top + 70, 32, 20);
-        // extra beard volume for zhang-fei
-        if (actorId === 'zhang-fei') {
-          context.fillRect(-30, top + 48, 60, 14);
-          context.fillRect(-20, top + 68, 40, 16);
-          context.fillRect(-24, top + 84, 48, 10);
-        }
-        // extra beard for guan-yu
-        if (actorId === 'guan-yu') {
-          context.fillRect(-16, top + 56, 32, 36);
-          context.fillRect(-12, top + 92, 24, 14);
-        }
-      }
-      // crown highlight for liu-bei
-      if (actorId === 'liu-bei') {
-        context.fillStyle = '#f0d050';
-        context.fillRect(-28, top - 2, 56, 10);
-        context.fillRect(-18, top - 8, 36, 8);
-        context.fillStyle = '#fff8d0';
-        context.fillRect(-12, top - 6, 24, 4);
-      }
-      // weapon
-      context.strokeStyle = visual.trim; context.lineWidth = 3;
+      context.fillStyle = '#121218';
+      context.beginPath();
+      context.moveTo(S(-28), top + S(148));
+      context.lineTo(S(-4), top + S(148));
+      context.lineTo(S(-2), top + S(156));
+      context.lineTo(S(-30), top + S(156));
+      context.closePath();
+      context.fill();
+      context.beginPath();
+      context.moveTo(S(4), top + S(148));
+      context.lineTo(S(28), top + S(148));
+      context.lineTo(S(30), top + S(156));
+      context.lineTo(S(2), top + S(156));
+      context.closePath();
+      context.fill();
+
+      // ── weapon (before head, behind if needed) ──
       if (visual.weapon === 'guandao') {
-        // 青龙偃月刀：长柄 + 大弧形刀刃
-        context.beginPath(); context.moveTo(50, top + 152); context.lineTo(58, top - 12); context.stroke();
-        context.beginPath(); context.moveTo(54, top - 12); context.lineTo(78, top + 8); context.stroke();
-        context.beginPath(); context.moveTo(78, top + 8); context.lineTo(58, top - 12); context.stroke();
-        context.fillStyle = visual.trim; context.fillRect(68, top - 6, 14, 22);
+        // 青龙偃月刀: long pole + curved blade
+        context.strokeStyle = '#8a7a50'; context.lineWidth = S(3.5);
+        context.beginPath(); context.moveTo(S(46), top + S(150)); context.lineTo(S(52), top - S(8)); context.stroke();
+        // blade (arc)
+        context.fillStyle = '#c8b878';
+        context.beginPath();
+        context.moveTo(S(52), top - S(8));
+        context.bezierCurveTo(S(56), top - S(22), S(78), top - S(20), S(76), top - S(4));
+        context.bezierCurveTo(S(74), top + S(4), S(58), top + S(2), S(52), top - S(8));
+        context.closePath();
+        context.fill();
+        context.strokeStyle = '#e8d898'; context.lineWidth = S(1.5);
+        context.beginPath();
+        context.moveTo(S(54), top - S(12));
+        context.bezierCurveTo(S(58), top - S(20), S(72), top - S(16), S(70), top - S(6));
+        context.stroke();
+        // blade tip
+        context.fillStyle = '#e8d898';
+        context.beginPath();
+        context.moveTo(S(74), top - S(6));
+        context.lineTo(S(80), top - S(14));
+        context.lineTo(S(76), top - S(2));
+        context.closePath();
+        context.fill();
+      } else if (visual.weapon === 'spear' || visual.weapon === 'lance') {
+        // spear: long pole + leaf-shaped point
+        context.strokeStyle = '#8a7a50'; context.lineWidth = S(3);
+        context.beginPath(); context.moveTo(S(46), top + S(150)); context.lineTo(S(54), top - S(14)); context.stroke();
+        // spearhead
+        context.fillStyle = '#c0b080';
+        context.beginPath();
+        context.moveTo(S(54), top - S(14));
+        context.lineTo(S(60), top - S(26));
+        context.lineTo(S(50), top - S(14));
+        context.closePath();
+        context.fill();
+        context.strokeStyle = '#e0d0a0'; context.lineWidth = S(1);
+        context.beginPath(); context.moveTo(S(54), top - S(12)); context.lineTo(S(57), top - S(22)); context.stroke();
+      } else if (visual.weapon === 'dual-swords') {
+        // 双股剑: two short swords
+        [-14, 14].forEach((off) => {
+          context.fillStyle = '#b0a070';
+          context.beginPath();
+          context.moveTo(S(off - 3), top + S(100));
+          context.lineTo(S(off + 3), top + S(100));
+          context.lineTo(S(off + 1), top + S(70));
+          context.lineTo(S(off - 1), top + S(70));
+          context.closePath();
+          context.fill();
+          context.fillStyle = '#d0c898';
+          context.fillRect(S(off - 1), top + S(68), S(2), S(6));
+          // guard
+          context.fillStyle = '#f0d868';
+          context.fillRect(S(off - 5), top + S(96), S(10), S(3));
+        });
+      } else if (visual.weapon === 'fan') {
+        context.fillStyle = '#f0d783';
+        context.beginPath();
+        context.moveTo(S(36), top + S(90));
+        context.bezierCurveTo(S(30), top + S(70), S(60), top + S(66), S(56), top + S(90));
+        context.closePath();
+        context.fill();
+        context.strokeStyle = '#8a6a30'; context.lineWidth = S(1);
+        context.stroke();
+      } else {
+        // default staff
+        context.strokeStyle = '#8a7a50'; context.lineWidth = S(3);
+        context.beginPath(); context.moveTo(S(44), top + S(140)); context.lineTo(S(50), top + S(70)); context.stroke();
       }
-      else if (visual.weapon === 'spear') { context.beginPath(); context.moveTo(50, top + 152); context.lineTo(62, top - 16); context.stroke(); context.fillStyle = visual.trim; context.fillRect(58, top - 18, 12, 8); }
-      else if (visual.weapon === 'fan') { context.fillStyle = '#f0d783'; context.fillRect(44, top + 80, 30, 22); context.stroke(); }
-      else if (visual.weapon === 'bow') { context.beginPath(); context.arc(52, top + 92, 26, -1.2, 1.2); context.stroke(); }
-      else if (visual.weapon === 'scroll') { context.fillStyle = '#e8dbb5'; context.fillRect(44, top + 80, 14, 36); context.stroke(); }
-      else if (visual.weapon === 'shield') { context.fillStyle = visual.trim; context.fillRect(-64, top + 76, 22, 28); context.stroke(); }
-      else if (visual.weapon === 'staff') { context.fillStyle = visual.trim; context.fillRect(44, top + 80, 16, 50); context.stroke(); }
-      else { context.fillStyle = visual.trim; context.fillRect(44, top + 80, 16, 50); }
+
+      // ── neck ──
+      context.fillStyle = visual.skin;
+      context.fillRect(S(-5), top + S(54), S(10), S(10));
+
+      // ── head (circle) ──
+      context.fillStyle = visual.skin;
+      context.beginPath();
+      context.arc(0, top + S(36), S(22), 0, Math.PI * 2);
+      context.fill();
+
+      // ── hair back ──
+      context.fillStyle = visual.hair;
+      context.beginPath();
+      context.arc(0, top + S(30), S(23), Math.PI, Math.PI * 2);
+      context.fill();
+      // hair sides
+      context.fillRect(S(-23), top + S(28), S(8), S(26));
+      context.fillRect(S(15), top + S(28), S(8), S(26));
+
+      // ── headband / crown base ──
+      if (actorId === 'liu-bei') {
+        // golden crown (two-tiered)
+        context.fillStyle = '#d4a020';
+        context.beginPath();
+        context.moveTo(S(-20), top + S(18));
+        context.lineTo(S(20), top + S(18));
+        context.lineTo(S(18), top + S(10));
+        context.lineTo(S(-18), top + S(10));
+        context.closePath();
+        context.fill();
+        context.fillStyle = '#f0c830';
+        context.beginPath();
+        context.moveTo(S(-12), top + S(10));
+        context.lineTo(S(12), top + S(10));
+        context.lineTo(S(10), top + S(2));
+        context.lineTo(S(-10), top + S(2));
+        context.closePath();
+        context.fill();
+        // crown jewel
+        context.fillStyle = '#ff4040';
+        context.beginPath();
+        context.arc(0, top + S(6), S(3), 0, Math.PI * 2);
+        context.fill();
+        // crown highlight (高光)
+        context.fillStyle = 'rgba(255,255,255,.3)';
+        context.fillRect(S(-6), top + S(4), S(4), S(3));
+      } else if (actorId === 'guan-yu') {
+        // green headband
+        context.fillStyle = '#2a6030';
+        context.fillRect(S(-22), top + S(14), S(44), S(8));
+        // knot at back
+        context.fillStyle = '#2a6030';
+        context.fillRect(S(-8), top + S(8), S(16), S(8));
+      } else if (actorId === 'zhang-fei') {
+        // black helmet
+        context.fillStyle = '#2a2830';
+        context.beginPath();
+        context.arc(0, top + S(22), S(24), Math.PI, 0);
+        context.fill();
+        context.fillStyle = '#3a3840';
+        context.fillRect(S(-20), top + S(18), S(40), S(6));
+      } else {
+        // generic headband
+        context.fillStyle = visual.head;
+        context.fillRect(S(-22), top + S(16), S(44), S(6));
+      }
+
+      // ── face features ──
+      // eyebrows
+      context.fillStyle = '#1a1820';
+      context.fillRect(S(-16), top + S(26), S(10), S(2.5));
+      context.fillRect(S(6), top + S(26), S(10), S(2.5));
+      // eye whites
+      context.fillStyle = '#f0eee8';
+      context.beginPath();
+      context.ellipse(S(-11), top + S(32), S(6), S(4.5), 0, 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.ellipse(S(11), top + S(32), S(6), S(4.5), 0, 0, Math.PI * 2);
+      context.fill();
+      // pupils
+      context.fillStyle = '#0f0f18';
+      context.beginPath();
+      context.arc(S(-10), top + S(32), S(2.8), 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.arc(S(12), top + S(32), S(2.8), 0, Math.PI * 2);
+      context.fill();
+      // eye highlight
+      context.fillStyle = '#ffffff';
+      context.beginPath();
+      context.arc(S(-9), top + S(31), S(1.2), 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.arc(S(13), top + S(31), S(1.2), 0, Math.PI * 2);
+      context.fill();
+      // nose
+      context.fillStyle = 'rgba(0,0,0,.15)';
+      context.beginPath();
+      context.moveTo(0, top + S(34));
+      context.lineTo(S(-3), top + S(40));
+      context.lineTo(S(3), top + S(40));
+      context.closePath();
+      context.fill();
+      // mouth
+      context.fillStyle = '#c04040';
+      context.beginPath();
+      context.ellipse(0, top + S(46), S(5), S(2), 0, 0, Math.PI);
+      context.fill();
+
+      // ── beard (character-specific) ──
+      if (actorId === 'guan-yu') {
+        // long flowing black beard
+        context.fillStyle = '#0a0a10';
+        context.beginPath();
+        context.moveTo(S(-14), top + S(48));
+        context.bezierCurveTo(S(-16), top + S(64), S(-12), top + S(84), S(-6), top + S(100));
+        context.lineTo(S(6), top + S(100));
+        context.bezierCurveTo(S(12), top + S(84), S(16), top + S(64), S(14), top + S(48));
+        context.closePath();
+        context.fill();
+        // beard texture lines
+        context.strokeStyle = 'rgba(40,40,50,.4)'; context.lineWidth = S(1);
+        for (let i = 0; i < 5; i++) {
+          const bx = S(-8 + i * 4);
+          context.beginPath(); context.moveTo(bx, top + S(52)); context.lineTo(bx + S(1), top + S(92)); context.stroke();
+        }
+      } else if (actorId === 'zhang-fei') {
+        // massive wild beard covering lower face
+        context.fillStyle = '#080810';
+        context.beginPath();
+        context.moveTo(S(-22), top + S(40));
+        context.bezierCurveTo(S(-28), top + S(56), S(-24), top + S(80), S(-10), top + S(104));
+        context.lineTo(S(10), top + S(104));
+        context.bezierCurveTo(S(24), top + S(80), S(28), top + S(56), S(22), top + S(40));
+        context.closePath();
+        context.fill();
+        // beard wild texture
+        context.strokeStyle = 'rgba(30,30,40,.35)'; context.lineWidth = S(1.2);
+        for (let i = 0; i < 7; i++) {
+          const bx = S(-12 + i * 4);
+          context.beginPath(); context.moveTo(bx, top + S(44)); context.lineTo(bx + S(2), top + S(96)); context.stroke();
+        }
+        // mustache
+        context.fillStyle = '#080810';
+        context.beginPath();
+        context.moveTo(S(-14), top + S(44));
+        context.bezierCurveTo(S(-18), top + S(48), S(-20), top + S(46), S(-16), top + S(42));
+        context.lineTo(S(16), top + S(42));
+        context.bezierCurveTo(S(20), top + S(46), S(18), top + S(48), S(14), top + S(44));
+        context.closePath();
+        context.fill();
+      } else if (visual.beard) {
+        // generic beard
+        context.fillStyle = visual.beard;
+        context.beginPath();
+        context.moveTo(S(-10), top + S(48));
+        context.bezierCurveTo(S(-12), top + S(60), S(-8), top + S(72), S(0), top + S(78));
+        context.bezierCurveTo(S(8), top + S(72), S(12), top + S(60), S(10), top + S(48));
+        context.closePath();
+        context.fill();
+      }
+
+      // ── hair front (bangs) ──
+      context.fillStyle = visual.hair;
+      context.beginPath();
+      context.moveTo(S(-20), top + S(16));
+      context.bezierCurveTo(S(-18), top + S(12), S(-8), top + S(10), S(0), top + S(14));
+      context.bezierCurveTo(S(8), top + S(10), S(18), top + S(12), S(20), top + S(16));
+      context.lineTo(S(20), top + S(20));
+      context.lineTo(S(-20), top + S(20));
+      context.closePath();
+      context.fill();
+      // hair top knot
+      context.fillStyle = visual.hair;
+      context.beginPath();
+      context.ellipse(0, top + S(4), S(8), S(7), 0, 0, Math.PI * 2);
+      context.fill();
+
       context.restore();
       return true;
     }
@@ -1190,78 +1461,115 @@
       const seed3 = (tileX * 13 + tileY * 23) % 9;
       const seed4 = (tileX * 7 + tileY * 19 + tileX * tileY) % 13;
       if (isWall) {
-        // wall base
-        context.fillStyle = palette[2]; context.fillRect(sx, sy, size, size);
-        // brick rows (5 rows for 120px)
-        for (let row = 0; row < 5; row++) {
-          const ry = sy + row * 24;
-          const brickH = 24;
-          // brick highlight (top edge)
-          context.fillStyle = 'rgba(255,255,255,.06)';
-          context.fillRect(sx, ry, size, 2);
-          // brick shadow (bottom edge)
-          context.fillStyle = 'rgba(0,0,0,.12)';
-          context.fillRect(sx, ry + brickH - 2, size, 2);
-          const offset = row % 2 === 0 ? 0 : 30;
-          for (let col = 0; col < 5; col++) {
-            const bx = sx + offset + col * 30;
-            if (bx < sx + size) {
+        // wall base color
+        context.fillStyle = palette[2] || '#4a3a2a';
+        context.fillRect(sx, sy, size, size);
+        // brick rows (6 rows for 120px = 20px each)
+        const brickH = 20;
+        for (let row = 0; row < 6; row++) {
+          const ry = sy + row * brickH;
+          // horizontal mortar line
+          context.fillStyle = 'rgba(0,0,0,.18)';
+          context.fillRect(sx, ry, size, 1.5);
+          // brick highlight (top edge of each brick)
+          context.fillStyle = 'rgba(255,255,255,.08)';
+          context.fillRect(sx, ry + 1, size, 1.5);
+          const offset = row % 2 === 0 ? 0 : 25;
+          const brickW = 25;
+          for (let col = 0; col < 6; col++) {
+            const bx = sx + offset + col * brickW;
+            if (bx + brickW <= sx + size + brickW) {
               // vertical mortar line
-              context.fillStyle = 'rgba(255,255,255,.05)';
-              context.fillRect(bx, ry, 2, brickH);
-              // brick center highlight
-              context.fillStyle = 'rgba(255,255,255,.03)';
-              context.fillRect(bx + 4, ry + 4, 22, 16);
+              context.fillStyle = 'rgba(0,0,0,.15)';
+              context.fillRect(bx, ry + 1.5, 1.5, brickH - 3);
+              // brick body highlight (lighter center)
+              context.fillStyle = 'rgba(255,255,255,.04)';
+              context.fillRect(bx + 3, ry + 4, brickW - 6, brickH - 8);
+              // brick bottom shadow
+              context.fillStyle = 'rgba(0,0,0,.08)';
+              context.fillRect(bx + 1, ry + brickH - 3, brickW - 2, 2);
+              // brick color variation
+              if ((row + col) % 3 === 0) {
+                context.fillStyle = 'rgba(255,255,255,.03)';
+                context.fillRect(bx + 2, ry + 2, brickW - 4, brickH - 4);
+              } else if ((row + col) % 3 === 1) {
+                context.fillStyle = 'rgba(0,0,0,.03)';
+                context.fillRect(bx + 2, ry + 2, brickW - 4, brickH - 4);
+              }
             }
           }
         }
-        // wall border highlight
-        context.strokeStyle = 'rgba(255,255,255,.04)'; context.lineWidth = 2;
-        context.strokeRect(sx + 2, sy + 2, size - 4, size - 4);
-        // tile border edge
-        context.strokeStyle = 'rgba(0,0,0,.12)'; context.lineWidth = 1;
+        // wall top highlight
+        context.fillStyle = 'rgba(255,255,255,.06)';
+        context.fillRect(sx, sy, size, 3);
+        // wall bottom shadow
+        context.fillStyle = 'rgba(0,0,0,.15)';
+        context.fillRect(sx, sy + size - 3, size, 3);
+        // wall border
+        context.strokeStyle = 'rgba(0,0,0,.2)'; context.lineWidth = 1;
         context.strokeRect(sx, sy, size, size);
       } else {
         // open ground base
         context.fillStyle = tileColor(tileX, tileY, palette); context.fillRect(sx, sy, size, size);
-        // 多层绿色纹理点
-        context.fillStyle = 'rgba(80,140,80,.18)';
-        context.fillRect(sx + 8 + seed * 7, sy + 6 + seed2 * 5, 6, 4);
-        context.fillStyle = 'rgba(120,180,100,.14)';
-        context.fillRect(sx + 40 + seed2 * 5, sy + 18 + seed * 8, 7, 5);
-        context.fillStyle = 'rgba(60,100,60,.16)';
-        context.fillRect(sx + 72 + seed3 * 4, sy + 36 + seed2 * 5, 5, 6);
-        context.fillRect(sx + 20 + seed * 8, sy + 60 + seed3 * 5, 6, 5);
-        context.fillStyle = 'rgba(100,160,80,.12)';
-        context.fillRect(sx + 50 + seed4 * 4, sy + 80 + seed * 5, 5, 4);
-        // 土壤点
-        context.fillStyle = 'rgba(120,90,60,.15)';
-        context.fillRect(sx + 15 + seed * 8, sy + 25 + seed3 * 6, 3, 3);
-        context.fillRect(sx + 80 + seed2 * 3, sy + 45 + seed4 * 4, 4, 3);
-        // 草丛：3组草丛（每组3-5根短竖线）
-        context.strokeStyle = 'rgba(100,180,100,.22)'; context.lineWidth = 1;
-        const gx = sx + 10 + seed * 10; const gy = sy + 10 + seed2 * 6;
-        context.beginPath(); context.moveTo(gx, gy + 18); context.lineTo(gx + 1, gy); context.stroke();
-        context.beginPath(); context.moveTo(gx + 7, gy + 16); context.lineTo(gx + 8, gy + 2); context.stroke();
-        context.beginPath(); context.moveTo(gx + 14, gy + 18); context.lineTo(gx + 13, gy + 4); context.stroke();
-        context.beginPath(); context.moveTo(gx + 21, gy + 17); context.lineTo(gx + 20, gy + 3); context.stroke();
-        const gx2 = sx + 50 + seed2 * 6; const gy2 = sy + 35 + seed * 8;
-        context.beginPath(); context.moveTo(gx2, gy2 + 14); context.lineTo(gx2 + 2, gy2); context.stroke();
-        context.beginPath(); context.moveTo(gx2 + 7, gy2 + 12); context.lineTo(gx2 + 6, gy2 + 2); context.stroke();
-        context.beginPath(); context.moveTo(gx2 + 14, gy2 + 14); context.lineTo(gx2 + 13, gy2 + 1); context.stroke();
-        context.beginPath(); context.moveTo(gx2 + 21, gy2 + 13); context.lineTo(gx2 + 20, gy2 + 3); context.stroke();
-        const gx3 = sx + 85 + seed3 * 5; const gy3 = sy + 60 + seed2 * 5;
-        context.strokeStyle = 'rgba(80,150,80,.18)';
-        context.beginPath(); context.moveTo(gx3, gy3 + 16); context.lineTo(gx3 - 1, gy3); context.stroke();
-        context.beginPath(); context.moveTo(gx3 + 7, gy3 + 14); context.lineTo(gx3 + 8, gy3 + 2); context.stroke();
-        context.beginPath(); context.moveTo(gx3 + 14, gy3 + 16); context.lineTo(gx3 + 13, gy3 + 1); context.stroke();
-        // 水面波纹
-        if (palette[0] && palette[0].includes('30') || palette[0] && palette[0].includes('40')) {
-          context.strokeStyle = 'rgba(100,160,220,.15)'; context.lineWidth = 1;
-          for (let w = 0; w < 4; w++) {
-            const wy = sy + 15 + w * 28;
-            context.beginPath(); context.moveTo(sx + 5, wy); context.lineTo(sx + size - 5, wy); context.stroke();
+        // color patches (3 shades of green)
+        const patches = [[sx+8+seed*7, sy+6+seed2*5, 14, 10], [sx+40+seed2*5, sy+18+seed*8, 16, 12], [sx+72+seed3*4, sy+36+seed2*5, 12, 14], [sx+20+seed*8, sy+60+seed3*5, 14, 11], [sx+50+seed4*4, sy+80+seed*5, 13, 10]];
+        const greens = ['rgba(80,140,80,.18)', 'rgba(120,180,100,.14)', 'rgba(60,100,60,.16)', 'rgba(100,160,80,.12)', 'rgba(90,150,90,.15)'];
+        patches.forEach((p, i) => { context.fillStyle = greens[i]; context.fillRect(p[0], p[1], p[2], p[3]); });
+        // soil dots
+        context.fillStyle = 'rgba(120,90,60,.18)';
+        context.fillRect(sx+15+seed*8, sy+25+seed3*6, 4, 3);
+        context.fillRect(sx+80+seed2*3, sy+45+seed4*4, 5, 4);
+        context.fillRect(sx+60+seed*6, sy+90+seed3*3, 3, 4);
+        // curved grass clusters (5 clusters, each with 3-5 curved blades)
+        function grassCluster(cx, cy, angle, bladeCount, color, maxH) {
+          context.strokeStyle = color; context.lineWidth = 1.5;
+          for (let b = 0; b < bladeCount; b++) {
+            const bx = cx + (b - bladeCount/2) * 5;
+            const bh = maxH - Math.abs(b - bladeCount/2) * 2;
+            const curve = (seed + b) % 3 - 1;
+            context.beginPath();
+            context.moveTo(bx, cy);
+            context.bezierCurveTo(bx + curve * 2, cy - bh * 0.4, bx + curve * 4, cy - bh * 0.7, bx + curve * 3, cy - bh);
+            context.stroke();
           }
+        }
+        grassCluster(sx + 12 + seed * 8, sy + 28 + seed2 * 4, 0, 4, 'rgba(90,170,90,.35)', 18 + seed * 2);
+        grassCluster(sx + 50 + seed2 * 5, sy + 50 + seed * 6, 0, 5, 'rgba(100,180,100,.30)', 22 + seed2);
+        grassCluster(sx + 88 + seed3 * 4, sy + 70 + seed2 * 4, 0, 4, 'rgba(80,160,80,.28)', 16 + seed3);
+        grassCluster(sx + 30 + seed4 * 5, sy + 90 + seed * 4, 0, 3, 'rgba(110,190,110,.25)', 14 + seed4);
+        grassCluster(sx + 70 + seed * 6, sy + 16 + seed3 * 5, 0, 4, 'rgba(95,175,95,.32)', 20 + seed);
+        // flower dots (1-2 per tile)
+        if (seed % 3 === 0) {
+          const flowerColors = ['#f8e878', '#f0a0a0', '#e8e0f0', '#f0c878'];
+          context.fillStyle = flowerColors[seed2 % flowerColors.length];
+          context.beginPath();
+          context.arc(sx + 25 + seed * 10, sy + 35 + seed2 * 6, 3, 0, Math.PI * 2);
+          context.fill();
+          context.fillStyle = '#f8f0d0';
+          context.beginPath();
+          context.arc(sx + 25 + seed * 10, sy + 35 + seed2 * 6, 1.5, 0, Math.PI * 2);
+          context.fill();
+        }
+        if (seed2 % 4 === 0) {
+          context.fillStyle = '#f0d070';
+          context.beginPath();
+          context.arc(sx + 75 + seed3 * 8, sy + 80 + seed * 5, 2.5, 0, Math.PI * 2);
+          context.fill();
+        }
+        // water ripples (for blue-ish palettes)
+        if (palette[0] && (palette[0].includes('30') || palette[0].includes('40'))) {
+          context.strokeStyle = 'rgba(140,190,240,.2)'; context.lineWidth = 1.5;
+          for (let w = 0; w < 5; w++) {
+            const wy = sy + 10 + w * 24;
+            context.beginPath();
+            context.moveTo(sx + 8, wy);
+            context.bezierCurveTo(sx + size * 0.3, wy - 3, sx + size * 0.7, wy + 3, sx + size - 8, wy);
+            context.stroke();
+          }
+          // water highlight dots
+          context.fillStyle = 'rgba(180,220,255,.15)';
+          context.beginPath(); context.arc(sx + 30 + seed * 10, sy + 20 + seed2 * 8, 4, 0, Math.PI * 2); context.fill();
+          context.beginPath(); context.arc(sx + 80 + seed3 * 6, sy + 60 + seed * 6, 3, 0, Math.PI * 2); context.fill();
         }
         // tile border edge
         context.strokeStyle = 'rgba(0,0,0,.1)'; context.lineWidth = 1;
@@ -1294,8 +1602,46 @@
       for (const point of map.interactions) {
         if (point.x < startCol || point.x > endCol || point.y < startRow || point.y > endRow) continue;
         const px = point.x * cell - camera.x + 20; const py = point.y * cell - camera.y + 20;
-        if (point.actorId) drawActorSprite(ctx, point.actorId, point.x * cell - camera.x, point.y * cell - camera.y - 18, { frame: 0 });
-        else { ctx.fillStyle = point.kind === 'npc' ? '#d1b66a' : point.kind === 'chest' ? '#a96d4f' : point.kind === 'recovery' ? '#79b89b' : '#78a6cf'; ctx.fillRect(px, py, 30, 30); }
+        if (point.actorId) {
+          drawActorSprite(ctx, point.actorId, point.x * cell - camera.x, point.y * cell - camera.y - 18, { frame: 0 });
+        } else {
+          const ix = point.x * cell - camera.x;
+          const iy = point.y * cell - camera.y;
+          if (point.kind === 'npc') {
+            // NPC: small person silhouette
+            ctx.fillStyle = '#d1b66a';
+            ctx.beginPath(); ctx.ellipse(ix + 40, iy + 24, 8, 8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(ix + 34, iy + 32, 12, 20);
+            ctx.fillStyle = '#c0a050';
+            ctx.fillRect(ix + 32, iy + 34, 16, 3);
+          } else if (point.kind === 'chest') {
+            // treasure chest: brown box with gold clasp
+            ctx.fillStyle = '#8a6040';
+            ctx.fillRect(ix + 24, iy + 28, 32, 22);
+            ctx.fillStyle = '#a07050';
+            ctx.fillRect(ix + 24, iy + 28, 32, 6);
+            ctx.fillStyle = '#f0d060';
+            ctx.fillRect(ix + 36, iy + 32, 8, 10);
+            ctx.fillStyle = '#d4b848';
+            ctx.fillRect(ix + 38, iy + 34, 4, 6);
+          } else if (point.kind === 'recovery') {
+            // recovery point: green circle with cross
+            ctx.fillStyle = '#4a8a5a';
+            ctx.beginPath(); ctx.arc(ix + 40, iy + 38, 16, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#80d090';
+            ctx.fillRect(ix + 37, iy + 28, 6, 20);
+            ctx.fillRect(ix + 30, iy + 35, 20, 6);
+          } else {
+            // exit/entrance: archway shape
+            ctx.fillStyle = '#5a7a9a';
+            ctx.fillRect(ix + 26, iy + 24, 28, 28);
+            ctx.fillStyle = '#0a0a14';
+            ctx.fillRect(ix + 30, iy + 30, 20, 22);
+            ctx.beginPath();
+            ctx.arc(ix + 40, iy + 30, 10, Math.PI, 0);
+            ctx.fill();
+          }
+        }
       }
       drawActorSprite(ctx, World.party[0] || 'liu-bei', World.x * cell - camera.x, World.y * cell - camera.y - 18, { frame: (World.x + World.y) % 2 });
       ctx.restore();
