@@ -123,9 +123,9 @@ for (const table of ['MAPS', 'ACTORS', 'ENEMIES', 'TACTICS', 'ITEMS', 'DIALOGUES
   assert.ok(Object.keys(context.DATA[table]).length > 0, `DATA.${table} 不能为空`);
 }
 const canvas = context.document.getElementById('game-canvas');
-assert.equal(canvas.width, 1280, 'virtual canvas 宽度必须为 1280');
-assert.equal(canvas.height, 720, 'virtual canvas 高度必须为 720');
-assert.equal(context.DATA.MAP_TILE_SIZE, 80, '地图 tileSize 必须为 80');
+assert.equal(canvas.width, 1920, 'virtual canvas 宽度必须为 1920');
+assert.equal(canvas.height, 1080, 'virtual canvas 高度必须为 1080');
+assert.equal(context.DATA.MAP_TILE_SIZE, 120, '地图 tileSize 必须为 120');
 assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
 for (const actorId of ['liu-bei', 'guan-yu', 'zhang-fei']) {
   const actor = context.DATA.ACTORS[actorId];
@@ -833,7 +833,7 @@ assert.ok(htmlSource.includes('data-action="status"'), '触控按钮 status 必�
 // 战斗标题必须显示在画面最上方
 assert.ok(htmlSource.includes('renderBattle'), 'renderBattle 必须存在');
 // 敌方精灵居中偏右
-assert.ok(htmlSource.includes('780') || htmlSource.includes('1060') || htmlSource.includes('1020') || htmlSource.includes('980'), 'renderBattle 敌方精灵必须在右侧');
+assert.ok(htmlSource.includes('780') || htmlSource.includes('1060') || htmlSource.includes('1020') || htmlSource.includes('980') || htmlSource.includes('1100'), 'renderBattle 敌方精灵必须在右侧');
 // 战斗日志
 assert.ok(htmlSource.includes('Battle.log'), 'renderBattle 必须渲染战斗日志');
 
@@ -858,8 +858,105 @@ assert.ok(htmlSource.includes('Enter') || htmlSource.includes('Enter / 空格'),
 // 回合信息 y: 640-680
 // 检查 renderBattle 中引用了这些区域的坐标
 const battleSource = htmlSource.substring(htmlSource.indexOf('function renderBattle'));
-assert.ok(battleSource.includes('420') || battleSource.includes('430'), 'renderBattle 必须在 y≈420 区域绘制我方队伍');
-assert.ok(battleSource.includes('540') || battleSource.includes('550'), 'renderBattle 必须在 y≈540 区域绘制指令菜单');
-assert.ok(battleSource.includes('580') || battleSource.includes('590'), 'renderBattle 必须在 y≈580 区域绘制战斗日志');
+// 1080p 布局：我方队伍 y:540, 指令菜单 y:740, 战斗日志 y:830
+assert.ok(battleSource.includes('540') || battleSource.includes('550'), 'renderBattle 必须在 y≈540 区域绘制我方队伍');
+assert.ok(battleSource.includes('740') || battleSource.includes('750'), 'renderBattle 必须在 y≈740 区域绘制指令菜单');
+assert.ok(battleSource.includes('830') || battleSource.includes('840'), 'renderBattle 必须在 y≈830 区域绘制战斗日志');
 
 console.log('HJKL remap and visual redesign tests added (expecting failures until implementation).');
+
+// ============================================
+// 键盘事件 Bug 修复 + 1080p + 视觉精细度测试（第六轮）
+// ============================================
+
+// --- 6A. 分辨率提升到 1080p ---
+assert.equal(context.DATA.MAP_TILE_SIZE, 120, 'MAP_TILE_SIZE 必须提升到 120');
+assert.equal(context.DATA.MAP_VIEW_HEIGHT, 960, 'MAP_VIEW_HEIGHT 必须是 960（1080-120）');
+const vCanvas = context.document.getElementById('game-canvas');
+assert.equal(vCanvas.width, 1920, 'canvas 宽度必须提升到 1920');
+assert.equal(vCanvas.height, 1080, 'canvas 高度必须提升到 1080');
+
+// --- 6B. keyboard listener 必须在 document 上（不是 window） ---
+// 检查源码：不应该有 window.addEventListener('keydown')
+// 应该有 document.addEventListener('keydown')
+assert.ok(!htmlSource.includes("window.addEventListener('keydown'") && !htmlSource.includes('window.addEventListener("keydown"'),
+  'keyboard listener 不应在 window 上');
+assert.ok(htmlSource.includes("document.addEventListener('keydown'") || htmlSource.includes('document.addEventListener("keydown"'),
+  'keyboard listener 必须在 document 上');
+
+// --- 6C. keyboard handler 中不能调用 step(action) ---
+// 键盘事件处理函数中应只有 Input.enqueue(action)，不能有 step(action)
+const keydownHandlerMatch = htmlSource.match(/document\.addEventListener\('keydown'[\s\S]*?\}\);/);
+assert.ok(keydownHandlerMatch, 'document keydown handler 必须存在');
+const handlerCode = keydownHandlerMatch[0];
+assert.ok(!handlerCode.includes('step(action)') && !handlerCode.includes('step( action )'),
+  'keyboard handler 中不能调用 step(action)——必须只 enqueue，让 gamepadLoop 统一处理');
+
+// --- 6D. canvas 必须有 tabindex="0" ---
+assert.ok(htmlSource.includes('tabindex="0"') || htmlSource.includes("tabindex='0'") || htmlSource.includes('tabindex=0'),
+  'canvas 必须有 tabindex="0"');
+
+// --- 6E. canvas 必须自动 focus ---
+assert.ok(htmlSource.includes('canvas.focus()') || htmlSource.includes('.focus()'),
+  '页面加载后必须自动 focus canvas');
+
+// --- 6F. 角色精灵尺寸必须增加到 120x160 ---
+const spriteFuncMatch = htmlSource.match(/function drawActorSprite[\s\S]*?function drawTileTexture/);
+assert.ok(spriteFuncMatch, 'drawActorSprite 函数必须存在');
+const spriteFunc = spriteFuncMatch[0];
+assert.ok(spriteFunc.includes('120') || spriteFunc.includes('160') || spriteFunc.includes('options.width || 120') || spriteFunc.includes('options.height || 160'),
+  'drawActorSprite 默认尺寸必须提升到 120x160');
+
+// --- 6G. 战斗中敌方精灵高度 >= 300 ---
+const battleEnemyHeightMatch2 = htmlSource.match(/renderBattle[\s\S]*?drawActorSprite[^}]*height:\s*(\d+)/);
+assert.ok(battleEnemyHeightMatch2, 'renderBattle 中敌方 drawActorSprite 必须有 height 参数');
+const battleEnemyHeight2 = parseInt(battleEnemyHeightMatch2[1]);
+assert.ok(battleEnemyHeight2 >= 300, `战斗画面敌方高度必须 >= 300（实际 ${battleEnemyHeight2}）`);
+
+// --- 6H. renderTitle 标题字体 >= 70px ---
+const titleMatch = htmlSource.match(/renderTitle[\s\S]*?九州烽烟[\s\S]*?(\d+)/);
+if (titleMatch) {
+  const titleSize = parseInt(titleMatch[1]);
+  assert.ok(titleSize >= 70, `标题 "九州烽烟" 字体必须 >= 70px（实际 ${titleSize}）`);
+}
+
+// --- 6I. renderDialogue 对话框布局必须更新 ---
+const dialogueSource = htmlSource.substring(htmlSource.indexOf('function renderDialogue'));
+// 新布局：窗口从 y=620 开始，高度 380，宽度 1000
+assert.ok(dialogueSource.includes('620') || dialogueSource.includes('y=620'),
+  'renderDialogue 窗口 y 坐标必须为 620');
+assert.ok(dialogueSource.includes('380') || dialogueSource.includes('h = 380') || dialogueSource.includes('height: 380'),
+  'renderDialogue 窗口高度必须为 380');
+
+// --- 6J. renderBattle 必须有渐变背景（1080p 版本） ---
+assert.ok(htmlSource.includes('createLinearGradient'), 'renderBattle 必须使用渐变背景');
+
+// --- 6K. 地图图块必须有更丰富的纹理 ---
+// 草地图块必须有 >= 5 条草丛线条
+const grassMatches2 = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?lineTo[\s\S]*?stroke\(\)/g);
+assert.ok(grassMatches2 && grassMatches2.length >= 5, `草丛纹理线条必须 >= 5 条（实际 ${grassMatches2 ? grassMatches2.length : 0}）`);
+
+// --- 6L. 墙壁图块必须有砖块纹理 ---
+const tileSource = htmlSource.substring(htmlSource.indexOf('function drawTileTexture'));
+assert.ok(tileSource.includes('brick') || tileSource.includes('砖') || tileSource.includes('row'),
+  'drawTileTexture 墙壁必须有砖块纹理');
+
+// --- 6M. 对话框必须有双线边框 ---
+const dialogueSource2 = htmlSource.substring(htmlSource.indexOf('function renderDialogue'));
+assert.ok(dialogueSource2.includes('strokeRect') && (dialogueSource2.match(/strokeRect/g) || []).length >= 2,
+  'renderDialogue 必须有双线边框（>= 2 个 strokeRect）');
+
+// --- 6N. 战斗画面区域布局必须适配 1080p ---
+const battleSource2 = htmlSource.substring(htmlSource.indexOf('function renderBattle'));
+// 1080p 布局：标题 0-60, 敌方 60-500, 分隔 500-540, 我方 540-740, 指令 740-820, 日志 820-920
+assert.ok(battleSource2.includes('60') || battleSource2.includes('500'), 'renderBattle 必须有 1080p 布局区域');
+
+// --- 6O. step() 无参数调用时不应意外处理输入 ---
+// 检查 step 函数签名：function step(action)  - 无参数时 action 为 undefined
+// step 中应有对 action 的检查或默认行为
+const stepMatch = htmlSource.match(/function step\((\w*)\)/);
+assert.ok(stepMatch, 'step 函数必须存在');
+const stepParam = stepMatch[1];
+assert.equal(stepParam, 'action', 'step 函数参数必须命名为 action');
+
+console.log('Resolution, keyboard fix, and visual fidelity tests added.');
