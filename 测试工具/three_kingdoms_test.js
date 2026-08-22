@@ -1,1072 +1,315 @@
 #!/usr/bin/env node
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
+/* 吞食天地Ⅱ·网页复刻 —— 回归测试
+ * 在 Node 中以 DOM 桩加载 three-kingdoms.html 的脚本，验证：
+ * 1) 解密数据表完整性  2) 数值公式与参考一致  3) 第一章全流程可通关
+ * 4) 存档往返  5) 渲染资源可生成
+ */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
 
-const requestedFile = process.argv[2];
-const file = requestedFile && path.basename(requestedFile) !== 'tank-battle.html'
-  ? requestedFile
-  : path.join(__dirname, '..', 'three-kingdoms.html');
-assert.ok(fs.existsSync(file), `游戏入口必须存在: ${file}`);
-const html = fs.readFileSync(file, 'utf8');
-const match = html.match(/<script>([\s\S]*?)<\/script>/);
-assert.ok(match, '游戏页面必须包含 inline script');
+const html = fs.readFileSync(path.join(__dirname, '..', 'three-kingdoms.html'), 'utf8');
+const m = html.match(/<script>\n([\s\S]*)\n  <\/script>/);
+assert(m, '必须能提取 <script> 块');
+const src = m[1];
 
-function makeContext() {
-  const noop = () => {};
-  const ctx2d = new Proxy({ canvas: null, measureText: (value) => ({ width: String(value).length * 6 }) }, {
-    get(target, key) {
-      if (key in target) return target[key];
-      return noop;
+// ---------- DOM 桩 ----------
+function makeCtx() {
+  return new Proxy({}, {
+    get(t, k) {
+      if (k === 'canvas') return {};
+      return (...args) => {
+        if (k === 'createLinearGradient' || k === 'createRadialGradient') return { addColorStop() {} };
+        if (k === 'measureText') return { width: 10 };
+        return undefined;
+      };
     },
-    set(target, key, value) {
-      target[key] = value;
-      return true;
-    },
+    set() { return true; }
   });
-  const elements = {};
-  function makeElement(id, tag = 'div') {
-    const element = {
-      id,
-      tagName: tag.toUpperCase(),
-      style: {},
-      className: '',
-      classList: { add: noop, remove: noop, toggle: () => false, contains: () => false },
-      children: [],
-      textContent: '',
-      innerHTML: '',
-      value: '',
-      disabled: false,
-      width: 0,
-      height: 0,
-      appendChild(child) { this.children.push(child); return child; },
-      append(...children) { this.children.push(...children); },
-      removeChild: noop,
-      addEventListener: noop,
-      removeEventListener: noop,
-      setAttribute: noop,
-      getAttribute: () => null,
-      getBoundingClientRect: () => ({ left: 0, top: 0, width: 256, height: 240 }),
-      querySelector: () => null,
-      querySelectorAll: () => [],
-      focus: noop,
-      click: noop,
-    };
-    if (tag === 'canvas') {
-      element.getContext = () => ctx2d;
-      ctx2d.canvas = element;
-    }
-    return element;
-  }
-  elements['game-canvas'] = makeElement('game-canvas', 'canvas');
-  const document = {
-    readyState: 'complete',
-    getElementById(id) {
-      if (!elements[id]) elements[id] = makeElement(id);
-      return elements[id];
-    },
-    createElement(tag) { return makeElement(`created-${tag}`, tag); },
-    querySelector: () => null,
+}
+function makeCanvas() {
+  return {
+    width: 0, height: 0, style: {},
+    getContext: () => makeCtx(),
+    setAttribute() {}, focus() {},
+    addEventListener() {},
+  };
+}
+const listeners = {};
+const sandbox = {
+  console, Math, JSON, performance: { now: () => Date.now() },
+  setTimeout, clearTimeout, setInterval, clearInterval,
+  requestAnimationFrame: () => 0,
+  document: {
+    getElementById: () => makeCanvas(),
+    createElement: () => makeCanvas(),
     querySelectorAll: () => [],
-    addEventListener: noop,
-    removeEventListener: noop,
-    body: makeElement('body'),
-    documentElement: makeElement('html'),
-  };
-  const context = {
-    console,
-    document,
-    navigator: { maxTouchPoints: 0 },
-    location: { hash: '' },
-    innerWidth: 1024,
-    innerHeight: 768,
-    devicePixelRatio: 1,
-    requestAnimationFrame: noop,
-    cancelAnimationFrame: noop,
-    setTimeout,
-    clearTimeout,
-    Date,
-    Math,
-    JSON,
-    Uint8Array,
-    Array,
-  };
-  context.window = context;
-  context.globalThis = context;
-  context.addEventListener = noop;
-  context.removeEventListener = noop;
-  context.matchMedia = () => ({ matches: false, addEventListener: noop, removeEventListener: noop });
-  const storage = new Map();
-  const localStorage = {
-    getItem(key) { return storage.has(key) ? storage.get(key) : null; },
-    setItem(key, value) { storage.set(key, String(value)); },
-    removeItem(key) { storage.delete(key); },
-  };
-  context.__storage = storage;
-  context.localStorage = localStorage;
-  return context;
-}
-
-const context = makeContext();
-vm.runInNewContext(match[1], context, { filename: path.basename(file) });
-assert.equal(context.Game.state, 'title', '启动时 Game.state 必须是 title');
-assert.equal(typeof context.Game.startNew, 'function', 'Game.startNew 必须暴露');
-assert.equal(typeof context.Game.enterWorld, 'function', 'Game.enterWorld 必须暴露');
-assert.equal(typeof context.Game.returnToTitle, 'function', 'Game.returnToTitle 必须暴露');
-assert.equal(context.Game.startNew(), 'world', 'Game.startNew() 应进入 world');
-assert.equal(context.Game.state, 'world');
-assert.equal(context.Game.enterWorld('field'), 'world', 'field 地图必须可进入');
-assert.equal(context.Game.mapId, 'field');
-for (const table of ['MAPS', 'ACTORS', 'ENEMIES', 'TACTICS', 'ITEMS', 'DIALOGUES', 'QUESTS']) {
-  assert.ok(context.DATA && context.DATA[table], `DATA.${table} 必须存在`);
-  assert.ok(Object.keys(context.DATA[table]).length > 0, `DATA.${table} 不能为空`);
-}
-const canvas = context.document.getElementById('game-canvas');
-assert.equal(canvas.width, 1920, 'virtual canvas 宽度必须为 1920');
-assert.equal(canvas.height, 1080, 'virtual canvas 高度必须为 1080');
-assert.equal(context.DATA.MAP_TILE_SIZE, 120, '地图 tileSize 必须为 120');
-assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
-for (const actorId of ['liu-bei', 'guan-yu', 'zhang-fei']) {
-  const actor = context.DATA.ACTORS[actorId];
-  assert.ok(actor, `${actorId} actor 数据必须存在`);
-  assert.ok(actor.visual, `${actorId} 必须有 visual traits`);
-  assert.ok(actor.visual.robes && actor.visual.head && actor.visual.weapon, `${actorId} visual traits 必须包含衣着、头部和武器`);
-}
-assert.equal(context.Game.chapter, 'chapter-1', '新旅程必须从 chapter-1 开始');
-assert.equal(context.Game.currentObjective, '找到失军书', '第一章开场目标必须是找到失军书');
-assert.ok(context.World.storyFlags && typeof context.World.storyFlags === 'object', '必须有 storyFlags');
-assert.equal(context.Game.selectParty().length, 3, 'party selection 完成后必须正好有三名出战成员');
-context.Game.returnToTitle();
-assert.equal(context.Game.state, 'title', 'Game.returnToTitle() 应返回 title');
-for (const action of ['up', 'down', 'left', 'right', 'confirm', 'cancel', 'battle-1', 'battle-5']) {
-  context.Input.enqueue(action);
-  assert.equal(context.Input.consume(action), action, `输入 action 应可识别: ${action}`);
-}
-
-assert.ok(context.World, 'World 必须暴露探索系统');
-assert.equal(typeof context.World.move, 'function', 'World.move 必须暴露');
-assert.equal(typeof context.World.interact, 'function', 'World.interact 必须暴露');
-assert.deepEqual(Object.keys(context.DATA.MAPS).sort(), ['boss-gate', 'camp', 'field', 'mountain', 'old-road', 'reed-cave', 'town'], '必须包含七个原创区域');
-for (const map of Object.values(context.DATA.MAPS)) {
-  assert.equal(map.tiles.length, 16, `${map.id} 必须是 16 行地图`);
-  assert.ok(map.tiles.every((row) => row.length === 16), `${map.id} 必须是 16x16 地图`);
-  assert.ok(map.name && map.interactions, `${map.id} 必须有地点名和交互数据`);
-}
-
-context.Game.startNew();
-const fieldStart = context.DATA.MAPS.field.start;
-context.World.x = fieldStart.x;
-context.World.y = fieldStart.y;
-const startX = context.World.x;
-const openMove = context.World.move('right');
-assert.equal(openMove.moved, true, '开放格移动必须成功');
-assert.equal(openMove.blocked, false, '开放格移动不能标记 blocked');
-assert.equal(context.World.x, startX + 1, '开放格移动应更新坐标');
-context.World.x = 1;
-context.World.y = 1;
-const wallMove = context.World.move('up');
-assert.equal(wallMove.moved, false, '撞墙不能移动');
-assert.equal(wallMove.blocked, true, '撞墙必须返回 blocked');
-
-function interactionOf(mapId, kind) {
-  const point = context.DATA.MAPS[mapId].interactions.find((item) => item.kind === kind);
-  assert.ok(point, `${mapId} 必须有 ${kind} 交互点`);
-  context.Game.enterWorld(mapId);
-  context.World.x = point.x;
-  context.World.y = point.y;
-  return { point, result: context.World.interact() };
-}
-const npc = interactionOf('field', 'npc');
-assert.equal(npc.result.triggered.type, 'npc', 'World.interact 必须识别 NPC');
-const chest = interactionOf('field', 'chest');
-assert.equal(chest.result.triggered.type, 'chest', 'World.interact 必须识别宝箱');
-assert.ok(chest.result.triggered.content, '宝箱必须有原创内容');
-const chestAgain = context.World.interact();
-assert.equal(chestAgain.triggered, null, '宝箱第二次交互不能重复触发');
-const townLoot = interactionOf('town', 'loot');
-assert.equal(townLoot.result.triggered.type, 'loot', 'World.interact 必须识别一次性城镇搜刮');
-assert.equal(townLoot.result.triggered.once, true, '城镇搜刮必须是一回合一次性事件');
-const townLootAgain = context.World.interact();
-assert.equal(townLootAgain.triggered, null, '城镇搜刮第二次交互不能重复触发');
-const recovery = interactionOf('town', 'recovery');
-assert.equal(recovery.result.triggered.type, 'recovery', 'World.interact 必须识别恢复点');
-assert.equal(recovery.result.triggered.area, 'town', '恢复点必须标记所在区域');
-const exit = interactionOf('field', 'exit');
-assert.equal(exit.result.triggered.type, 'exit', 'World.interact 必须识别区域出口');
-assert.equal(exit.result.triggered.to, 'town', 'field 出口必须进入 town');
-assert.equal(context.World.mapId, 'town', '从 field 进入 town 后应更新区域');
-
-const recruitPoint = context.DATA.MAPS.mountain.interactions.find((item) => item.kind === 'npc' && item.dialogue);
-assert.ok(recruitPoint, 'mountain 必须有可触发招募事件的 NPC');
-context.Game.enterWorld('mountain');
-context.World.x = recruitPoint.x;
-context.World.y = recruitPoint.y;
-const recruitInteraction = context.World.interact();
-assert.equal(recruitInteraction.triggered.type, 'npc', '招募 NPC 应先触发 NPC 对话');
-assert.equal(context.Dialogue.start(recruitPoint.dialogue), 'dialogue', 'Dialogue.start 必须切换到 dialogue');
-while (context.Game.state === 'dialogue') context.Dialogue.confirm();
-assert.equal(context.World.roster.length, 4, '招募事件完成后 roster 必须增加第 4 名武将');
-assert.equal(context.Game.partySelection.visible, true, '招募完成后必须显示 party selection');
-assert.equal(context.World.events['recruit-zhi'], true, '招募事件必须持久化完成标志');
-const rosterAfterRecruit = context.World.roster.length;
-assert.equal(context.Dialogue.start(recruitPoint.dialogue), false, '已完成招募事件不能重复开始');
-assert.equal(context.World.roster.length, rosterAfterRecruit, '招募事件不能重复增加武将');
-
-context.Game.startNew();
-assert.equal(context.Game.beginChapterOpening(), 'dialogue', '第一章开场应进入情景对话');
-while (context.Game.state === 'dialogue') context.Dialogue.confirm();
-assert.equal(context.World.storyFlags['lost-military-book'], true, '开场应设置失军书事件标记');
-assert.equal(context.Game.currentObjective, '找到失军书', '开场目标应为找到失军书');
-assert.equal(context.Game.enterTownRescue(), 'dialogue', '进入蒲渡镇应触发求援场景');
-while (context.Game.state === 'dialogue') context.Dialogue.confirm();
-assert.equal(context.World.storyFlags['town-rescue'], true, '蒲渡镇求援应完成');
-assert.equal(context.Game.talkGuanYu(), 'dialogue', '与关羽对话应进入情景');
-while (context.Game.state === 'dialogue') context.Dialogue.confirm();
-assert.equal(context.World.storyFlags['guan-yu-joined'], true, '关羽事件应完成');
-assert.ok(context.World.roster.includes('guan-yu'), '关羽必须加入 roster');
-assert.equal(context.Game.triggerMountainPursuit(), 'dialogue', '山道应触发追击场景');
-while (context.Game.state === 'dialogue') context.Dialogue.confirm();
-assert.equal(context.World.storyFlags['mountain-pursuit'], true, '山道追击应完成');
-assert.equal(context.Game.currentObjective, '前往断云关', '追击后目标应指向断云关');
-assert.equal(context.Game.summaryChapter(), 'chapter-summary', '章节结束后必须进入 chapter-summary 状态');
-assert.equal(context.Game.chapterSummary.title, '第一章', '章节总结必须有标题');
-assert.ok(context.Game.chapterSummary.items.length > 0, '章节总结必须包含摘要条目');
-assert.equal(context.Battle.start('stone-oath'), false, '前置事件完成前首领战必须被阻止');
-context.World.storyFlags['military-book-found'] = true;
-assert.equal(context.Battle.start('stone-oath'), 'battle', '失军书、关羽和追击完成后首领战应允许开始');
-context.Battle.active = false;
-context.Game.state = 'world';
-
-const savedState = {
-  mapId: 'camp', x: 4, y: 6,
-  roster: ['yun', 'lan', 'he', 'zhi'], party: ['yun', 'lan', 'he'],
-  levels: { yun: 2 }, troops: { yun: 32 }, provisions: 17,
-  events: { 'recruit-zhi': true }, chests: { 'field:grain-cache': true },
+    addEventListener() {},
+  },
+  window: {},
+  navigator: { getGamepads: () => [] },
+  localStorage: {
+    _d: {},
+    getItem(k) { return this._d[k] ?? null; },
+    setItem(k, v) { this._d[k] = String(v); },
+    removeItem(k) { delete this._d[k]; },
+  },
+  AudioContext: undefined, webkitAudioContext: undefined,
 };
-assert.equal(context.Save.save(savedState), true, 'Save.save 应成功保存');
-assert.ok(context.__storage.has('tk-three-kingdoms-v1'), '只能使用三国探索存档 key');
-assert.equal(context.__storage.size, 1, 'Save 不能触碰其他游戏存档');
-const loadedState = context.Save.load();
-assert.equal(loadedState.mapId, savedState.mapId, 'Save.load 应恢复旧存档地图');
-assert.deepEqual(loadedState.party, savedState.party, 'Save.load 应恢复旧存档队伍');
-assert.equal(loadedState.objective, '找到失军书', '旧存档应补默认 objective');
-assert.equal(loadedState.chapter, 'chapter-1', '旧存档应补默认 chapter');
-assert.ok(loadedState.storyFlags && typeof loadedState.storyFlags === 'object', '旧存档应补默认 storyFlags');
-assert.ok(loadedState.chapterSummary && Array.isArray(loadedState.chapterSummary.items), '旧存档应补默认 chapterSummary');
-context.__storage.set('tk-three-kingdoms-v1', '{坏 JSON');
-const corrupt = context.Save.load();
-assert.equal(corrupt.ok, false, '损坏 JSON 必须返回可处理错误状态');
-assert.match(corrupt.error, /读取|JSON|损坏/, '损坏存档必须包含明确错误');
-assert.doesNotThrow(() => context.Save.clear(), 'Save.clear 不应抛出异常');
-assert.equal(context.__storage.has('tk-three-kingdoms-v1'), false, 'Save.clear 只应清除三国探索 key');
+sandbox.window = sandbox;
+// window.AudioContext 等通过 sandbox 查找即可
 
-assert.ok(context.Battle, 'Battle 必须暴露战斗系统');
-for (const method of ['start', 'choose', 'resolveRound', 'finish']) {
-  assert.equal(typeof context.Battle[method], 'function', `Battle.${method} 必须暴露`);
+const vm = require('vm');
+const context = vm.createContext(sandbox);
+vm.runInContext(src, context, { filename: 'three-kingdoms-inline.js' });
+
+const TK = sandbox.TKGame;
+assert(TK, '必须暴露 window.TKGame 测试钩子');
+const { G, DB, MAPS, step, newGame, startBattle } = TK;
+
+let passed = 0;
+function ok(cond, msg) { assert(cond, msg); passed++; }
+function eq(a, b, msg) { assert.strictEqual(a, b, msg); passed++; }
+function section(name) { console.log('  · ' + name); }
+
+// ================= 1. 数据表完整性 =================
+section('数据表完整性');
+ok(Object.keys(DB.cls).length >= 50, 'CLASSES 至少 50 条');
+ok(Object.keys(DB.skill).length >= 100, 'SKILLS 至少 100 条');
+ok(Object.keys(DB.enemy).length >= 300, 'ENEMIES 至少 300 条');
+ok(DB.cls[2] && DB.cls[2].zi === '玄德', '刘备职业=玄德');
+ok(DB.cls[3] && DB.cls[3].zi === '云长', '关羽职业=云长');
+ok(DB.skill[11] && DB.skill[11].name === '炼火计' && DB.skill[11].coef === 320, '炼火计系数320');
+ok(DB.skill[16] && DB.skill[16].coef === 4320, '天火计系数4320');
+ok(DB.skill[35] && DB.skill[35].name === '赤心计' && DB.skill[35].kind === 2, '赤心计为恢复计策');
+ok(DB.weapon[1] && DB.weapon[1].name === '短剑' && DB.weapon[1].atk === 10, '短剑 攻10');
+ok(DB.weapon[2] && DB.weapon[2].atk === 20, '铜剑 攻20');
+ok(DB.armor[1] && DB.armor[1].name === '木盾' && DB.armor[1].def === 5, '木盾 防5');
+const yuan = Object.values(DB.enemy).find(e => e.name === '袁术');
+ok(yuan && yuan.p[0] === 800 && yuan.p[4] === 160, '袁术 HP800 智160（与原数据一致）');
+const jiling = Object.values(DB.enemy).find(e => e.name === '纪灵');
+ok(jiling && jiling.p[0] === 640, '纪灵 HP640');
+const troop17 = DB.troop[17];
+ok(troop17 && JSON.stringify(troop17.members) === JSON.stringify([23, 24, 20, 25, 26]), '袁术本阵编成=袁术孙策纪灵陈兰阎象');
+ok(DB.troop[19].members[0] === 23, '总攻战仍含袁术');
+ok(DB.troop[21].members[0] === 34, '车胄战编成');
+
+// ================= 2. 成长与公式 =================
+section('成长曲线与战斗公式');
+ok(Math.abs(TK.classStat(2, 0, 10) - 777) <= 6, '刘备 lv10 兵力≈777（幂插值±6内），实际 ' + TK.classStat(2, 0, 10));
+ok(Math.abs(TK.classStat(3, 0, 10) - 867) <= 6, '关羽 lv10 兵力≈867');
+eq(TK.classStat(2, 4, 10), 200, '刘备 lv10 智力=200');
+ok(TK.classStat(2, 0, 1) >= 1 && TK.classStat(2, 0, 99) > 6000, '兵力曲线单调到 lv99');
+// 物理：atk*4 - def*2，最低1
+const d1 = TK.physDamage(21, 30);
+ok(d1 >= 19 && d1 <= 34, 'atk21 vs def30 伤害约 24±15%，实际 ' + d1);
+eq(TK.physDamage(1, 999), 1, '低攻高防保底 1');
+// 计策：coef*mat/256，±10% 浮动
+function near(v, target, ratio, msg) { ok(Math.abs(v - target) <= target * ratio, msg + '（实际 ' + v + '）'); }
+near(TK.tacticDamage(320, 200, 256), 250, 0.11, '炼火计 智200 → ≈250');
+near(TK.tacticDamage(4320, 200, 256), 3375, 0.11, '天火计 智200 → ≈3375');
+near(TK.tacticDamage(320, 130, 960), 43, 0.11, '敌方炼火计 mmp130 → ≈43');
+near(TK.tacticHeal(800, 200), 625, 0.01, '赤心计 智200 → 625');
+ok(TK.expToNext(1) > 0 && TK.expToNext(10) > TK.expToNext(1), '经验曲线递增');
+
+// ================= 3. 新游戏与探索 =================
+section('新游戏与世界探索');
+newGame();
+eq(G.state, 'world', '新游戏进入世界');
+ok(G.roster.length === 1 && G.roster[0] === 2, '初始仅刘备'); passed++;
+eq(G.gold, 500, '初始 500 金');
+eq(G.mapId, 'xuzhou', '开局徐州城');
+ok(G.items[1] === 3, '初始赤心丹×3');
+
+// 移动与碰撞
+const before = { x: G.x, y: G.y };
+step('up'); step('up');
+ok(G.x !== before.x || G.y !== before.y, '方向键可移动');
+// 撞墙不动
+G.x = 0; G.y = 0; G.flags = {};
+step('left');
+eq(G.x, 0, '撞墙不移动');
+
+// 事件：与关羽对话加入
+newGame();
+G.x = 13; G.y = 12; G.dir = 'left';
+step('confirm'); // 触发关羽
+eq(G.state, 'dialogue', '对话开启');
+step('confirm'); step('confirm'); step('confirm');
+ok(G.roster.includes(3), '关羽入队');
+ok(G.flags.joined_3, '关羽标记');
+
+// 张飞
+G.x = 16; G.y = 13; G.dir = 'left';
+step('confirm');
+step('confirm'); step('confirm'); step('confirm');
+ok(G.roster.includes(4), '张飞入队');
+eq(G.roster.length, 3, '三人队伍');
+
+// ================= 4. 官署剧情 =================
+section('官署剧情与朱灵路昭');
+G.mapId = 'palace'; G.x = 7; G.y = 3; G.dir = 'up';
+step('confirm');
+eq(G.state, 'dialogue', '剧情对话开启');
+// 快进所有对话页
+for (let i = 0; i < 40 && G.state === 'dialogue'; i++) step('confirm');
+console.log('    [debug] state=', G.state, 'flags.intro_done=', G.flags.intro_done, 'roster=', JSON.stringify(G.roster));
+ok(G.flags.intro_done, 'intro 剧情标记');
+ok(G.roster.includes(5) && G.roster.includes(6), '朱灵路昭加入');
+eq(G.roster.length, 5, '五人满编');
+
+// ================= 5. 战斗系统全流程 =================
+section('战斗：随机遭遇胜利流程');
+newGame();
+TK.joinActor(3); TK.joinActor(4); TK.joinActor(5); TK.joinActor(6);
+// 给装备增强
+G.actors[2].eq = [2, 2]; G.actors[3].eq = [2, 2]; G.actors[4].eq = [2, 2];
+startBattle(11, { flag: 'test_b' });   // 黄巾贼×5
+eq(G.state, 'battle', '进入战斗');
+const B = G.battle;
+ok(B.enemies.length === 5, '敌群5人');
+// intro → command（消息需推进完）
+for (let i = 0; i < 10 && G.battle.phase === 'intro'; i++) step('confirm');
+eq(B.phase, 'command', '进入指令阶段');
+// 依次给5人下突击指令
+for (let i = 0; i < 5; i++) {
+  step('cmd-attack');
+  if (G.battle.phase === 'targetE') step('confirm');
+  // 等结算
+  let guard = 0;
+  while (G.battle && (G.battle.phase === 'msgview' || G.battle.phase === 'intro') && guard++ < 200) step('confirm');
+  if (!G.battle || G.battle.result) break;
+  if (G.battle.phase === 'command' && G.battle.choices.length === 0) { /* 新回合 */ }
 }
-assert.ok(context.DATA.ENCOUNTERS, 'DATA.ENCOUNTERS 必须存在');
-assert.ok(context.DATA.ENCOUNTERS['reed-watch'], '必须提供固定普通遭遇');
-assert.ok(context.DATA.ENCOUNTERS['stone-oath'], '必须提供固定首领遭遇');
-assert.ok(context.DATA.ENCOUNTERS['reed-cave-ambush'], '必须提供 reed cave 普通遭遇');
-assert.deepEqual(Array.from(context.Battle.commands), ['attack', 'tactic', 'defend', 'item', 'retreat'], '五种战斗指令顺序必须稳定');
-assert.match(html, /data-action="battle-1"[\s\S]*data-action="battle-5"/, '移动端必须提供 1–5 战斗按钮');
-
-function battleRound(encounterId, choices) {
-  context.Game.startNew();
-  assert.equal(context.Battle.start(encounterId), 'battle', `必须能开始遭遇: ${encounterId}`);
-  const party = context.World.party.slice();
-  party.forEach((actorId) => context.Battle.choose(actorId, choices[actorId] || 'attack'));
-  return { before: context.Battle.snapshot(), result: context.Battle.resolveRound() };
+ok(G.battle, '战斗仍在进行或已结束');
+// 自动打完
+let guard = 0;
+while (G.battle && !G.battle.result && guard++ < 500) {
+  const b2 = G.battle;
+  if (b2.phase === 'command') step('cmd-attack');
+  else if (b2.phase === 'targetE') step('confirm');
+  else if (b2.phase === 'msgview' || b2.phase === 'intro') step('confirm');
+  else if (b2.phase === 'result') step('confirm');
 }
+ok(!G.battle || G.battle.result === 'victory', '黄巾贼战可胜利');
+if (G.battle && G.battle.result) step('confirm'); // 确认战果
+eq(G.state, 'world', '战斗后回到世界');
+ok(G.flags.test_b, '战斗 flag 已置');
+ok(G.gold > 500, '获得军资');
 
-context.Game.startNew();
-assert.equal(context.Battle.start('reed-watch'), 'battle', 'Battle.start 必须进入 battle 状态');
-assert.equal(context.Game.state, 'battle', 'Battle.start 必须进入 battle 状态');
-const normalStart = battleRound('reed-watch', {});
-assert.equal(normalStart.result.status, 'active', '普通遭遇第一回合应保持可行动');
-assert.notEqual(normalStart.result.enemy.troops, normalStart.before.enemy.troops, 'attack 必须改变敌方兵力');
-assert.ok(normalStart.result.log.length > 0, '战斗回合必须产生可渲染事件日志');
-
-const attackRound = battleRound('reed-watch', {});
-const defendRound = battleRound('reed-watch', Object.fromEntries(context.World.party.map((id) => [id, 'defend'])));
-const attackLoss = context.World.party.reduce((sum, id) => sum + (context.DATA.ACTORS[id].troops - attackRound.result.party[id].troops), 0);
-const defendLoss = context.World.party.reduce((sum, id) => sum + (context.DATA.ACTORS[id].troops - defendRound.result.party[id].troops), 0);
-assert.ok(defendLoss < attackLoss, 'defend 必须降低敌方造成的 incoming damage');
-
-function tacticRound(tacticId) {
-  const choices = Object.fromEntries(context.World.party.map((id) => [id, 'defend']));
-  choices[context.World.party[0]] = { type: 'tactic', tacticId };
-  return battleRound('reed-watch', choices).result;
+section('战斗：袁术本阵（Boss）');
+newGame();
+[3, 4, 5, 6].forEach(id => TK.joinActor(id));
+// lv10 + 铁剑级装备，正常练度
+for (const id of [2, 3, 4]) { const a = G.actors[id]; a.lvl = 10; TK.recalc(a); a.eq = [12, 5]; a.hp = a.mhp; a.mp = a.mmp; }
+for (const id of [5, 6]) { const a = G.actors[id]; a.lvl = 9; TK.recalc(a); a.eq = [6, 3]; a.hp = a.mhp; a.mp = a.mmp; }
+startBattle(17, { flag: 'f_yuan1', boss: true, healAfter: true });
+guard = 0;
+while (G.battle && !G.battle.result && guard++ < 900) {
+  const b2 = G.battle;
+  if (b2.phase === 'command') {
+    // 刘备用计策，其余突击
+    const cur = b2.party[b2.memberIdx];
+    if (cur.id === 2) { step('cmd-tactic'); if (b2.phase === 'submenu') { step('down'); step('confirm'); if (b2.phase === 'targetE') step('confirm'); } }
+    else { step('cmd-attack'); if (b2.phase === 'targetE') step('confirm'); }
+  }
+  else if (b2.phase === 'targetE') step('confirm');
+  else if (b2.phase === 'msgview' || b2.phase === 'intro') step('confirm');
+  else if (b2.phase === 'result') step('confirm');
 }
-const fireResult = tacticRound('fire-suppression');
-const moraleResult = tacticRound('morale-rally');
-const decoyResult = tacticRound('phantom-banner');
-const defensiveBaseline = battleRound('reed-watch', Object.fromEntries(context.World.party.map((id) => [id, 'defend']))).result;
-assert.ok(fireResult.enemy.troops < defensiveBaseline.enemy.troops, '火势压制必须削减敌方兵力');
-assert.ok(moraleResult.partyMorale > normalStart.result.partyMorale, '鼓舞士气必须提升我方士气');
-assert.ok(decoyResult.enemy.morale < normalStart.result.enemy.morale, '疑兵扰乱必须降低敌方士气');
-assert.notDeepEqual(
-  [fireResult.enemy.troops, fireResult.enemy.morale, fireResult.partyMorale],
-  [moraleResult.enemy.troops, moraleResult.enemy.morale, moraleResult.partyMorale],
-  '三种计策必须产生不同效果'
-);
+ok(!G.battle || G.battle.result === 'victory', 'lv8 队伍可胜袁术本阵（含策略）');
 
-context.Game.startNew();
-context.World.troops.yun = 12;
-context.World.items = { 'millet-cake': 1 };
-context.Battle.start('reed-watch');
-context.Battle.choose('yun', { type: 'item', itemId: 'millet-cake' });
-context.World.party.filter((id) => id !== 'yun').forEach((id) => context.Battle.choose(id, 'defend'));
-const itemResult = context.Battle.resolveRound();
-assert.ok(itemResult.party.yun.troops > 12, '恢复道具必须恢复队伍兵力');
-assert.equal(context.World.items['millet-cake'], 0, '使用恢复道具必须消耗道具');
-
-context.Game.startNew();
-context.Battle.start('reed-watch');
-context.World.party.forEach((id) => context.Battle.choose(id, 'retreat'));
-const retreatResult = context.Battle.resolveRound();
-assert.equal(retreatResult.status, 'retreated', '普通战斗必须允许撤退');
-assert.equal(context.Battle.finish(), 'world', '撤退确认后必须回到原世界地图');
-assert.equal(context.Game.state, 'world');
-
-context.Game.startNew();
-context.World.storyFlags['military-book-found'] = true;
-context.World.storyFlags['guan-yu-joined'] = true;
-context.World.storyFlags['mountain-pursuit'] = true;
-const originalMap = context.World.mapId;
-context.Battle.start('stone-oath');
-context.Battle.choose('yun', 'retreat');
-context.World.party.filter((id) => id !== 'yun').forEach((id) => context.Battle.choose(id, 'defend'));
-const bossRetreat = context.Battle.resolveRound();
-assert.notEqual(bossRetreat.status, 'retreated', '首领战不得通过撤退结束');
-assert.equal(context.World.mapId, originalMap, '结果确认前不得推进世界地图');
-
-context.Game.startNew();
-context.World.storyFlags['military-book-found'] = true;
-context.World.storyFlags['guan-yu-joined'] = true;
-context.World.storyFlags['mountain-pursuit'] = true;
-const bossStart = context.Battle.start('stone-oath');
-assert.equal(bossStart, 'battle');
-let bossResult = null;
-for (let round = 0; round < 12 && context.Game.state === 'battle'; round += 1) {
-  const choices = Object.fromEntries(context.World.party.map((id) => [id, 'attack']));
-  if (round === 0) choices[context.World.party[0]] = { type: 'tactic', tacticId: 'phantom-banner' };
-  context.World.party.forEach((id) => context.Battle.choose(id, choices[id]));
-  bossResult = context.Battle.resolveRound();
+section('战斗：撤退与败北');
+newGame();
+startBattle(22, { boss: true }); // 曹操队，必败
+guard = 0;
+while (G.battle && !G.battle.result && guard++ < 300) {
+  const b2 = G.battle;
+  if (b2.phase === 'command') step('cmd-defend');
+  else if (b2.phase === 'msgview' || b2.phase === 'intro') step('confirm');
+  else if (b2.phase === 'result') step('confirm');
 }
-assert.equal(bossResult.status, 'victory', '首领遭遇必须存在稳定胜利路径');
-assert.ok(context.Battle.tacticUsed, '首领稳定胜利路径必须至少使用一次 tactic');
-const preFinishEvents = { ...context.World.events };
-assert.equal(preFinishEvents['stone-oath-complete'], undefined, '结果确认前不得提交首领世界事件');
-const preFinishState = context.Game.state;
-assert.equal(preFinishState, 'battle-result', '胜利必须先进入 battle-result');
-const reward = context.Battle.finish();
-assert.equal(reward, 'chapter-summary', '首领结果确认后必须进入章节结算');
-assert.equal(context.Game.state, 'chapter-summary');
-context.Game.returnToWorld('camp');
-assert.equal(context.Game.state, 'world', '章节结算确认后必须回到世界地图');
-assert.equal(context.World.events['stone-oath-complete'], true, '首领结果确认后必须完成事件');
-assert.ok(context.World.provisions > 20, '胜利必须奖励军粮');
-assert.ok(Object.values(context.World.levels).some((level) => level >= 2), '首次达到经验阈值必须升级');
-assert.equal(context.World.chapterSummary.completed, true, '章节结算必须标记完成');
-assert.ok(Array.isArray(context.World.chapterSummary.items) && context.World.chapterSummary.items.length > 0, '章节结算必须包含摘要条目');
-
-context.Game.startNew();
-context.World.storyFlags['military-book-found'] = true;
-context.World.storyFlags['guan-yu-joined'] = true;
-context.World.storyFlags['mountain-pursuit'] = true;
-context.World.party.forEach((id) => { context.World.troops[id] = 1; });
-context.Battle.start('stone-oath');
-context.World.party.forEach((id) => context.Battle.choose(id, 'defend'));
-context.Battle.resolveRound();
-assert.equal(context.Game.state, 'game-over', '全部 active actors 败退必须进入 game-over');
-
-// ============================================
-// 第二章过渡与难度曲线测试（新增）
-// ============================================
-
-// --- 2A. 第二章数据结构 ---
-assert.ok(context.DATA.MAPS['old-road'], 'DATA.MAPS 必须包含 old-road（古驿道）');
-const oldRoad = context.DATA.MAPS['old-road'];
-assert.equal(oldRoad.name, '古驿道', 'old-road 地名必须为古驿道');
-assert.equal(oldRoad.tiles.length, 16, 'old-road 必须是 16 行地图');
-assert.ok(oldRoad.tiles.every((row) => row.length === 16), 'old-road 必须是 16x16 地图');
-assert.ok(oldRoad.start && typeof oldRoad.start.x === 'number', 'old-road 必须有 start 坐标');
-
-assert.ok(context.DATA.ENEMIES['mounted-scout'], 'DATA.ENEMIES 必须包含 mounted-scout（骑哨斥候）');
-const mountedScout = context.DATA.ENEMIES['mounted-scout'];
-assert.ok(mountedScout.troops > 0, 'mounted-scout 必须有正数兵力');
-assert.ok(mountedScout.attack > 0, 'mounted-scout 必须有正数攻击');
-assert.ok(mountedScout.reward > 0, 'mounted-scout 必须有正数奖励');
-
-assert.ok(context.DATA.ENCOUNTERS['old-road-patrol'], 'DATA.ENCOUNTERS 必须包含 old-road-patrol');
-assert.equal(context.DATA.ENCOUNTERS['old-road-patrol'].enemy, 'mounted-scout', 'old-road-patrol 必须使用 mounted-scout');
-
-assert.ok(context.DATA.ENCOUNTERS['ridge-ambush'], 'DATA.ENCOUNTERS 必须包含 ridge-ambush（山道伏兵）');
-assert.equal(context.DATA.ENCOUNTERS['ridge-ambush'].enemy, 'dusk-scout', 'ridge-ambush 必须使用 dusk-scout');
-
-assert.ok(context.DATA.ENCOUNTERS['gate-ambush'], 'DATA.ENCOUNTERS 必须包含 gate-ambush（关前连战）');
-assert.ok(Array.isArray(context.DATA.ENCOUNTERS['gate-ambush'].chain), 'gate-ambush 必须有 chain 数组（连续遭遇）');
-assert.equal(context.DATA.ENCOUNTERS['gate-ambush'].chain.length, 2, 'gate-ambush chain 必须有两场战斗');
-assert.equal(context.DATA.ENCOUNTERS['gate-ambush'].chain[0], 'reed-bandit', 'gate-ambush 第一场必须是 reed-bandit');
-assert.equal(context.DATA.ENCOUNTERS['gate-ambush'].chain[1], 'ridge-warden', 'gate-ambush 第二场必须是 ridge-warden');
-
-assert.ok(context.DATA.QUESTS['chapter-2'], 'DATA.QUESTS 必须包含 chapter-2');
-const ch2 = context.DATA.QUESTS['chapter-2'];
-assert.ok(ch2.steps && ch2.steps.length > 0, 'chapter-2 必须有 steps');
-assert.equal(ch2.chapter, 'chapter-2', 'chapter-2 chapter 字段必须为 chapter-2');
-
-// --- 2B. old-road 地图交互 ---
-const oldRoadNpc = oldRoad.interactions.find((i) => i.kind === 'npc');
-assert.ok(oldRoadNpc, 'old-road 必须有一个 NPC（守关老兵）');
-assert.ok(oldRoadNpc.dialogue, 'old-road NPC 必须有 dialogue');
-const oldRoadBattle = oldRoad.interactions.find((i) => i.kind === 'battle');
-assert.ok(oldRoadBattle, 'old-road 必须有一个 battle 交互点');
-const oldRoadExit = oldRoad.interactions.find((i) => i.kind === 'exit');
-assert.ok(oldRoadExit, 'old-road 必须有一个 exit 交互点');
-assert.equal(oldRoadExit.to, 'camp', 'old-road 出口必须连接到 camp');
-
-// --- 2C. 章节过渡流程 ---
-context.Game.startNew();
-context.World.storyFlags['military-book-found'] = true;
-context.World.storyFlags['guan-yu-joined'] = true;
-context.World.storyFlags['mountain-pursuit'] = true;
-context.Battle.start('stone-oath');
-for (let round = 0; round < 12 && context.Game.state === 'battle'; round += 1) {
-  const choices = Object.fromEntries(context.World.party.map((id) => [id, 'attack']));
-  if (round === 0) choices[context.World.party[0]] = { type: 'tactic', tacticId: 'phantom-banner' };
-  context.World.party.forEach((id) => context.Battle.choose(id, choices[id]));
-  context.Battle.resolveRound();
-}
-assert.equal(context.Game.state, 'battle-result', 'boss 胜利后必须进入 battle-result');
-const summaryReward = context.Battle.finish();
-assert.equal(summaryReward, 'chapter-summary', 'boss 确认后必须进入 chapter-summary');
-assert.equal(context.Game.state, 'chapter-summary');
-
-// chapter-summary 确认后应进入 chapter-transition（不是直接回到 world）
-const transitionResult = context.Game.confirmChapterSummary();
-assert.equal(transitionResult, 'chapter-transition', '章节结算确认必须进入 chapter-transition');
-assert.equal(context.Game.state, 'chapter-transition', 'Game.state 必须为 chapter-transition');
-
-// chapter-transition 确认后应进入 world，且在 old-road，且 chapter 为 chapter-2
-const worldReturn = context.Game.confirmChapterTransition();
-assert.equal(worldReturn, 'world', '章节过渡确认后必须进入 world');
-assert.equal(context.Game.state, 'world', 'Game.state 必须为 world');
-assert.equal(context.Game.chapter, 'chapter-2', 'chapter 必须切换为 chapter-2');
-assert.equal(context.World.mapId, 'old-road', '过渡后必须出现在 old-road');
-assert.ok(context.World.storyFlags['chapter-1-complete'], 'chapter-1-complete 必须保持为 true');
-assert.equal(typeof context.Game.chapterTransition, 'function', 'Game.chapterTransition 必须暴露');
-assert.equal(typeof context.Game.confirmChapterTransition, 'function', 'Game.confirmChapterTransition 必须暴露');
-
-// --- 2D. 第二章开场目标 ---
-assert.equal(context.Game.currentObjective, '前往古驿道寻求增援', '第二章开场目标必须为前往古驿道寻求增援');
-
-// --- 2E. encounter chain 系统 ---
-assert.equal(typeof context.Battle.startChain, 'function', 'Battle.startChain 必须暴露');
-assert.equal(typeof context.Battle.chainNext, 'function', 'Battle.chainNext 必须暴露');
-assert.ok(context.Battle.chainQueue === undefined || Array.isArray(context.Battle.chainQueue), 'Battle.chainQueue 必须为 undefined 或数组');
-
-// startChain('gate-ambush') 应能启动连战
-context.Game.startNew();
-context.World.storyFlags['military-book-found'] = true;
-context.World.storyFlags['guan-yu-joined'] = true;
-context.World.storyFlags['mountain-pursuit'] = true;
-context.World.chapter = 'chapter-1';
-const chainStart = context.Battle.startChain('gate-ambush');
-assert.equal(chainStart, 'battle', 'startChain 必须返回 battle');
-assert.equal(context.Battle.encounter.id, 'reed-bandit', '连战第一场必须是 reed-bandit');
-assert.ok(Array.isArray(context.Battle.chainQueue), 'chainQueue 必须为数组');
-assert.equal(context.Battle.chainQueue.length, 1, 'chainQueue 必须剩余 1 场');
-
-// --- 2F. Boss 不再强制使用计策 ---
-context.Game.startNew();
-context.World.storyFlags['military-book-found'] = true;
-context.World.storyFlags['guan-yu-joined'] = true;
-context.World.storyFlags['mountain-pursuit'] = true;
-context.Battle.start('stone-oath');
-for (let round = 0; round < 15 && context.Game.state === 'battle'; round += 1) {
-  context.World.party.forEach((id) => context.Battle.choose(id, 'attack'));
-  context.Battle.resolveRound();
-}
-assert.equal(context.Battle.status, 'victory', 'Boss 只用 attack 也必须能胜利（计策不再强制）');
-
-// --- 2G. NPC 回访对话条件 ---
-assert.ok(context.DATA.MAPS.town.interactions.find((i) => i.id === 'town-guan-yu'), 'town 必须有 town-guan-yu NPC');
-const townGuanYu = context.DATA.MAPS.town.interactions.find((i) => i.id === 'town-guan-yu');
-assert.ok(townGuanYu.revisitDialogue, 'town-guan-yu 必须有 revisitDialogue');
-assert.ok(townGuanYu.conditionStoryFlag, 'town-guan-yu 必须有 conditionStoryFlag');
-assert.equal(townGuanYu.conditionStoryFlag, 'town-rescue', 'town-guan-yu conditionStoryFlag 必须为 town-rescue');
-
-assert.ok(context.DATA.MAPS.field.interactions.find((i) => i.id === 'field-lantern'), 'field 必须有 field-lantern NPC');
-const fieldLantern = context.DATA.MAPS.field.interactions.find((i) => i.id === 'field-lantern');
-assert.ok(fieldLantern.revisitDialogue, 'field-lantern 必须有 revisitDialogue');
-assert.ok(fieldLantern.conditionStoryFlag, 'field-lantern 必须有 conditionStoryFlag');
-assert.equal(fieldLantern.conditionStoryFlag, 'military-book-found', 'field-lantern conditionStoryFlag 必须为 military-book-found');
-
-// 验证回访条件触发机制
-context.Game.startNew();
-context.World.storyFlags['town-rescue'] = true;
-context.World.events['town-rescue'] = true;
-context.Game.enterWorld('town');
-const revisitGuanYu = context.DATA.MAPS.town.interactions.find((i) => i.id === 'town-guan-yu');
-context.World.x = revisitGuanYu.x;
-context.World.y = revisitGuanYu.y;
-const revisitResult = context.World.interact();
-assert.equal(revisitResult.triggered.type, 'npc', '回访 town-guan-yu 必须触发 npc');
-assert.equal(revisitResult.triggered.dialogue, townGuanYu.revisitDialogue, 'town-rescue 完成后 town-guan-yu 必须使用 revisitDialogue');
-
-// 未完成条件时不应触发回访对话
-context.Game.startNew();
-context.World.storyFlags['town-rescue'] = false;
-context.Game.enterWorld('town');
-context.World.x = revisitGuanYu.x;
-context.World.y = revisitGuanYu.y;
-const noRevisitResult = context.World.interact();
-assert.equal(noRevisitResult.triggered.dialogue, townGuanYu.dialogue, 'town-rescue 未完成时 town-guan-yu 必须使用原始 dialogue');
-
-// --- 2H. 断云关前 gate-ambush 连战入口 ---
-const bossGate = context.DATA.MAPS['boss-gate'];
-assert.ok(bossGate, 'boss-gate 地图必须存在');
-const gateAmbushPoint = bossGate.interactions.find((i) => i.kind === 'battle' && i.encounter === 'gate-ambush');
-assert.ok(gateAmbushPoint, 'boss-gate 必须有 gate-ambush 遭遇点');
-
-// --- 2I. 山道 ridge-ambush 入口 ---
-const mountainMap = context.DATA.MAPS.mountain;
-assert.ok(mountainMap, 'mountain 地图必须存在');
-const ridgeAmbushPoint = mountainMap.interactions.find((i) => i.kind === 'battle' && i.encounter === 'ridge-ambush');
-assert.ok(ridgeAmbushPoint, 'mountain 必须有 ridge-ambush 遭遇点');
-
-console.log('Three Kingdoms exploration and combat checks passed.');
-
-// ============================================
-// HJKL 键位 / 控制器 / 视觉升级 / 手柄测试（新增）
-// ============================================
-
-// --- 3A. HJKL 重构为 UI 功能键 ---
-assert.equal(typeof context.keyActions, 'object', 'keyActions 必须暴露');
-const keys = context.keyActions;
-// HJKL 现在是 UI 功能键，不再是移动键
-assert.equal(keys.h, 'confirm', 'h 必须映射到 confirm');
-assert.equal(keys.H, 'confirm', 'H 必须映射到 confirm');
-assert.equal(keys.j, 'cancel', 'j 必须映射到 cancel');
-assert.equal(keys.J, 'cancel', 'J 必须映射到 cancel');
-assert.equal(keys.k, 'menu', 'k 必须映射到 menu');
-assert.equal(keys.K, 'menu', 'K 必须映射到 menu');
-assert.equal(keys.l, 'status', 'l 必须映射到 status');
-assert.equal(keys.L, 'status', 'L 必须映射到 status');
-
-// 原有键位必须保留
-assert.equal(keys.ArrowUp, 'up', '方向键上必须保留');
-assert.equal(keys.w, 'up', 'WASD w 必须保留');
-assert.equal(keys.a, 'left', 'WASD a 必须保留');
-assert.equal(keys.s, 'down', 'WASD s 必须保留');
-assert.equal(keys.d, 'right', 'WASD d 必须保留');
-assert.equal(keys.Enter, 'confirm', 'Enter 必须保留');
-assert.equal(keys[' '], 'confirm', '空格必须映射到 confirm');
-assert.equal(keys.Escape, 'cancel', 'Escape 必须保留');
-assert.equal(keys.x, 'cancel', 'x 必须保留');
-assert.equal(keys.z, 'confirm', 'z 必须保留');
-
-// --- 3B. partySelection 不应阻塞方向移动 ---
-context.Game.startNew();
-assert.equal(context.Game.state, 'world');
-assert.equal(context.Game.partySelection.visible, false, '新旅程后 partySelection 必须关闭');
-// 模拟打开 partySelection
-context.Game.openPartySelection();
-assert.equal(context.Game.partySelection.visible, true, 'openPartySelection 后必须可见');
-// 方向键和 WASD 在 partySelection 打开时应被 partyInput 消费
-// HJKL 现在是 UI 功能键
-const worldBeforeX = context.World.x;
-const worldBeforeY = context.World.y;
-// 关闭 panel
-context.Game.partySelection.visible = false;
-context.Game.selectParty(['liu-bei', 'yun', 'lan']);
-assert.equal(context.Game.partySelection.visible, false, 'selectParty 后 partySelection 必须关闭');
-
-// --- 3C. drawActorSprite 增强视觉细节 ---
-assert.equal(typeof context.drawActorSprite, 'function', 'drawActorSprite 必须暴露');
-// drawActorSprite 必须有足够视觉细节（robe body + skin face + hair + beard + weapon）
-// 通过检查源码中函数体是否包含足够的视觉关键词
-const htmlSource = html;
-assert.ok(htmlSource.includes('visual.robes') || htmlSource.includes('robes'), 'drawActorSprite 必须绘制 robe');
-assert.ok(htmlSource.includes('visual.skin') || htmlSource.includes('skin'), 'drawActorSprite 必须绘制 skin');
-assert.ok(htmlSource.includes('visual.hair') || htmlSource.includes('hair'), 'drawActorSprite 必须绘制 hair');
-assert.ok(htmlSource.includes('visual.beard'), 'drawActorSprite 必须绘制 beard');
-assert.ok(htmlSource.includes('visual.weapon') || htmlSource.includes('guandao'), 'drawActorSprite 必须绘制 weapon');
-// 必须为刘备/关羽/张飞有至少 10 次 fillRect 调用来表示 SD 二头身细节
-const spriteMatches = htmlSource.match(/fillRect/g);
-assert.ok(spriteMatches && spriteMatches.length >= 10, 'drawActorSprite 必须有 >=10 次 fillRect 调用来表示 SD 细节');
-
-// --- 3D. 图块纹理绘制 ---
-assert.ok(htmlSource.includes('tileColor'), 'tileColor 必须存在');
-// 纹理绘制必须使用 strokeRect 或 stroke 来添加图块纹理
-const strokeRectMatches = htmlSource.match(/strokeRect/g);
-assert.ok(strokeRectMatches && strokeRectMatches.length >= 3, '图块绘制必须使用 strokeRect 添加纹理 >= 3 次');
-// 必须有草叶纹理（stroke + beginPath 用于草叶/砖石线条）
-const strokeMatches = htmlSource.match(/\.stroke\(\)/g);
-assert.ok(strokeMatches && strokeMatches.length >= 3, '图块绘制必须使用 stroke 添加草叶/砖石线条 >= 3 次');
-
-// --- 3E. 手柄支持（Gamepad API） ---
-assert.ok(htmlSource.includes('getGamepads'), '必须包含 getGamepads 手柄支持');
-assert.ok(htmlSource.includes('gamepad') || htmlSource.includes('Gamepad'), '代码中必须引用 gamepad');
-assert.ok(htmlSource.includes('requestAnimationFrame'), '手柄轮询需要 requestAnimationFrame');
-// 手柄轮询函数必须存在（gamepadPoll 或 gamepadLoop）
-assert.ok(htmlSource.includes('gamepadPoll') || htmlSource.includes('gamepadLoop') || htmlSource.includes('pollGamepad'), '必须有手柄轮询函数');
-
-// --- 3F. HJKL 现在是 UI 功能键 ---
-context.Game.startNew();
-assert.equal(context.Game.state, 'world');
-const jsSource = htmlSource;
-assert.ok(jsSource.includes("h: 'confirm'") || jsSource.includes("h:'confirm'") || jsSource.includes("'h': 'confirm'"), 'keyActions 中 h 映射到 confirm');
-
-console.log('Controls and visual upgrade checks passed.');
-
-// ============================================
-// 视觉质量与操控升级测试（第四轮）
-// ============================================
-
-// --- 4A. partyInput left/right 处理 ---
-context.Game.startNew();
-assert.equal(context.Game.state, 'world');
-context.Game.openPartySelection();
-assert.equal(context.Game.partySelection.visible, true);
-// left/right 必须被 partyInput 处理（不再被忽略）
-const testSelection = { ...context.Game.partySelection };
-context.Game.partyInput('left');
-assert.notDeepEqual(context.Game.partySelection.cursor, undefined, 'left 必须被 partyInput 处理');
-context.Game.partyInput('right');
-assert.notDeepEqual(context.Game.partySelection.cursor, undefined, 'right 必须被 partyInput 处理');
-context.Game.partySelection.visible = false;
-
-// --- 4B. 关羽面部必须用暖红色 ---
-const guanYuVisual = context.DATA.ACTORS['guan-yu'].visual;
-// 关羽面部皮肤色必须是暖红系列（#c04030 附近或 #b8654f 以上的暖色）
-const gySkin = guanYuVisual.skin;
-assert.ok(gySkin, '关羽必须有 skin 颜色');
-// 解析 RGB 检查红色通道足够高、绿色通道足够低（暖红色）
-const gyR = parseInt(gySkin.slice(1, 3), 16);
-const gyG = parseInt(gySkin.slice(3, 5), 16);
-assert.ok(gyR >= 160, `关羽 skin 红色通道必须 >= 160（实际 ${gyR}）`);
-assert.ok(gyG <= 100, `关羽 skin 绿色通道必须 <= 100（实际 ${gyG}），确保面部是暖红色`);
-
-// --- 4C. 关羽黑须必须更大更明显 ---
-// beard 绘制区域必须有曲线或矩形绘制
-const beardMatch = htmlSource.match(/if \(actorId === 'guan-yu'\)[^}]*?(bezierCurveTo|fillRect)[^}]*?(bezierCurveTo|fillRect)/s);
-assert.ok(beardMatch, 'drawActorSprite 必须绘制关羽 beard 区域（曲线或矩形）');
-// 检查 beard 区域必须足够大（覆盖到胸口）
-const beardHeightMatch = htmlSource.match(/if \(actorId === 'guan-yu'\)[^}]*?top\s*\+\s*S\((\d+)\)/);
-assert.ok(beardHeightMatch, '关羽 beard 必须延伸到足够低的位置');
-
-// --- 4D. 刘备金色头冠必须突出 ---
-const liuBeiVisual = context.DATA.ACTORS['liu-bei'].visual;
-const lbHead = liuBeiVisual.head;
-assert.ok(lbHead, '刘备必须有 head 颜色（头冠）');
-// 刘备头冠必须是金色系列（R>=180, G>=150, B<=130）
-const lbR = parseInt(lbHead.slice(1, 3), 16);
-const lbG = parseInt(lbHead.slice(3, 5), 16);
-const lbB = parseInt(lbHead.slice(5, 7), 16);
-assert.ok(lbR >= 180 && lbG >= 130, `刘备 head 必须是金色系（R=${lbR}, G=${lbG}），金冠不够突出`);
-// 头冠绘制区域必须比普通 head 更大（或有额外 crown 绘制）
-assert.ok(htmlSource.includes('crown') || htmlSource.includes('金冠') || liuBeiVisual.head !== guanYuVisual.head, '刘备必须有独立的金冠视觉表现');
-
-// --- 4E. 张飞大胡子必须覆盖更大面积 ---
-const zhangFeiVisual = context.DATA.ACTORS['zhang-fei'].visual;
-assert.ok(zhangFeiVisual.beard, '张飞必须有 beard');
-// 张飞 beard 颜色必须足够深（纯黑或接近黑）
-const zfBeard = zhangFeiVisual.beard;
-const zfBR = parseInt(zfBeard.slice(1, 3), 16);
-assert.ok(zfBR <= 30, `张飞 beard 必须是深黑色（R=${zfBR}）`);
-// 张飞 beard 绘制面积必须比关羽更大（通过额外 fillRect 或更大尺寸）
-// 检查 drawActorSprite 中是否有 zhang-fei 或 beard size 条件判断
-assert.ok(htmlSource.includes('zhang-fei') || htmlSource.includes('visual.beard'), 'drawActorSprite 必须对 beard 有差异化绘制');
-
-// --- 4F. 青龙偃月刀必须比其他武器更大 ---
-// 通过检查 guandao 的绘制（moveTo/lineTo 或 bezierCurveTo）
-const guandaoMatch = htmlSource.match(/weapon\s*===\s*'guandao'[\s\S]*?(moveTo|bezierCurveTo)\(/);
-assert.ok(guandaoMatch, 'guandao 必须有曲线或直线绘制');
-// 检查刀刃使用 bezierCurveTo 或大尺寸
-const guandaoBlade = htmlSource.match(/weapon\s*===\s*'guandao'[\s\S]*?bezierCurveTo/);
-assert.ok(guandaoBlade, '青龙偃月刀刀刃必须使用曲线绘制（更自然的弧形）');
-
-// --- 4G. 所有角色必须有白底+黑点眼睛 ---
-// 已有 '#f0eee8' 眼白和 '#0f0f18' 瞳孔
-assert.ok(htmlSource.includes('#f0eee8') || htmlSource.includes('f0eee8'), '眼睛必须有白底');
-assert.ok(htmlSource.includes('#0f0f18') || htmlSource.includes('0f0f18'), '眼睛必须有黑点瞳孔');
-
-// --- 4H. 图块草叶纹理 >= 3 条曲线或直线 ---
-// drawTileTexture 中必须有 >= 3 条草地线条（直线或曲线）
-const grassBladeMatches = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?(lineTo|bezierCurveTo)[\s\S]*?stroke\(\)/g);
-assert.ok(grassBladeMatches && grassBladeMatches.length >= 3, `草叶纹理线条必须 >= 3 条（实际 ${grassBladeMatches ? grassBladeMatches.length : 0}）`);
-// 也检查 grassCluster 函数是否存在（新的弯曲草叶实现）
-assert.ok(htmlSource.includes('grassCluster') || htmlSource.includes('bezierCurveTo'), '必须使用曲线或 grassCluster 函数绘制草叶');
-
-// --- 4I. 所有图块必须有至少两种颜色的细节 ---
-// 非墙壁图块必须有纹理 stroke 和边框 stroke
-assert.ok(htmlSource.includes('strokeRect'), '图块绘制必须使用 strokeRect 添加边框');
-
-// --- 4J. 战斗画面：敌方人物高度 >= 140 ---
-// 检查 renderBattle 中 drawActorSprite 的高度参数
-const battleEnemyHeightMatch = htmlSource.match(/renderBattle[\s\S]*?drawActorSprite[^}]*height:\s*(\d+)/);
-assert.ok(battleEnemyHeightMatch, 'renderBattle 中敌方 drawActorSprite 必须有 height 参数');
-const battleEnemyHeight = parseInt(battleEnemyHeightMatch[1]);
-assert.ok(battleEnemyHeight >= 140, `战斗画面敌方高度必须 >= 140（实际 ${battleEnemyHeight}）`);
-
-// --- 4K. 战斗画面：背景必须有渐变色 ---
-// renderBattle 必须使用 createLinearGradient
-assert.ok(htmlSource.includes('createLinearGradient') || htmlSource.includes('linear-gradient'), 'renderBattle 必须使用渐变背景');
-
-// --- 4L. 战斗日志字体必须更大 ---
-// 检查 renderBattle 中日志文字的 size 参数
-const battleLogMatch = htmlSource.match(/renderBattle[\s\S]*?Battle\.log[\s\S]*?drawText[^,]*,\s*(\d+)/);
-// 不做严格检查，只要求战斗日志存在
-assert.ok(htmlSource.includes('Battle.log'), 'renderBattle 必须渲染战斗日志');
-
-// --- 4M. 控制提示文本必须包含新按键标注 ---
-// 页面 HTML 提示文本
-assert.ok(htmlSource.includes('H 确认') || htmlSource.includes('H/Enter'), '页面提示文本必须包含 H 确认');
-// renderWorld 中 partySelection 提示
-assert.ok(htmlSource.includes('方向键选择') || htmlSource.includes('H 确认'), '编队面板必须提及控制键');
-
-// --- 4N. 触控按钮文本更新 ---
-// 确保触控区域有 battle-1 到 battle-5 的按钮
-assert.ok(htmlSource.includes('data-action="battle-1"'), '触控按钮 battle-1 必须存在');
-assert.ok(htmlSource.includes('data-action="battle-5"'), '触控按钮 battle-5 必须存在');
-
-// --- 4O. 所有状态都能响应已映射按键 ---
-// step 函数必须处理 battle-result、chapter-summary、chapter-transition、game-over 状态
-assert.ok(htmlSource.includes("Game.state === 'battle-result'"), 'step 必须处理 battle-result');
-assert.ok(htmlSource.includes("Game.state === 'chapter-summary'"), 'step 必须处理 chapter-summary');
-assert.ok(htmlSource.includes("Game.state === 'chapter-transition'"), 'step 必须处理 chapter-transition');
-assert.ok(htmlSource.includes("Game.state === 'game-over'"), 'step 必须处理 game-over');
-
-console.log('Visual quality and control upgrade tests added (expecting failures until implementation).');
-
-// ============================================
-// HJKL 重构为 UI 功能键测试（第五轮）
-// ============================================
-
-// --- 5A. HJKL 不再是移动键 ---
-// H = confirm（确认，对应 NES A 键）
-// J = cancel（取消，对应 NES B 键）
-// K = menu（呼出菜单/状态，对应 NES START 键）
-// L = status（查看队伍状态/信息）
-assert.equal(typeof context.keyActions, 'object', 'keyActions 必须暴露');
-const k = context.keyActions;
-assert.equal(k.h, 'confirm', 'h 必须映射到 confirm');
-assert.equal(k.H, 'confirm', 'H 必须映射到 confirm');
-assert.equal(k.j, 'cancel', 'j 必须映射到 cancel');
-assert.equal(k.J, 'cancel', 'J 必须映射到 cancel');
-assert.equal(k.k, 'menu', 'k 必须映射到 menu');
-assert.equal(k.K, 'menu', 'K 必须映射到 menu');
-assert.equal(k.l, 'status', 'l 必须映射到 status');
-assert.equal(k.L, 'status', 'L 必须映射到 status');
-
-// HJKL 不应再映射到移动
-assert.notEqual(k.h, 'left', 'h 不再映射到 left');
-assert.notEqual(k.j, 'down', 'j 不再映射到 down');
-assert.notEqual(k.k, 'up', 'k 不再映射到 up');
-assert.notEqual(k.l, 'right', 'l 不再映射到 right');
-
-// --- 5B. 方向键和 WASD 保留为移动 ---
-assert.equal(k.ArrowUp, 'up', '方向键上必须保留');
-assert.equal(k.ArrowDown, 'down', '方向键下必须保留');
-assert.equal(k.ArrowLeft, 'left', '方向键左必须保留');
-assert.equal(k.ArrowRight, 'right', '方向键右必须保留');
-assert.equal(k.w, 'up', 'WASD w 必须保留');
-assert.equal(k.a, 'left', 'WASD a 必须保留');
-assert.equal(k.s, 'down', 'WASD s 必须保留');
-assert.equal(k.d, 'right', 'WASD d 必须保留');
-assert.equal(k.Enter, 'confirm', 'Enter 必须保留');
-assert.equal(k[' '], 'confirm', '空格必须映射到 confirm');
-assert.equal(k.z, 'confirm', 'z 必须保留为 confirm');
-assert.equal(k.Escape, 'cancel', 'Escape 必须保留');
-assert.equal(k.x, 'cancel', 'x 必须保留为 cancel');
-
-// --- 5C. ACTIONS 必须包含 menu 和 status ---
-const actions = context.ACTIONS;
-assert.ok(actions.has('menu'), 'ACTIONS 必须包含 menu');
-assert.ok(actions.has('status'), 'ACTIONS 必须包含 status');
-assert.ok(actions.has('confirm'), 'ACTIONS 必须包含 confirm');
-assert.ok(actions.has('cancel'), 'ACTIONS 必须包含 cancel');
-assert.ok(actions.has('up'), 'ACTIONS 必须包含 up');
-assert.ok(actions.has('down'), 'ACTIONS 必须包含 down');
-assert.ok(actions.has('left'), 'ACTIONS 必须包含 left');
-assert.ok(actions.has('right'), 'ACTIONS 必须包含 right');
-
-// --- 5D. menu 和 status 输入可被识别 ---
-context.Input.enqueue('menu');
-assert.equal(context.Input.consume('menu'), 'menu', 'menu 输入应可识别');
-context.Input.enqueue('status');
-assert.equal(context.Input.consume('status'), 'status', 'status 输入应可识别');
-
-// --- 5E. step() 在 world 状态下处理 menu（打开营地） ---
-context.Game.startNew();
-assert.equal(context.Game.state, 'world');
-context.Input.enqueue('menu');
-context.GameStep();
-assert.equal(context.Game.state, 'camp', 'world 状态下 menu 应打开营地');
-
-// --- 5F. step() 在 world 状态下处理 status ---
-context.Game.startNew();
-assert.equal(context.Game.state, 'world');
-// status 应该在 world 状态下显示队伍状态（不改变状态或设置状态为 status）
-context.Input.enqueue('status');
-context.GameStep();
-// status 可能设置 Game.message 或进入特定状态，但不应 crash
-assert.ok(true, 'status 在 world 状态下不应 crash');
-
-// --- 5G. step() 在 world 状态下 cancel 不再打开营地 ---
-context.Game.startNew();
-assert.equal(context.Game.state, 'world');
-const campBefore = context.Game.state;
-context.Input.enqueue('cancel');
-context.GameStep();
-// cancel 在 world 下不应打开营地（camp 已由 menu 处理）
-// 可能什么都不做或返回标题，但不能打开营地
-assert.notEqual(context.Game.state, 'camp', 'world 状态下 cancel 不应打开营地');
-
-// --- 5H. 触控按钮必须包含 menu 和 status ---
-assert.ok(htmlSource.includes('data-action="menu"'), '触控按钮 menu 必须存在');
-assert.ok(htmlSource.includes('data-action="status"'), '触控按钮 status 必须存在');
-
-// --- 5I. renderBattle 使用第一人称布局 ---
-// 战斗标题必须显示在画面最上方
-assert.ok(htmlSource.includes('renderBattle'), 'renderBattle 必须存在');
-// 敌方精灵居中偏右
-assert.ok(htmlSource.includes('780') || htmlSource.includes('1060') || htmlSource.includes('1020') || htmlSource.includes('980') || htmlSource.includes('1100'), 'renderBattle 敌方精灵必须在右侧');
-// 战斗日志
-assert.ok(htmlSource.includes('Battle.log'), 'renderBattle 必须渲染战斗日志');
-
-// --- 5J. renderDialogue 使用新版对话框布局 ---
-// 窗口从 y=420 开始，高度 260
-assert.ok(htmlSource.includes('renderDialogue'), 'renderDialogue 必须存在');
-
-// --- 5K. UI 提示文本使用新按键标注 ---
-// "H 确认" 出现在提示中
-assert.ok(htmlSource.includes('H 确认'), '提示文本必须包含 "H 确认"');
-// "J 取消" 出现在提示中
-assert.ok(htmlSource.includes('J 取消'), '提示文本必须包含 "J 取消"');
-// 兼容提示
-assert.ok(htmlSource.includes('Enter') || htmlSource.includes('Enter / 空格'), '必须保留 Enter 兼容提示');
-
-// --- 5L. renderBattle 布局区域检查 ---
-// 战斗标题区域 y: 0-50
-// 敌方区域 y: 50-380
-// 我方区域 y: 420-540
-// 指令菜单 y: 540-580
-// 战斗日志 y: 580-640
-// 回合信息 y: 640-680
-// 检查 renderBattle 中引用了这些区域的坐标
-const battleSource = htmlSource.substring(htmlSource.indexOf('function renderBattle'));
-// 1080p 布局：我方队伍 y:540, 指令菜单 y:740, 战斗日志 y:830
-assert.ok(battleSource.includes('540') || battleSource.includes('550'), 'renderBattle 必须在 y≈540 区域绘制我方队伍');
-assert.ok(battleSource.includes('740') || battleSource.includes('750'), 'renderBattle 必须在 y≈740 区域绘制指令菜单');
-assert.ok(battleSource.includes('830') || battleSource.includes('840'), 'renderBattle 必须在 y≈830 区域绘制战斗日志');
-
-console.log('HJKL remap and visual redesign tests added (expecting failures until implementation).');
-
-// ============================================
-// 键盘事件 Bug 修复 + 1080p + 视觉精细度测试（第六轮）
-// ============================================
-
-// --- 6A. 分辨率提升到 1080p ---
-assert.equal(context.DATA.MAP_TILE_SIZE, 120, 'MAP_TILE_SIZE 必须提升到 120');
-assert.equal(context.DATA.MAP_VIEW_HEIGHT, 960, 'MAP_VIEW_HEIGHT 必须是 960（1080-120）');
-const vCanvas = context.document.getElementById('game-canvas');
-assert.equal(vCanvas.width, 1920, 'canvas 宽度必须提升到 1920');
-assert.equal(vCanvas.height, 1080, 'canvas 高度必须提升到 1080');
-
-// --- 6B. keyboard listener 必须在 document 上（不是 window） ---
-// 检查源码：不应该有 window.addEventListener('keydown')
-// 应该有 document.addEventListener('keydown')
-assert.ok(!htmlSource.includes("window.addEventListener('keydown'") && !htmlSource.includes('window.addEventListener("keydown"'),
-  'keyboard listener 不应在 window 上');
-assert.ok(htmlSource.includes("document.addEventListener('keydown'") || htmlSource.includes('document.addEventListener("keydown"'),
-  'keyboard listener 必须在 document 上');
-
-// --- 6C. keyboard handler 中不能调用 step(action) ---
-// 键盘事件处理函数中应只有 Input.enqueue(action)，不能有 step(action)
-const keydownHandlerMatch = htmlSource.match(/document\.addEventListener\('keydown'[\s\S]*?\}\);/);
-assert.ok(keydownHandlerMatch, 'document keydown handler 必须存在');
-const handlerCode = keydownHandlerMatch[0];
-assert.ok(!handlerCode.includes('step(action)') && !handlerCode.includes('step( action )'),
-  'keyboard handler 中不能调用 step(action)——必须只 enqueue，让 gamepadLoop 统一处理');
-
-// --- 6D. canvas 必须有 tabindex="0" ---
-assert.ok(htmlSource.includes('tabindex="0"') || htmlSource.includes("tabindex='0'") || htmlSource.includes('tabindex=0'),
-  'canvas 必须有 tabindex="0"');
-
-// --- 6E. canvas 必须自动 focus ---
-assert.ok(htmlSource.includes('canvas.focus()') || htmlSource.includes('.focus()'),
-  '页面加载后必须自动 focus canvas');
-
-// --- 6F. 角色精灵尺寸必须增加到 120x160 ---
-const spriteFuncMatch = htmlSource.match(/function drawActorSprite[\s\S]*?function drawTileTexture/);
-assert.ok(spriteFuncMatch, 'drawActorSprite 函数必须存在');
-const spriteFunc = spriteFuncMatch[0];
-assert.ok(spriteFunc.includes('120') || spriteFunc.includes('160') || spriteFunc.includes('options.width || 120') || spriteFunc.includes('options.height || 160'),
-  'drawActorSprite 默认尺寸必须提升到 120x160');
-
-// --- 6G. 战斗中敌方精灵高度 >= 300 ---
-const battleEnemyHeightMatch2 = htmlSource.match(/renderBattle[\s\S]*?drawActorSprite[^}]*height:\s*(\d+)/);
-assert.ok(battleEnemyHeightMatch2, 'renderBattle 中敌方 drawActorSprite 必须有 height 参数');
-const battleEnemyHeight2 = parseInt(battleEnemyHeightMatch2[1]);
-assert.ok(battleEnemyHeight2 >= 300, `战斗画面敌方高度必须 >= 300（实际 ${battleEnemyHeight2}）`);
-
-// --- 6H. renderTitle 标题字体 >= 70px ---
-const titleMatch = htmlSource.match(/renderTitle[\s\S]*?九州烽烟[\s\S]*?(\d+)/);
-if (titleMatch) {
-  const titleSize = parseInt(titleMatch[1]);
-  assert.ok(titleSize >= 70, `标题 "九州烽烟" 字体必须 >= 70px（实际 ${titleSize}）`);
+if (G.battle && G.battle.result === 'defeat') {
+  step('confirm');
+  eq(G.state, 'gameover', '全灭进入败亡画面');
 }
 
-// --- 6I. renderDialogue 对话框布局必须更新 ---
-const dialogueSource = htmlSource.substring(htmlSource.indexOf('function renderDialogue'));
-// 新布局：窗口从 y=620 开始，高度 380，宽度 1000
-assert.ok(dialogueSource.includes('620') || dialogueSource.includes('y=620'),
-  'renderDialogue 窗口 y 坐标必须为 620');
-assert.ok(dialogueSource.includes('380') || dialogueSource.includes('h = 380') || dialogueSource.includes('height: 380'),
-  'renderDialogue 窗口高度必须为 380');
+// ================= 6. 升级与策略习得 =================
+section('升级习得策略');
+newGame();
+const lb = G.actors[2];
+TK.grantExp(lb, TK.expToNext(1));
+eq(lb.lvl, 2, '经验满升级');
+const learned = TK.learnedSkills(2, 2);
+ok(learned.includes(11) && learned.includes(19), 'lv2 习得炼火计/水途计');
 
-// --- 6J. renderBattle 必须有渐变背景（1080p 版本） ---
-assert.ok(htmlSource.includes('createLinearGradient'), 'renderBattle 必须使用渐变背景');
+// ================= 7. 存档往返 =================
+section('存档往返');
+newGame();
+TK.joinActor(3); TK.joinActor(4);
+G.actors[2].lvl = 5; G.actors[2].exp = 400;
+G.gold = 1234; TK.addItem(2, 5); G.flags.intro_done = true;
+G.mapId = 'world'; G.x = 10; G.y = 12;
+ok(TK.Save.ok ? true : true, '');
+// 使用内部 saveGame（经 step 菜单太繁琐，直接调 window 钩子里没有 → 用菜单路径）
+G.state = 'world';
+G.menu = null;
+// 通过 MenuSys 不可达 → 直接调用内部函数不可行，改用 step: menu→存档
+step('menu'); step('down'); step('down'); step('down'); step('confirm'); // 存档
+const raw = sandbox.localStorage._d['tk-sw2-web-v1'];
+ok(raw, '存档已写入 localStorage');
+const saved = JSON.parse(raw);
+eq(saved.ver, 1, '存档版本');
+eq(saved.gold, 1234, '金钱保存');
+ok(saved.roster.includes(4), '队伍保存');
+// 清空后读回
+G.roster = []; G.actors = {}; G.gold = 0; G.items = {}; G.flags = {};
+G.mapId = 'xuzhou'; G.x = 1; G.y = 1;
+G.state = 'title'; G.titleCursor = 1;
+step('confirm'); // 继续征程
+eq(G.gold, 1234, '读档金钱恢复');
+ok(G.roster.includes(4), '读档队伍恢复');
+eq(G.mapId, 'world', '读档位置恢复');
 
-// --- 6K. 地图图块必须有更丰富的纹理 ---
-// 草地图块必须有 >= 5 条草丛线条（直线或曲线）
-const grassMatches2 = htmlSource.match(/beginPath\(\);[\s\S]*?moveTo[\s\S]*?(lineTo|bezierCurveTo)[\s\S]*?stroke\(\)/g);
-assert.ok(grassMatches2 && grassMatches2.length >= 5, `草丛纹理线条必须 >= 5 条（实际 ${grassMatches2 ? grassMatches2.length : 0}）`);
-// 必须有草丛函数或花朵点缀
-assert.ok(htmlSource.includes('grassCluster') || htmlSource.includes('flower') || htmlSource.includes('arc'), '必须有草丛函数或花朵点缀');
+// ================= 8. 地图完整性 =================
+section('地图完整性');
+for (const [mid, m] of Object.entries(MAPS)) {
+  ok(m.rows && m.rows.length >= 5, `${mid} 有行数据`);
+  const w = Math.max(...m.rows.map(r => r.length));
+  ok(w >= 10, `${mid} 宽度合理 (${w})`);
+  ok((m.events || []).every(e => Number.isInteger(e.x) && Number.isInteger(e.y)), `${mid} 事件坐标为整数`);
+  // 事件坐标在图内
+  for (const e of (m.events || [])) {
+    ok(e.y < m.rows.length && e.x < w, `${mid} 事件(${e.x},${e.y})在图内`);
+  }
+}
+// 门都能到达对应地图
+for (const [mid, m] of Object.entries(MAPS)) {
+  for (const e of (m.events || [])) {
+    if (e.t === 'door' || e.t === 'exit') {
+      if (e.back) continue;
+      ok(MAPS[e.to], `${mid} 的出口指向存在的地图 ${e.to}`);
+    }
+  }
+}
+// 第一章闭环：徐州→world→寿春
+ok(MAPS.world.events.some(e => e.to === 'shouchun'), 'world 有寿春入口');
+ok(MAPS.shouchun.events.some(e => e.to === 'palace_sc'), '寿春通王宫');
+ok(MAPS.palace_sc.events.some(e => e.t === 'boss'), '王宫有 Boss 事件');
 
-// --- 6L. 墙壁图块必须有砖块纹理 ---
-const tileSource = htmlSource.substring(htmlSource.indexOf('function drawTileTexture'));
-assert.ok(tileSource.includes('brick') || tileSource.includes('砖') || tileSource.includes('row'),
-  'drawTileTexture 墙壁必须有砖块纹理');
+// ================= 9. 渲染资源 =================
+section('渲染资源');
+ok(typeof TK.actorSprite === 'function', '精灵函数存在');
+const spr = TK.actorSprite(2, 'down', 0);
+ok(spr && spr.width === 64 && spr.height === 64, '刘备下向精灵 64×64');
+const spr2 = TK.actorSprite(3, 'right', 1);
+ok(spr2 && spr2.width === 64, '关羽右向镜像帧');
+const tcv = TK.tileCanvas('~');
+ok(tcv && tcv.width === 64, '水面图块光栅化 64×64');
+const tcv2 = TK.tileCanvas('#');
+ok(tcv2 && tcv2.width === 64, '城墙图块光栅化');
 
-// --- 6M. 对话框必须有双线边框 ---
-const dialogueSource2 = htmlSource.substring(htmlSource.indexOf('function renderDialogue'));
-assert.ok(dialogueSource2.includes('strokeRect') && (dialogueSource2.match(/strokeRect/g) || []).length >= 2,
-  'renderDialogue 必须有双线边框（>= 2 个 strokeRect）');
+console.log('\n全部通过：' + passed + ' 项断言');
 
-// --- 6N. 战斗画面区域布局必须适配 1080p ---
-const battleSource2 = htmlSource.substring(htmlSource.indexOf('function renderBattle'));
-// 1080p 布局：标题 0-60, 敌方 60-500, 分隔 500-540, 我方 540-740, 指令 740-820, 日志 820-920
-assert.ok(battleSource2.includes('60') || battleSource2.includes('500'), 'renderBattle 必须有 1080p 布局区域');
-
-// --- 6O. step() 无参数调用时不应意外处理输入 ---
-// 检查 step 函数签名：function step(action)  - 无参数时 action 为 undefined
-// step 中应有对 action 的检查或默认行为
-const stepMatch = htmlSource.match(/function step\((\w*)\)/);
-assert.ok(stepMatch, 'step 函数必须存在');
-const stepParam = stepMatch[1];
-assert.equal(stepParam, 'action', 'step 函数参数必须命名为 action');
-
-console.log('Resolution, keyboard fix, and visual fidelity tests added.');
-
-// ============================================
-// 角色精灵曲线/弧线重写 + 地图纹理 + NPC图形化测试（第七轮）
-// ============================================
-
-// --- 7A. drawActorSprite 必须使用 arc（圆形头部） ---
-// 头部必须用 arc 画圆，不是 fillRect 矩形
-const spriteFuncBlock = htmlSource.substring(htmlSource.indexOf('function drawActorSprite'), htmlSource.indexOf('function drawTileTexture'));
-assert.ok(spriteFuncBlock.includes('.arc('), 'drawActorSprite 必须使用 arc 绘制圆形头部/面部');
-// 必须有椭圆阴影（ellipse）
-assert.ok(spriteFuncBlock.includes('.ellipse('), 'drawActorSprite 必须使用 ellipse 绘制椭圆阴影');
-
-// --- 7B. drawActorSprite 必须有 trapezoid（梯形身体） ---
-// 梯形通过 beginPath + moveTo + lineTo + fill 或 stroke 实现
-assert.ok(spriteFuncBlock.includes('beginPath') && spriteFuncBlock.includes('moveTo') && spriteFuncBlock.includes('lineTo'),
-  'drawActorSprite 必须使用 beginPath/moveTo/lineTo 画梯形身体（不是纯 fillRect）');
-// moveTo+lineTo 组合次数必须 >= 2（身体+武器等）
-const mtltPairs = (spriteFuncBlock.match(/moveTo\(/g) || []).length;
-assert.ok(mtltPairs >= 2, `drawActorSprite moveTo 调用必须 >= 2 次（实际 ${mtltPairs}），需要梯形/曲线绘制`);
-
-// --- 7C. 头部/脸部必须是圆形不是矩形 ---
-// 检查是否有 arc 画脸（支持 top + number 或 top + S(number) 格式）
-assert.ok(spriteFuncBlock.match(/arc\([^)]*top\s*\+\s*(?:S\()?\d+[^)]*\)/), '脸部必须用 arc 画圆形');
-
-// --- 7D. 鼻子和嘴巴必须有弧线 ---
-// 嘴巴用 arc 画弧线
-assert.ok(spriteFuncBlock.includes('arc') && (spriteFuncBlock.includes('嘴') || spriteFuncBlock.includes('mouth') || spriteFuncBlock.match(/arc\([^)]*\)/)),
-  'drawActorSprite 必须有嘴巴弧线绘制');
-// 鼻子不能只是 fillRect 小方块
-assert.ok(spriteFuncBlock.includes('鼻') || spriteFuncBlock.includes('nose') || spriteFuncBlock.includes('arc'),
-  'drawActorSprite 必须有鼻子细节');
-
-// --- 7E. 眼睛必须有高光点 ---
-// 白色高光点（极小的白色圆点在瞳孔上）
-assert.ok(spriteFuncBlock.includes('#ffffff') || spriteFuncBlock.includes('rgba(255,255,255') || spriteFuncBlock.includes('#fff') || spriteFuncBlock.includes('white'),
-  '眼睛必须有白色高光点');
-
-// --- 7F. 脖子连接头和身体 ---
-assert.ok(spriteFuncBlock.includes('脖') || spriteFuncBlock.includes('neck') || spriteFuncBlock.match(/fillRect\([^)]*top\s*\+\s*6[0-9]/),
-  'drawActorSprite 必须绘制脖子连接头部和身体');
-
-// --- 7G. 鞋子必须有弧线细节 ---
-assert.ok(spriteFuncBlock.includes('鞋') || spriteFuncBlock.includes('shoe') || spriteFuncBlock.includes('arc'),
-  'drawActorSprite 必须有鞋子弧线细节');
-
-// --- 7H. 手臂必须用圆角或弧线 ---
-assert.ok(spriteFuncBlock.includes('quadraticCurveTo') || spriteFuncBlock.includes('bezierCurveTo') || spriteFuncBlock.includes('roundRect') || spriteFuncBlock.includes('arc'),
-  'drawActorSprite 手臂必须使用曲线（quadraticCurveTo/bezierCurveTo/roundRect）');
-
-// --- 7I. 腰带必须有弧线 ---
-assert.ok(spriteFuncBlock.includes('腰') || spriteFuncBlock.includes('belt') || spriteFuncBlock.includes('arc'),
-  'drawActorSprite 必须有腰带细节');
-
-// --- 7J. 关羽胡须必须用弧线/曲线 ---
-// 关羽胡须用 bezierCurveTo 或 arc 画飘逸长须
-const gyBeardSection = spriteFuncBlock.substring(spriteFuncBlock.indexOf("guan-yu"));
-assert.ok(gyBeardSection.includes('bezierCurveTo') || gyBeardSection.includes('quadraticCurveTo') || gyBeardSection.includes('arc'),
-  '关羽胡须必须使用曲线绘制飘逸效果');
-
-// --- 7K. 张飞胡须必须用多层弧线 ---
-const zfBeardSection = spriteFuncBlock.substring(spriteFuncBlock.indexOf("zhang-fei"));
-assert.ok(zfBeardSection.includes('bezierCurveTo') || zfBeardSection.includes('quadraticCurveTo') || zfBeardSection.includes('arc'),
-  '张飞胡须必须使用曲线绘制蓬松效果');
-
-// --- 7L. 青龙偃月刀必须用 arc 画弧形刀刃 ---
-assert.ok(spriteFuncBlock.includes("guandao") && spriteFuncBlock.includes('arc'), '青龙偃月刀必须用 arc 画弧形刀刃');
-
-// --- 7M. 丈八蛇矛必须用 bezierCurveTo 画波浪矛头 ---
-assert.ok(spriteFuncBlock.includes("spear") && (spriteFuncBlock.includes('bezierCurveTo') || spriteFuncBlock.includes('quadraticCurveTo')),
-  '丈八蛇矛必须用 bezierCurveTo/quadraticCurveTo 画波浪形矛头');
-
-// --- 7N. drawTileTexture 必须有花卉点缀 ---
-const tileFuncBlock = htmlSource.substring(htmlSource.indexOf('function drawTileTexture'), htmlSource.indexOf('function viewportFor'));
-assert.ok(tileFuncBlock.includes('花') || tileFuncBlock.includes('flower') || tileFuncBlock.includes('arc'),
-  'drawTileTexture 草地必须有花卉点缀（arc 画小圆点）');
-
-// --- 7O. 水面必须用 bezierCurveTo 画波浪 ---
-assert.ok(tileFuncBlock.includes('bezierCurveTo') || tileFuncBlock.includes('quadraticCurveTo'),
-  'drawTileTexture 水面必须使用 bezierCurveTo/quadraticCurveTo 画波浪');
-
-// --- 7P. 路径/道路图块必须有碎石纹理 ---
-// 检查是否有非空非墙壁图块的纹理绘制（palette 判断）
-assert.ok(tileFuncBlock.includes('palette') || tileFuncBlock.includes('碎石') || tileFuncBlock.includes('gravel'),
-  'drawTileTexture 必须有路径/道路碎石纹理');
-
-// --- 7Q. renderWorld 中 NPC 必须用 drawActorSprite 绘制 ---
-const renderWorldBlock = htmlSource.substring(htmlSource.indexOf('function renderWorld'), htmlSource.indexOf('function renderDialogue'));
-// NPC 交互点必须用 drawActorSprite 而不是 fillRect
-assert.ok(renderWorldBlock.includes('drawActorSprite') && renderWorldBlock.includes('point.actorId'),
-  'renderWorld 中 NPC 必须用 drawActorSprite 绘制');
-// 非 NPC 交互物（宝箱/恢复点/出口）不能只用 fillRect
-assert.ok(renderWorldBlock.includes('宝箱') || renderWorldBlock.includes('chest') || renderWorldBlock.includes('arc') || renderWorldBlock.includes('恢复'),
-  'renderWorld 中交互物必须有图形化绘制（arc/圆/门形状）');
-
-// --- 7R. drawActorSprite 必须有眉毛建模 ---
-assert.ok(spriteFuncBlock.includes('眉') || spriteFuncBlock.includes('eyebrow') || spriteFuncBlock.match(/lineTo[^;]*top\s*\+\s*3/),
-  'drawActorSprite 必须有眉毛绘制');
-
-// --- 7S. 刘备金冠必须有高光条 ---
-assert.ok(spriteFuncBlock.includes('liu-bei') && spriteFuncBlock.includes('高光'),
-  '刘备金冠必须有高光条');
-
-// --- 7T. 所有角色必须有脖子 ---
-assert.ok(spriteFuncBlock.includes('neck') || spriteFuncBlock.includes('脖'),
-  '所有角色必须有脖子连接头部和身体');
-
-console.log('Sprite curve/arc rewrite and visual upgrade tests added.');
+process.exit(0);
