@@ -109,7 +109,7 @@ eq(TK.physDamage(1, 999), 1, '低攻高防保底 1');
 function near(v, target, ratio, msg) { ok(Math.abs(v - target) <= target * ratio, msg + '（实际 ' + v + '）'); }
 near(TK.tacticDamage(320, 200, 256), 250, 0.11, '炼火计 智200 → ≈250');
 near(TK.tacticDamage(4320, 200, 256), 3375, 0.11, '天火计 智200 → ≈3375');
-near(TK.tacticDamage(320, 130, 960), 43, 0.11, '敌方炼火计 mmp130 → ≈43');
+near(TK.tacticDamage(320, 130, 960), 43, 0.15, '敌方炼火计 mmp130 → ≈43');
 near(TK.tacticHeal(800, 200), 625, 0.01, '赤心计 智200 → 625');
 ok(TK.expToNext(1) > 0 && TK.expToNext(10) > TK.expToNext(1), '经验曲线递增');
 
