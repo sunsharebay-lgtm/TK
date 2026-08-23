@@ -2099,12 +2099,14 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     if (hasSave) {
       const sv = Save.load();
       if (sv && sv.roster) {
-        win(WIDTH / 2 - 300, 760, 600, 120);
+        win(WIDTH / 2 - 300, 760, 600, 140);
         const firstActor = sv.actors && sv.actors[sv.roster[0]];
         if (firstActor) {
-          txt('等级 ' + firstActor.lvl + '　' + (DB.cls[firstActor.cls] ? DB.cls[firstActor.cls].zi : ''), WIDTH / 2, 790, '#8a94a8', 24, 'center');
+          txt('等级 ' + firstActor.lvl + '　' + (DB.cls[firstActor.cls] ? DB.cls[firstActor.cls].zi : ''), WIDTH / 2, 780, '#8a94a8', 24, 'center');
         }
-        txt('队伍 ' + (sv.roster ? sv.roster.length : 0) + ' 人　金 ' + (sv.gold || 0), WIDTH / 2, 830, '#8a94a8', 22, 'center');
+        txt('队伍 ' + (sv.roster ? sv.roster.length : 0) + ' 人　金 ' + (sv.gold || 0), WIDTH / 2, 816, '#8a94a8', 22, 'center');
+        const mapName = MAPS[sv.mapId] ? MAPS[sv.mapId].name : sv.mapId;
+        txt('位置：' + mapName, WIDTH / 2, 852, '#8a94a8', 20, 'center');
       }
     }
     txt('方向/WASD 移动　H 确认　J 取消　K 菜单　L 状态', WIDTH / 2, HEIGHT - 120, '#65768b', 26, 'center');
