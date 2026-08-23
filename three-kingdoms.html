@@ -208,6 +208,79 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       o.start(); o.stop(audioCtx.currentTime + dur);
     } catch (_) {}
   }
+
+  // ════════════════════════ 背景音乐（FC风程序化电子乐） ════════════════════════
+  let bgmTimer = null;
+  let bgmPlaying = false;
+  const BGM_VOL = 0.012;
+  const BGM_BEAT = 0.26;
+  // 旋律音符 [midi音号, 拍数]
+  const BGM_MELODY = [
+    [67,1],[69,1],[72,2],[69,1],[67,1],[64,2],
+    [65,1],[67,1],[69,2],[67,1],[65,1],[64,2],
+    [62,1],[64,1],[67,2],[69,1],[72,1],[74,2],
+    [72,1],[69,1],[67,2],[64,1],[65,1],[67,2],
+  ];
+  const BGM_BASS = [
+    [43,2],[40,2],[41,2],[43,2],
+    [43,2],[40,2],[41,2],[43,2],
+    [38,2],[40,2],[43,2],[45,2],
+    [43,2],[40,2],[38,2],[40,2],
+  ];
+  function midiFreq(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+  function scheduleBGM() {
+    if (!bgmPlaying || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const loopLen = BGM_MELODY.reduce((s, n) => s + n[1], 0) * BGM_BEAT;
+    // 旋律声部
+    let t = 0;
+    for (const [midi, dur] of BGM_MELODY) {
+      const st = now + t;
+      const d = dur * BGM_BEAT;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'square';
+      o.frequency.value = midiFreq(midi);
+      g.gain.setValueAtTime(BGM_VOL, st);
+      g.gain.setValueAtTime(BGM_VOL * 0.6, st + d * 0.75);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + d);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(st); o.stop(st + d);
+      t += d;
+    }
+    // 低音声部
+    t = 0;
+    for (const [midi, dur] of BGM_BASS) {
+      const st = now + t;
+      const d = dur * BGM_BEAT;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = midiFreq(midi);
+      g.gain.setValueAtTime(BGM_VOL * 0.5, st);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + d);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(st); o.stop(st + d);
+      t += d;
+    }
+    bgmTimer = setTimeout(scheduleBGM, (loopLen - 0.1) * 1000);
+  }
+  function startBGM() {
+    if (bgmPlaying) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = audioCtx || new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      bgmPlaying = true;
+      scheduleBGM();
+    } catch (_) {}
+  }
+  function stopBGM() {
+    bgmPlaying = false;
+    if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; }
+  }
+
   const SFX = {
     move() { tone(220, .03, 'square', .012); },
     confirm() { tone(660, .06); tone(880, .05); },
@@ -527,6 +600,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     G.gold = s.gold || 0; G.items = s.items || {}; G.flags = s.flags || {};
     if (MAPS[s.mapId]) { G.mapId = s.mapId; G.x = s.x; G.y = s.y; G.dir = s.dir || 'down'; }
     G.steps = 0; G.chapterDone = !!s.chapterDone;
+    startBGM();
     return true;
   }
 
@@ -1182,6 +1256,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   function startBattle(troopId, opt) {
     const troop = DB.troop[troopId];
     if (!troop) return;
+    stopBGM();
     const enemies = [];
     for (const eid of troop.members.slice(0, 5)) {
       const e = DB.enemy[eid];
@@ -1496,6 +1571,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     const wasBoss = B.boss;
     G.battle = null;
     G.state = 'world';
+    startBGM();
     if (wasBoss) nextBossFight();
   }
 
@@ -1551,6 +1627,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     G.chapterDone = false;
     G.state = 'world';
     G.msg = { text: '【第一章·灭袁术】先去官署见曹操。', t: 240 };
+    startBGM();
   }
 
   // ---- 世界 ----
@@ -1562,7 +1639,8 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     else if (a === 'left') tryMove('left');
     else if (a === 'right') tryMove('right');
     else if (a === 'confirm') interact();
-    else if (a === 'menu' || a === 'cancel') MenuSys.open();
+    else if (a === 'menu') MenuSys.open();
+    else if (a === 'cancel') { /* J键在世界地图不做操作，避免与K冲突 */ }
     else if (a === 'status') quickStatus();
     else if (a === 'help') { G._help = true; SFX.open(); }
   }
@@ -1966,6 +2044,22 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         ctx.fillStyle = '#8a5a2a'; ctx.fillRect(sx + 10, sy + 22, 44, 30);
         ctx.fillStyle = '#b8843e'; ctx.fillRect(sx + 10, sy + 22, 44, 10);
         ctx.fillStyle = '#f0c840'; ctx.fillRect(sx + 27, sy + 32, 10, 12);
+        // 宝箱交互提示
+        const dx = G.dir === 'left' ? -1 : G.dir === 'right' ? 1 : 0;
+        const dy = G.dir === 'up' ? -1 : G.dir === 'down' ? 1 : 0;
+        if (G.x + dx === ev.x && G.y + dy === ev.y) {
+          const bounce = Math.sin(time / 200) * 3;
+          txt('H', sx + TILE / 2 - 6, sy - 8 + bounce, '#ffe9a0', 22, 'center');
+        }
+      }
+      // 门/出口交互提示
+      if (ev.t === 'door' || ev.t === 'exit') {
+        const dx = G.dir === 'left' ? -1 : G.dir === 'right' ? 1 : 0;
+        const dy = G.dir === 'up' ? -1 : G.dir === 'down' ? 1 : 0;
+        if (G.x + dx === ev.x && G.y + dy === ev.y) {
+          const bounce = Math.sin(time / 200) * 3;
+          txt(ev.label || 'H', sx + TILE / 2, sy - 8 + bounce, '#ffe9a0', 18, 'center');
+        }
       }
       if (ev.t === 'npc' || ev.t === 'shopkeeper' || ev.t === 'innkeeper' || ev.t === 'trainer') {
         if (ev.t === 'npc' && ev.flag && G.flags[ev.flag]) continue;
@@ -1982,6 +2076,13 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         const bobY = Math.sin(npcPhase) * 2;
         const npcFrame = Math.sin(npcPhase * 0.5) > 0.3 ? 1 : 0;
         ctx.drawImage(actorSprite(lookId, 'down', npcFrame), sx, sy - 6 + bobY);
+        // 交互提示：玩家面向NPC时显示H键提示
+        const dx = G.dir === 'left' ? -1 : G.dir === 'right' ? 1 : 0;
+        const dy = G.dir === 'up' ? -1 : G.dir === 'down' ? 1 : 0;
+        if (G.x + dx === ev.x && G.y + dy === ev.y) {
+          const bounce = Math.sin(time / 200) * 3;
+          txt('H', sx + TILE / 2 - 6, sy - 20 + bounce, '#ffe9a0', 22, 'center');
+        }
       }
     }
     // 玩家
@@ -2007,7 +2108,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         ctx.fillRect(260 + d * 16, HEIGHT - HUD_H + 44, 12, 12);
       }
     }
-    txt('K 菜单 · H 调查', WIDTH - 280, HEIGHT - HUD_H + 16, '#8a94a8', 20);
+    txt('K 菜单 · H 确认/调查 · L 状态', WIDTH - 380, HEIGHT - HUD_H + 16, '#8a94a8', 20);
     const chips = G.roster.slice(0, 5);
     chips.forEach((id, i) => {
       const a = G.actors[id]; if (!a) return;
@@ -2045,18 +2146,19 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       txt('—— 操作说明 ——', WIDTH / 2, 100, '#f0bd57', 40, 'center');
       const helpLines = [
         ['移动', '方向键 / WASD'],
-        ['确认/调查', 'H / Enter / Z'],
-        ['取消/返回', 'J / Esc / X'],
-        ['菜单', 'K / Esc'],
-        ['状态', 'L'],
+        ['确认/调查/对话', 'H / Enter（面向NPC后按H对话）'],
+        ['取消/返回', 'J / Esc（菜单中返回）'],
+        ['打开菜单', 'K'],
+        ['查看状态', 'L'],
         ['帮助', 'F1'],
+        ['战斗加速', 'Tab（正常/快速切换）'],
         ['', ''],
         ['战斗指令', ''],
-        ['攻击', '1 / 方向键选择'],
-        ['策略', '2 / 方向键选择'],
-        ['道具', '3 / 方向键选择'],
+        ['攻击', '1 / 方向键选择后H确认'],
+        ['策略', '2 / 方向键选择后H确认'],
+        ['道具', '3 / 方向键选择后H确认'],
         ['防御', '4'],
-        ['撤退', '5 / 策略菜单中选择'],
+        ['撤退', '5（部分战斗不可撤退）'],
       ];
       helpLines.forEach((pair, i) => {
         const y = 180 + i * 52;
@@ -2112,7 +2214,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         txt('位置：' + mapName, WIDTH / 2, 852, '#8a94a8', 20, 'center');
       }
     }
-    txt('方向/WASD 移动　H 确认　J 取消　K 菜单　L 状态', WIDTH / 2, HEIGHT - 120, '#65768b', 26, 'center');
+    txt('方向/WASD 移动　H 确认/调查　K 菜单　L 状态　F1 帮助', WIDTH / 2, HEIGHT - 120, '#65768b', 26, 'center');
     txt('机制数值还原 FC 原作 · 原创程序绘制 · v0.2.0', WIDTH / 2, HEIGHT - 76, '#4a5568', 22, 'center');
   }
 
