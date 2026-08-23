@@ -210,8 +210,8 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     move() { tone(220, .03, 'square', .012); },
     confirm() { tone(660, .06); tone(880, .05); },
     cancel() { tone(330, .07); },
-    hit() { tone(160, .08, 'sawtooth', .03); },
-    crit() { tone(120, .12, 'sawtooth', .04); tone(90, .1, 'square', .03); },
+    hit() { tone(120, .06, 'sawtooth', .04); tone(80, .08, 'square', .03); },
+    crit() { tone(80, .1, 'sawtooth', .05); tone(60, .12, 'square', .04); tone(200, .06, 'triangle', .03); },
     tactic() { for (let i = 0; i < 4; i++) setTimeout(() => tone(500 + i * 120, .05, 'triangle'), i * 45); },
     healSfx() { for (let i = 0; i < 3; i++) setTimeout(() => tone(700 + i * 150, .07, 'sine', .03), i * 60); },
     victory() { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.12,'square',.03),i*110)); },
@@ -366,25 +366,47 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   // ---- 敌将战斗立绘 ----
   function drawEnemyPortrait(c, x, y, size, enemyId) {
     const s = size / 32;
-    const armors = ['#3a4a68','#6a3a3a','#3a5a3a','#4a3a5a','#5a523a','#2e3440'];
-    const armorCol = armors[enemyId % armors.length];
-    const skins = ['#eab888','#d8a070','#c87858','#e0b090'];
-    const skin = skins[enemyId % skins.length];
+    // Bosses 和名将用特殊配色
+    const BOSS_PALETTE = {
+      23: { armor: '#b8943c', skin: '#e8c888', helmet: '#8a6a20', accent: '#f0d060' }, // 袁术 金甲
+      20: { armor: '#5a6a7a', skin: '#d8a878', helmet: '#4a5a6a', accent: '#a0b8c8' }, // 纪灵 银甲
+      24: { armor: '#c87838', skin: '#e0b888', helmet: '#8a5828', accent: '#f0a848' }, // 孙策 橙甲
+      34: { armor: '#6a5a4a', skin: '#d8b088', helmet: '#4a3a2a', accent: '#a09080' }, // 车胄 暗甲
+      35: { armor: '#8a2020', skin: '#e8c888', helmet: '#6a1818', accent: '#f04040' }, // 曹操 红甲
+      49: { armor: '#2a2840', skin: '#d8a878', helmet: '#1a1830', accent: '#6a68a0' }, // 吕布 暗紫
+    };
+    const pal = BOSS_PALETTE[enemyId] || {
+      armor: ['#3a4a68','#6a3a3a','#3a5a3a','#4a3a5a','#5a523a','#2e3440'][enemyId % 6],
+      skin: ['#eab888','#d8a070','#c87858','#e0b090'][enemyId % 4],
+      helmet: '#2a2832',
+      accent: '#c83a3a'
+    };
     c.save(); c.translate(x, y); c.scale(s, s);
     c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(16, 30, 12, 3.4, 0, 0, Math.PI*2); c.fill();
-    c.fillStyle = armorCol; c.fillRect(8, 17, 16, 11);
+    // 身体铠甲
+    c.fillStyle = pal.armor; c.fillRect(8, 17, 16, 11);
     c.fillStyle = 'rgba(255,255,255,.14)'; c.fillRect(8, 17, 16, 2);
+    // 肩甲
     c.fillRect(5, 17, 5, 4); c.fillRect(22, 17, 5, 4);
-    c.fillStyle = skin; c.fillRect(5, 21, 4, 6); c.fillRect(23, 21, 4, 6);
-    c.fillStyle = skin; c.beginPath(); c.arc(16, 11, 6.4, 0, Math.PI*2); c.fill();
-    c.fillStyle = '#2a2832'; c.beginPath(); c.arc(16, 9, 6.8, Math.PI, 0); c.fill();
+    // 手臂
+    c.fillStyle = pal.skin; c.fillRect(5, 21, 4, 6); c.fillRect(23, 21, 4, 6);
+    // 头
+    c.fillStyle = pal.skin; c.beginPath(); c.arc(16, 11, 6.4, 0, Math.PI*2); c.fill();
+    // 盔
+    c.fillStyle = pal.helmet; c.beginPath(); c.arc(16, 9, 6.8, Math.PI, 0); c.fill();
     c.fillRect(9, 8, 14, 2.4);
-    c.fillStyle = '#c83a3a'; c.fillRect(15, 1, 2, 5);
+    // 缨
+    c.fillStyle = pal.accent; c.fillRect(15, 1, 2, 5);
+    // 眼
     c.fillStyle = '#fff'; c.fillRect(12.6, 10.6, 2.6, 2.2); c.fillRect(17.4, 10.6, 2.6, 2.2);
     c.fillStyle = '#101018'; c.fillRect(13.6, 11.2, 1.2, 1.4); c.fillRect(18.4, 11.2, 1.2, 1.4);
-    c.fillStyle = '#1a1512'; c.fillRect(11, 15, 10, 3.4);
+    // 胡须
+    c.fillStyle = '#1a1512';
+    c.fillRect(11, 15, 10, 3.4);
     c.beginPath(); c.moveTo(11, 17); c.lineTo(21, 17); c.lineTo(19, 22); c.lineTo(13, 22); c.closePath(); c.fill();
+    // 腰带
     c.fillStyle = '#20202c'; c.fillRect(8, 25, 16, 2);
+    // 兵器
     c.strokeStyle = '#cfd4dc'; c.lineWidth = 1.6;
     c.beginPath();
     if (enemyId % 3 === 0) { c.moveTo(27, 27); c.lineTo(29, 4); }
@@ -1059,9 +1081,13 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     SFX.open();
   }
   function openInn() {
-    let missing = 0;
-    for (const id of G.roster) { const a = G.actors[id]; if (a) missing += a.mhp - a.hp; }
-    const cost = Math.max(10, Math.ceil(missing / 6));
+    // 客栈费用：每人固定费用随等级增长（FC 风格）
+    let cost = 0;
+    for (const id of G.roster) {
+      const a = G.actors[id];
+      if (a) cost += 10 + a.lvl * 5;
+    }
+    cost = Math.max(10, cost);
     G.shop = { kind: 'inn', cost, cursor: 0, msg: null };
     G.state = 'shop';
     SFX.open();
@@ -1162,7 +1188,9 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       result: null, popups: [], msgTimer: 0, curMsg: null
     };
     G.state = 'battle';
-    tone(330, .08); setTimeout(()=>tone(262,.1), 90);
+    // 遭遇音效：快速下降扫频 + 重击
+    for (let i = 0; i < 6; i++) setTimeout(() => tone(800 - i * 120, .03, 'square', .02), i * 25);
+    setTimeout(() => { tone(120, .15, 'sawtooth', .05); tone(80, .18, 'square', .04); }, 160);
     pushBMsg('遭遇了敌军！');
   }
 
@@ -1969,7 +1997,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       txt((sel ? '▶ ' : '　') + s, WIDTH / 2, 560 + i * 90, sel ? '#ffe9a0' : '#8a94a8', 44, 'center');
     });
     txt('方向/WASD 移动　H 确认　J 取消　K 菜单　L 状态', WIDTH / 2, HEIGHT - 120, '#65768b', 26, 'center');
-    txt('机制数值还原 FC 原作 · 原创程序绘制', WIDTH / 2, HEIGHT - 76, '#4a5568', 22, 'center');
+    txt('机制数值还原 FC 原作 · 原创程序绘制 · v0.2.0', WIDTH / 2, HEIGHT - 76, '#4a5568', 22, 'center');
   }
 
   function renderMenu() {
