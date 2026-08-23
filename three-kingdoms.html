@@ -221,7 +221,10 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     step() { tone(180, .02, 'square', .008); },
     open() { tone(520, .05); tone(780, .06); },
     buy() { tone(880, .05); tone(1170, .06); },
-    levelup() { [392,523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.09,'square',.03),i*70)); }
+    levelup() { [392,523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.09,'square',.03),i*70)); },
+    save() { [440,550,660].forEach((f,i)=>setTimeout(()=>tone(f,.08,'sine',.03),i*80)); },
+    chest() { tone(880, .08); setTimeout(()=>tone(1100, .1), 80); setTimeout(()=>tone(1320, .12), 160); },
+    door() { tone(440, .06, 'triangle', .03); tone(330, .08, 'square', .02); }
   };
 
   // ════════════════════════ 存档 ════════════════════════
@@ -503,10 +506,12 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   function saveGame() {
     const actors = {};
     for (const k in G.actors) { const a = G.actors[k]; actors[k] = { cls: a.cls, lvl: a.lvl, exp: a.exp, hp: a.hp, mp: a.mp, eq: a.eq.slice() }; }
-    return Save.ok({
+    const ok = Save.ok({
       ver: 1, roster: G.roster.slice(), actors, gold: G.gold, items: Object.assign({}, G.items),
       flags: Object.assign({}, G.flags), mapId: G.mapId, x: G.x, y: G.y, dir: G.dir, chapterDone: G.chapterDone
     });
+    if (ok) SFX.save();
+    return ok;
   }
   function loadGame() {
     const s = Save.load();
@@ -931,7 +936,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       case 'chest': {
         if (G.flags[ev.flag]) { G.msg = { text: '箱子已经空了。', t: 90 }; return; }
         G.flags[ev.flag] = true;
-        SFX.open();
+        SFX.chest();
         if (ev.gold) { G.gold += ev.gold; G.msg = { text: `发现 ${ev.gold} 金！`, t: 120 }; }
         if (ev.item) {
           addItem(ev.item[0], ev.item[1]);
@@ -941,6 +946,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         break;
       }
       case 'door':
+        SFX.door();
         transferTo(ev.to, ev.tx, ev.ty);
         break;
       case 'exit':
