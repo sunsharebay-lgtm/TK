@@ -446,7 +446,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     items: {},
     flags: {},
     mapId: 'xuzhou', x: 8, y: 14, dir: 'down',
-    steps: 0,
+    steps: 0, safeSteps: 5,
     frame: 0, animT: 0,
     msg: null,             // 世界内浮动提示 {text,t}
     menu: null,            // 菜单状态机
@@ -962,8 +962,9 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     G._lastMap = { mapId: G.mapId, x: G.x, y: G.y };
     G.mapId = mapId; G.x = tx; G.y = ty;
     G.steps = 0;
+    // 进入城镇/室内时设安全步数，出城后5步内不遭遇
+    if (MAPS[mapId].town || MAPS[mapId].indoor) G.safeSteps = 5;
     tone(440, .05); tone(560, .05);
-    // 进入城镇时若从 world 东门来
     if (mapId === 'xuzhou') G.flags['left_xuzhou'] = true;
   }
 
@@ -985,15 +986,19 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         return;
       }
     }
-    // 随机遭遇
+    // 随机遭遇（安全区内不遭遇）
     if (m.encounter && !m.town) {
-      G.steps++;
-      const enc = m.encounter;
-      if (G.steps >= enc.steps && chance(0.5)) {
-        G.steps = 0;
-        const total = enc.troops.reduce((s, t) => s + t[1], 0);
-        let r = Math.random() * total;
-        for (const [tid, w] of enc.troops) { r -= w; if (r <= 0) { startBattle(tid, {}); return; } }
+      if (G.safeSteps > 0) {
+        G.safeSteps--;
+      } else {
+        G.steps++;
+        const enc = m.encounter;
+        if (G.steps >= enc.steps && chance(0.5)) {
+          G.steps = 0;
+          const total = enc.troops.reduce((s, t) => s + t[1], 0);
+          let r = Math.random() * total;
+          for (const [tid, w] of enc.troops) { r -= w; if (r <= 0) { startBattle(tid, {}); return; } }
+        }
       }
     }
   }
