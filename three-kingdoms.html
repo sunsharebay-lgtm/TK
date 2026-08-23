@@ -183,7 +183,8 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     Escape:'cancel', j:'cancel', J:'cancel',
     k:'menu', K:'menu',
     l:'status', L:'status',
-    F1:'help'
+    F1:'help',
+    Tab:'speed'
   };
   const Input = {
     queue: [],
@@ -447,6 +448,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     items: {},
     flags: {},
     mapId: 'xuzhou', x: 8, y: 14, dir: 'down',
+    battleSpeed: 1,        // 战斗速度倍率：1=正常，2=快速
     steps: 0, safeSteps: 5,
     frame: 0, animT: 0,
     msg: null,             // 世界内浮动提示 {text,t}
@@ -1198,7 +1200,9 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     // 遭遇音效：快速下降扫频 + 重击
     for (let i = 0; i < 6; i++) setTimeout(() => tone(800 - i * 120, .03, 'square', .02), i * 25);
     setTimeout(() => { tone(120, .15, 'sawtooth', .05); tone(80, .18, 'square', .04); }, 160);
-    pushBMsg('遭遇了敌军！');
+    // 显示遭遇敌人名称
+    const enemyNames = [...new Set(enemies.map(e => e.name))];
+    pushBMsg('遭遇了 ' + enemyNames.join('、') + '！');
   }
 
   function bParty() { return G.battle.party.filter(p => p.actor.hp > 0); }
@@ -1699,6 +1703,13 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   function stepBattle(a) {
     B = G.battle;
     if (!B) return;
+    // 战斗速度切换
+    if (a === 'speed') {
+      G.battleSpeed = G.battleSpeed === 1 ? 2 : 1;
+      B.notice = G.battleSpeed === 2 ? '⚡ 快速模式' : '正常速度';
+      SFX.confirm();
+      return;
+    }
     if (B.phase === 'intro' || B.phase === 'msgview') {
       if (a === 'confirm') advanceBMsg(true);
       return;
@@ -1847,7 +1858,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     if (!B) return;
     if (B.queue.length) {
       B.curMsg = B.queue.shift();
-      B.msgTimer = performance.now() + 800;
+      B.msgTimer = performance.now() + 800 / (G.battleSpeed || 1);
     } else {
       B.curMsg = null;
       if (B.phase === 'intro') { B.phase = 'command'; B.memberIdx = nextLivingMember(-1); B.cmdCursor = 0; }
@@ -2349,7 +2360,10 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       txt(B.curMsg, 110, 106, '#f6ecd0', 34);
     }
 
-    if (!B.result) txt('第 ' + (B.round + 1) + ' 回合', WIDTH - 220, 30, '#8a94a8', 26);
+    if (!B.result) {
+      txt('第 ' + (B.round + 1) + ' 回合', WIDTH - 220, 30, '#8a94a8', 26);
+      if (G.battleSpeed === 2) txt('⚡', WIDTH - 80, 30, '#f0bd57', 26);
+    }
 
     for (const p of B.popups) {
       let sxp = 0, syp = 0;
@@ -2464,11 +2478,12 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     if (G.animT > 240) { G.animT = 0; G.frame ^= 1; }
     if (G.state === 'battle' && G.battle) {
       B = G.battle;
+      const speedMul = G.battleSpeed || 1;
       if ((B.phase === 'intro' || B.phase === 'msgview')) {
         if (!B.curMsg) advanceBMsg(false);
         else if (performance.now() > (B.msgTimer || 0)) advanceBMsg(false);
       }
-      for (const p of B.popups) p.t--;
+      for (const p of B.popups) p.t -= speedMul;
       B.popups = B.popups.filter(p => p.t > 0);
     }
     render();
