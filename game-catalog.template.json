@@ -16,13 +16,13 @@
     },
     {
       "id": "three-kingdoms",
-      "title": "吞食天地：汉末群雄",
+      "title": "吞食天地Ⅱ·网页复刻",
       "url": "./three-kingdoms.html",
       "tagNamespace": "game/three-kingdoms",
-      "fallbackVersion": "v0.1.0",
+      "fallbackVersion": "v0.2.0",
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
-      "version": "v0.1.0",
+      "version": "v0.2.0",
       "status": "开发版"
     }
   ]

@@ -948,9 +948,9 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   function afterStep() {
     const m = MAPS[G.mapId];
     if (!m) return;
-    // 出口事件（踩上即触发）
+    // 出口/门事件（踩上即触发——FC 式走入进门）
     for (const ev of m.events || []) {
-      if ((ev.t === 'exit' || ev.t === 'door') && ev.x === G.x && ev.y === G.y && !(ev.t === 'door' && ev.label)) {
+      if ((ev.t === 'exit' || ev.t === 'door') && ev.x === G.x && ev.y === G.y) {
         if (ev.back) { const lm = G._lastMap; if (lm) transferTo(lm.mapId, lm.x, lm.y); }
         else transferTo(ev.to, ev.tx, ev.ty);
         return;
@@ -1350,7 +1350,6 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   function resolveRound() {
     B = G.battle;
     B.round++;
-    // 行动顺序：我方+敌方按 agi 混排
     const order = [];
     for (const c of B.choices) order.push({ side: 'p', c, agi: actorAgi(c.actor.actor) });
     for (const en of bEnemies()) order.push({ side: 'e', en, agi: en.agi });
@@ -1369,6 +1368,9 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       B.phase = 'command';
       B.cmdCursor = 0;
     }
+    // 回合结束：清空临时减益
+    for (const en of B.enemies) delete en.atkDown;
+    for (const p of B.party) p.buffAtkDown = false;
   }
   function nextLivingMember(from) {
     const P = G.battle.party;
@@ -1477,6 +1479,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
 
   // ---- 世界 ----
   function stepWorld(a) {
+    if (_statusView && _statusView.t > 0) { _statusView = null; SFX.cancel(); return; }
     if (a === 'up') tryMove('up');
     else if (a === 'down') tryMove('down');
     else if (a === 'left') tryMove('left');
@@ -1985,8 +1988,10 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       txt('道 具', 180, 190, '#f0bd57', 38);
       const list = inventoryList();
       if (!list.length) txt('行囊空空。', 180, 290, '#8a94a8', 30);
-      list.slice(0, 11).forEach((it, i) => {
-        txt((M.subCursor === i ? '▶ ' : '　') + it.name + ' ×' + it.count, 180, 270 + i * 56, M.subCursor === i ? '#ffe9a0' : '#cfd8e8', 32);
+      const iStart = Math.max(0, M.subCursor - 10);
+      list.slice(iStart, iStart + 11).forEach((it, vi) => {
+        const i = iStart + vi;
+        txt((M.subCursor === i ? '▶ ' : '　') + it.name + ' ×' + it.count, 180, 270 + vi * 56, M.subCursor === i ? '#ffe9a0' : '#cfd8e8', 32);
       });
       txt('H 使用　J 返回', 180, 800, '#8a94a8', 26);
     } else if (M.screen === 'itemTarget') {
@@ -2021,9 +2026,11 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       txt('选择装备（J 卸下）', 1120, 230, '#f0bd57', 32);
       const bag = M.bagList || [];
       if (!bag.length) txt('背包里没有可用的装备。(H=卸为空)', 1120, 330, '#8a94a8', 28);
-      bag.slice(0, 11).forEach((b, i) => {
+      const bStart = Math.max(0, M.bagCursor - 10);
+      bag.slice(bStart, bStart + 11).forEach((b, vi) => {
+        const i = bStart + vi;
         const extra = b.cat === 'w' ? '攻+' + b.row.atk : '防+' + b.row.def;
-        txt((M.bagCursor === i ? '▶ ' : '　') + b.name + ' ' + extra, 1120, 320 + i * 54, M.bagCursor === i ? '#ffe9a0' : '#cfd8e8', 30);
+        txt((M.bagCursor === i ? '▶ ' : '　') + b.name + ' ' + extra, 1120, 320 + vi * 54, M.bagCursor === i ? '#ffe9a0' : '#cfd8e8', 30);
       });
     } else if (M.screen === 'status') {
       win(160, 120, 1600, 840);
@@ -2083,9 +2090,11 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     } else {
       const list = sellableList();
       if (!list.length) txt('没有可以卖的东西。', 300, 280, '#8a94a8', 32);
-      list.slice(0, 10).forEach((s, i) => {
-        txt(((S.sellCursor || 0) === i ? '▶ ' : '　') + s.name + ' ×' + s.count, 300, 260 + i * 72, (S.sellCursor || 0) === i ? '#ffe9a0' : '#cfd8e8', 34);
-        txt('卖 ' + Math.floor(s.price / 2) + ' 金', 1560, 264 + i * 72, '#f6ecd0', 30, 'right');
+      const sStart = Math.max(0, (S.sellCursor || 0) - 9);
+      list.slice(sStart, sStart + 10).forEach((s, vi) => {
+        const i = sStart + vi;
+        txt(((S.sellCursor || 0) === i ? '▶ ' : '　') + s.name + ' ×' + s.count, 300, 260 + vi * 72, (S.sellCursor || 0) === i ? '#ffe9a0' : '#cfd8e8', 34);
+        txt('卖 ' + Math.floor(s.price / 2) + ' 金', 1560, 264 + vi * 72, '#f6ecd0', 30, 'right');
       });
     }
     if (S.msg) txt(S.msg, 300, 830, '#9ae0a0', 30);
@@ -2165,9 +2174,11 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       const sw = 620, sx = 1040, sy = 590;
       const list = B.subList || [];
       win(sx, sy, sw, 470);
-      list.slice(0, 5).forEach((s, i) => {
+      const subStart = Math.max(0, B.subCursor - 4);
+      list.slice(subStart, subStart + 5).forEach((s, vi) => {
+        const i = subStart + vi;
         const label = s.__retreat ? '撤退' : (s.row ? s.name + ' ×' + s.count : s.name + ' (' + s.mp + ')');
-        txt((B.subCursor === i ? '▶ ' : '　') + label, sx + 50, sy + 36 + i * 86, B.subCursor === i ? '#ffe9a0' : '#cfd8e8', 34);
+        txt((B.subCursor === i ? '▶ ' : '　') + label, sx + 50, sy + 36 + vi * 86, B.subCursor === i ? '#ffe9a0' : '#cfd8e8', 34);
       });
       if (list.length > 5) txt('…上下键翻看更多', sx + 50, sy + 400, '#8a94a8', 22);
     } else if (B.phase === 'targetE' || B.phase === 'targetA') {
