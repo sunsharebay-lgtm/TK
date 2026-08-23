@@ -973,7 +973,10 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     G.steps = 0;
     // 进入城镇/室内时设安全步数，出城后5步内不遭遇
     if (MAPS[mapId].town || MAPS[mapId].indoor) G.safeSteps = 5;
-    tone(440, .05); tone(560, .05);
+    SFX.door();
+    // 显示地图名称
+    const mapName = MAPS[mapId].name || mapId;
+    G.msg = { text: '— ' + mapName + ' —', t: 120 };
     if (mapId === 'xuzhou') G.flags['left_xuzhou'] = true;
   }
 
