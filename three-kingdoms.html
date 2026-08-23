@@ -528,7 +528,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   MAPS.world = {
     name: "中原大地",
     outdoor: true,
-    encounter: { steps: 18, troops: [[11, 3], [12, 3], [6, 2], [7, 2], [41, 2]] },
+    encounter: { steps: 22, troops: [[11, 3], [12, 3], [6, 2], [7, 2], [41, 2]] },
     rows: [
       "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
       "^^gggg,tgggf,gggg,^gggg,tgggg,tgg~~~gf,gggg,^gg^",
@@ -1421,9 +1421,22 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       else { G.bagEquip = G.bagEquip || {}; const k = d[0] + ':' + d[1]; G.bagEquip[k] = (G.bagEquip[k] || 0) + 1; }
     }
     G.gold += goldSum;
-    for (const id of G.roster) grantExp(G.actors[id], expSum);
+    const allLevelUps = [];
+    for (const id of G.roster) {
+      const ups = grantExp(G.actors[id], expSum);
+      if (ups.length) allLevelUps.push({ name: actorName(id), ups });
+    }
     SFX.victory();
     let msg = `敌军溃散！战功 +${expSum}　军资 +${goldSum} 金`;
+    if (allLevelUps.length) {
+      SFX.levelup();
+      for (const { name, ups } of allLevelUps) {
+        for (const u of ups) {
+          msg += `\n${name} 达到 ${u.lvl} 级！`;
+          if (u.newSkills.length) msg += ` 学会 ${u.newSkills.join('、')}！`;
+        }
+      }
+    }
     if (drops.length) {
       const names = drops.map(d => d[0] === 'i' ? DB.item[d[1]].name : d[0] === 'w' ? DB.weapon[d[1]].name : DB.armor[d[1]].name);
       msg += `\n缴获：${names.join('、')}`;
@@ -1435,11 +1448,17 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   }
 
   function grantExp(a, exp) {
+    const oldLvl = a.lvl;
     a.exp += exp;
+    const levelUps = [];
     while (a.lvl < 99 && a.exp >= expToNext(a.lvl)) {
       a.lvl++;
       recalc(a);
+      // 检查新学会的策略
+      const newSkills = learnedSkills(a.cls, a.lvl).filter(sid => !learnedSkills(a.cls, a.lvl - 1).includes(sid));
+      levelUps.push({ lvl: a.lvl, newSkills: newSkills.map(sid => DB.skill[sid] ? DB.skill[sid].name : '?') });
     }
+    return levelUps;
   }
 
   function battleDefeat() {
