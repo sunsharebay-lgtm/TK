@@ -182,7 +182,8 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     Enter:'confirm', ' ':'confirm', h:'confirm', H:'confirm',
     Escape:'cancel', j:'cancel', J:'cancel',
     k:'menu', K:'menu',
-    l:'status', L:'status'
+    l:'status', L:'status',
+    F1:'help'
   };
   const Input = {
     queue: [],
@@ -1190,7 +1191,8 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       log: [],
       round: 0,
       flag: opt.flag || null, boss: !!opt.boss, healAfter: !!opt.healAfter,
-      result: null, popups: [], msgTimer: 0, curMsg: null
+      result: null, popups: [], msgTimer: 0, curMsg: null,
+      flash: 12                 // 遭遇闪光计数器
     };
     G.state = 'battle';
     // 遭遇音效：快速下降扫频 + 重击
@@ -1442,11 +1444,11 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         }
       }
     }
-    if (drops.length) {
-      const names = drops.map(d => d[0] === 'i' ? DB.item[d[1]].name : d[0] === 'w' ? DB.weapon[d[1]].name : DB.armor[d[1]].name);
-      msg += `\n缴获：${names.join('、')}`;
-    }
+    const dropNames = drops.map(d => d[0] === 'i' ? DB.item[d[1]].name : d[0] === 'w' ? DB.weapon[d[1]].name : DB.armor[d[1]].name);
+    if (dropNames.length) msg += `\n缴获：${dropNames.join('、')}`;
     B.victoryMsg = msg.split('\n');
+    B._levelUps = allLevelUps;
+    B._drops = dropNames;
     B.result = 'victory';
     B.phase = 'result';
     if (B.flag) G.flags[B.flag] = true;
@@ -1541,6 +1543,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   // ---- 世界 ----
   function stepWorld(a) {
     if (_statusView && _statusView.t > 0) { _statusView = null; SFX.cancel(); return; }
+    if (G._help) { G._help = null; SFX.cancel(); return; }
     if (a === 'up') tryMove('up');
     else if (a === 'down') tryMove('down');
     else if (a === 'left') tryMove('left');
@@ -1548,6 +1551,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     else if (a === 'confirm') interact();
     else if (a === 'menu' || a === 'cancel') MenuSys.open();
     else if (a === 'status') quickStatus();
+    else if (a === 'help') { G._help = true; SFX.open(); }
   }
   let _statusView = null;
   function quickStatus() {
@@ -1934,6 +1938,7 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       }
     }
     // 事件物
+    const time = Date.now();
     for (const ev of (m.events || [])) {
       const sx = ev.x * TILE - camX, sy = ev.y * TILE - camY;
       if (sx < -TILE || sy < -TILE || sx > WIDTH || sy > HEIGHT - HUD_H) continue;
@@ -1949,7 +1954,14 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         else if (ev.kind === 'weapon') lookId = 6;
         else if (ev.kind === 'item' || ev.t === 'innkeeper') lookId = 5;
         else lookId = 4;
-        ctx.drawImage(actorSprite(lookId, 'down', 0), sx, sy - 6);
+        // NPC shadow
+        ctx.fillStyle = 'rgba(0,0,0,.22)';
+        ctx.beginPath(); ctx.ellipse(sx + TILE / 2, sy + TILE - 6, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
+        // NPC idle animation: gentle bob and frame cycling
+        const npcPhase = (time / 800 + ev.x * 3 + ev.y * 7) % (Math.PI * 2);
+        const bobY = Math.sin(npcPhase) * 2;
+        const npcFrame = Math.sin(npcPhase * 0.5) > 0.3 ? 1 : 0;
+        ctx.drawImage(actorSprite(lookId, 'down', npcFrame), sx, sy - 6 + bobY);
       }
     }
     // 玩家
@@ -1964,6 +1976,17 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     ctx.strokeRect(4, HEIGHT - HUD_H + 4, WIDTH - 8, HUD_H - 8);
     txt(m.name, 24, HEIGHT - HUD_H + 16, '#f0bd57', 26);
     txt('金 ' + G.gold, 24, HEIGHT - HUD_H + 58, '#f6ecd0', 26);
+    // 遭遇指示器（世界地图且有遭遇设定时显示）
+    if (m.encounter && !m.town) {
+      const enc = m.encounter;
+      const dots = 10;
+      const filled = Math.min(dots, Math.floor(G.steps / enc.steps * dots));
+      txt('遇敌', 200, HEIGHT - HUD_H + 58, '#8a94a8', 20);
+      for (let d = 0; d < dots; d++) {
+        ctx.fillStyle = d < filled ? '#d84a4a' : '#2a2a3a';
+        ctx.fillRect(260 + d * 16, HEIGHT - HUD_H + 44, 12, 12);
+      }
+    }
     txt('K 菜单 · H 调查', WIDTH - 280, HEIGHT - HUD_H + 16, '#8a94a8', 20);
     const chips = G.roster.slice(0, 5);
     chips.forEach((id, i) => {
@@ -1995,6 +2018,32 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         const aname = a.eq[1] ? DB.armor[a.eq[1]].name : '无甲';
         txt('武:' + wname + ' 攻' + actorAtk(a) + '　具:' + aname + ' 防' + actorDef(a) + '　智' + actorMat(a), 640, y + 42, '#9ab0c8', 22);
       });
+    }
+    // 帮助画面
+    if (G._help) {
+      win(160, 60, 1600, 880);
+      txt('—— 操作说明 ——', WIDTH / 2, 100, '#f0bd57', 40, 'center');
+      const helpLines = [
+        ['移动', '方向键 / WASD'],
+        ['确认/调查', 'H / Enter / Z'],
+        ['取消/返回', 'J / Esc / X'],
+        ['菜单', 'K / Esc'],
+        ['状态', 'L'],
+        ['帮助', 'F1'],
+        ['', ''],
+        ['战斗指令', ''],
+        ['攻击', '1 / 方向键选择'],
+        ['策略', '2 / 方向键选择'],
+        ['道具', '3 / 方向键选择'],
+        ['防御', '4'],
+        ['撤退', '5 / 策略菜单中选择'],
+      ];
+      helpLines.forEach((pair, i) => {
+        const y = 180 + i * 52;
+        txt(pair[0], 320, y, '#f0bd57', 28);
+        txt(pair[1], 680, y, '#cfd8e8', 28);
+      });
+      txt('任意键关闭', WIDTH / 2, 880, '#8a94a8', 26, 'center');
     }
   }
 
@@ -2029,6 +2078,18 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       const sel = G.titleCursor === i;
       txt((sel ? '▶ ' : '　') + s, WIDTH / 2, 560 + i * 90, sel ? '#ffe9a0' : '#8a94a8', 44, 'center');
     });
+    // 存档信息显示
+    if (hasSave) {
+      const sv = Save.load();
+      if (sv && sv.roster) {
+        win(WIDTH / 2 - 300, 760, 600, 120);
+        const firstActor = sv.actors && sv.actors[sv.roster[0]];
+        if (firstActor) {
+          txt('等级 ' + firstActor.lvl + '　' + (DB.cls[firstActor.cls] ? DB.cls[firstActor.cls].zi : ''), WIDTH / 2, 790, '#8a94a8', 24, 'center');
+        }
+        txt('队伍 ' + (sv.roster ? sv.roster.length : 0) + ' 人　金 ' + (sv.gold || 0), WIDTH / 2, 830, '#8a94a8', 22, 'center');
+      }
+    }
     txt('方向/WASD 移动　H 确认　J 取消　K 菜单　L 状态', WIDTH / 2, HEIGHT - 120, '#65768b', 26, 'center');
     txt('机制数值还原 FC 原作 · 原创程序绘制 · v0.2.0', WIDTH / 2, HEIGHT - 76, '#4a5568', 22, 'center');
   }
@@ -2044,6 +2105,20 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         txt((M.cursor === i ? '▶ ' : '　') + s, x + 50, y + 40 + i * rowH, M.cursor === i ? '#ffe9a0' : '#cfd8e8', 36);
       });
       if (M.msg) txt(M.msg, x, y + MenuSys.mainItems().length * rowH + 74, '#9ae0a0', 26);
+      // 右侧队伍信息
+      win(600, 160, 600, 400);
+      txt('队伍', 660, 190, '#f0bd57', 30);
+      G.roster.forEach((id, i) => {
+        const a = G.actors[id]; if (!a) return;
+        const py = 240 + i * 64;
+        const dead = a.hp <= 0;
+        ctx.globalAlpha = dead ? 0.4 : 1;
+        ctx.drawImage(actorSprite(id, 'down', 0), 0, 0, 64, 64, 660, py - 8, 48, 48);
+        ctx.globalAlpha = 1;
+        txt(actorName(id), 720, py, dead ? '#6a6470' : '#f6ecd0', 26);
+        txt('Lv' + a.lvl, 900, py, '#8a94a8', 22);
+        txt(a.hp + '/' + a.mhp, 1000, py, dead ? '#c05a5a' : '#9ae0a0', 22);
+      });
     } else if (M.screen === 'items') {
       win(120, 160, 900, 720);
       txt('道 具', 180, 190, '#f0bd57', 38);
@@ -2148,6 +2223,22 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
         txt(g.desc, 800, 268 + i * 72, '#9ab0c8', 26);
         txt(g.price + ' 金', 1560, 264 + i * 72, '#f6ecd0', 30, 'right');
       });
+      // 装备比较面板
+      const cur = goods[S.cursor];
+      if (cur && (cur.cat === 'w' || cur.cat === 'a') && G.roster.length) {
+        const firstActor = G.actors[G.roster[0]];
+        if (firstActor) {
+          win(200, 820, 1520, 120);
+          const curEquip = cur.cat === 'w' ? firstActor.eq[0] : firstActor.eq[1];
+          const curStat = cur.cat === 'w' ? (curEquip ? DB.weapon[curEquip].atk : 0) : (curEquip ? DB.armor[curEquip].def : 0);
+          const newStat = cur.cat === 'w' ? DB.weapon[cur.id].atk : DB.armor[cur.id].def;
+          const diff = newStat - curStat;
+          const diffCol = diff > 0 ? '#9ae0a0' : diff < 0 ? '#ff7a6a' : '#8a94a8';
+          txt(actorName(firstActor.id) + ' 当前装备', 260, 850, '#8a94a8', 24);
+          txt((cur.cat === 'w' ? '攻击' : '防御') + '：' + curStat + ' → ' + newStat, 700, 850, diffCol, 28);
+          txt((diff > 0 ? '▲' : diff < 0 ? '▼' : '＝') + Math.abs(diff), 1100, 850, diffCol, 32);
+        }
+      }
     } else {
       const list = sellableList();
       if (!list.length) txt('没有可以卖的东西。', 300, 280, '#8a94a8', 32);
@@ -2172,6 +2263,12 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     B = G.battle;
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
     if (!B) return;
+    // 遭遇闪光效果
+    if (B.flash && B.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${B.flash / 12})`;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      B.flash--;
+    }
     ctx.fillStyle = '#101828'; ctx.fillRect(0, 0, WIDTH, 560);
     ctx.fillStyle = '#18243a';
     for (let i = 0; i < 8; i++) {
@@ -2267,17 +2364,50 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
     }
 
     if (B.phase === 'result') {
-      win(360, 260, 1200, 480);
       if (B.result === 'victory') {
-        txt('—— 战 胜 ——', WIDTH / 2, 300, '#9ae0a0', 56, 'center');
-        (B.victoryMsg || []).forEach((l, i) => txt(l, WIDTH / 2, 400 + i * 76, '#f6ecd0', 32, 'center'));
-        txt('H 继续', WIDTH / 2, 664, '#8a94a8', 28, 'center');
+        win(200, 120, 1520, 840);
+        txt('—— 战 胜 ——', WIDTH / 2, 180, '#9ae0a0', 64, 'center');
+        // 奖励区
+        win(300, 240, 600, 200);
+        txt('战利品', 360, 270, '#f0bd57', 30);
+        (B.victoryMsg || []).slice(0, 1).forEach((l, i) => txt(l, 360, 320 + i * 46, '#f6ecd0', 28));
+        // 等级提升区
+        const levelUps = B._levelUps || [];
+        if (levelUps.length) {
+          win(960, 240, 660, 200);
+          txt('成长', 1020, 270, '#f0bd57', 30);
+          let ly = 320;
+          for (const lu of levelUps) {
+            txt(lu.name + ' → ' + lu.lvl + ' 级', 1020, ly, '#9ae0a0', 26);
+            if (lu.newSkills.length) txt('习得：' + lu.newSkills.join('、'), 1020, ly + 34, '#7ab8d8', 22);
+            ly += lu.newSkills.length ? 72 : 46;
+          }
+        }
+        // 缴获物品区
+        const drops = B._drops || [];
+        if (drops.length) {
+          win(300, 470, 1320, 120);
+          txt('缴获', 360, 500, '#f0bd57', 30);
+          txt(drops.join('、'), 480, 500, '#f6ecd0', 26);
+        }
+        // 队伍状态
+        win(300, 620, 1320, 200);
+        txt('队伍状态', 360, 650, '#f0bd57', 30);
+        B.party.forEach((m, i) => {
+          const a = m.actor;
+          const px = 360 + i * 260;
+          txt(actorName(m.id), px, 700, '#f6ecd0', 24);
+          txt('Lv' + a.lvl + '  HP' + a.hp + '/' + a.mhp, px, 734, '#9ae0a0', 20);
+        });
+        txt('H 继续', WIDTH / 2, 900, '#8a94a8', 30, 'center');
       } else if (B.result === 'defeat') {
-        txt('—— 败 北 ——', WIDTH / 2, 300, '#ff7a6a', 56, 'center');
-        txt('队伍溃散……', WIDTH / 2, 430, '#cfd8e8', 34, 'center');
+        win(360, 260, 1200, 480);
+        txt('—— 败 北 ——', WIDTH / 2, 300, '#ff7a6a', 64, 'center');
+        txt('队伍溃散……', WIDTH / 2, 430, '#cfd8e8', 36, 'center');
         txt('H 返回标题', WIDTH / 2, 664, '#8a94a8', 28, 'center');
       } else {
-        txt('撤退成功', WIDTH / 2, 320, '#f0bd57', 48, 'center');
+        win(360, 260, 1200, 480);
+        txt('撤退成功', WIDTH / 2, 320, '#f0bd57', 56, 'center');
         txt('H 继续', WIDTH / 2, 664, '#8a94a8', 28, 'center');
       }
     }
@@ -2396,7 +2526,8 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
   // ════════════════════════ 测试钩子 ════════════════════════
   window.TKGame = { G, DB, TK, MAPS, Input, step, newGame, startBattle, classStat, expToNext,
     physDamage, tacticDamage, tacticHeal, grantExp, Save, learnedSkills, Dialogue,
-    joinActor, addItem, removeItem, recalc, actorSprite, tileCanvas };
+    joinActor, addItem, removeItem, recalc, actorSprite, tileCanvas,
+    get statusView() { return _statusView; }, set statusView(v) { _statusView = v; } };
 
   render();
   try { requestAnimationFrame(loop); } catch (_) {}
