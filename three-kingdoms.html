@@ -1501,7 +1501,16 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
       case 'battle': stepBattle(action); break;
       case 'chapterend': stepChapterEnd(action); break;
       case 'gameover':
-        if (action === 'confirm') { G.state = 'title'; G.titleCursor = 0; }
+        if (Save.load()) {
+          if (action === 'up' || action === 'down') { G.titleCursor = (G.titleCursor + 1) % 2; SFX.move(); }
+          else if (action === 'confirm') {
+            SFX.confirm();
+            if (G.titleCursor === 0 && loadGame()) { G.state = 'world'; }
+            else { G.state = 'title'; G.titleCursor = 0; }
+          }
+        } else {
+          if (action === 'confirm') { G.state = 'title'; G.titleCursor = 0; }
+        }
         break;
     }
   }
@@ -2292,9 +2301,15 @@ TK.TROOPS = [[3,"盗贼, 盗贼, 盗贼",[1,2,3]],[4,"盗贼, 盗贼*2, 盗贼*2
 
   function renderGameOver() {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    txt('败 亡', WIDTH / 2, 400, '#c85a48', 110, 'center');
-    txt('乱世的风，掩过了旗帜倒下的声音。', WIDTH / 2, 580, '#8a94a8', 34, 'center');
-    txt('H 返回标题', WIDTH / 2, 700, '#65768b', 28, 'center');
+    txt('败 亡', WIDTH / 2, 360, '#c85a48', 110, 'center');
+    txt('乱世的风，掩过了旗帜倒下的声音。', WIDTH / 2, 500, '#8a94a8', 34, 'center');
+    const hasSave = !!Save.load();
+    if (hasSave) {
+      txt('▶ 读取存档', WIDTH / 2, 620, G.titleCursor === 0 ? '#ffe9a0' : '#8a94a8', 36, 'center');
+      txt('　返回标题', WIDTH / 2, 690, G.titleCursor === 1 ? '#ffe9a0' : '#65768b', 36, 'center');
+    } else {
+      txt('H 返回标题', WIDTH / 2, 640, '#65768b', 28, 'center');
+    }
   }
 
   function render() {
