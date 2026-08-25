@@ -17,6 +17,7 @@ const url = opt("--url", "http://localhost:8642/");
 const duration = Number(opt("--duration", "8000"));
 const step = Number(opt("--step", "0"));
 const outDir = opt("--out", "/tmp/frames");
+const keysOnce = args.includes("--keys-once");
 const keys = (opt("--keys", "") || "").split(",").filter(Boolean).map(k => {
   const [key, delay = "200", times = "1"] = k.split(":");
   return { key, delay: Number(delay), times: Number(times) };
@@ -87,18 +88,49 @@ await send("Network.enable");
 await send("Log.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
 
+const KEYMAP = { Enter: 13, Esc: 27, Escape: 27, " ": 32, Space: 32,  ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, Up: 38, Down: 40, Left: 37, Right: 39, Z: 90, X: 88, J: 74, K: 75, L: 76, H: 72, Shift: 16 };
 async function keyTap(key) {
-  const k = key === "Enter" ? "Enter" : key === "Space" ? " " : key;
-  const code = key === "Enter" ? "Enter" : key === "Space" ? "Space" : `Key${key.toUpperCase()}`;
-  await send("Input.dispatchKeyEvent", { type: "keyDown", key: k, code, windowsVirtualKeyCode: (k === " " ? 32 : k.toUpperCase().charCodeAt(0)), nativeVirtualKeyCode: (k === " " ? 32 : k.toUpperCase().charCodeAt(0)) });
-  await send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, windowsVirtualKeyCode: (k === " " ? 32 : k.toUpperCase().charCodeAt(0)), nativeVirtualKeyCode: (k === " " ? 32 : k.toUpperCase().charCodeAt(0)) });
+  const up = key.toUpperCase();
+  const vk = KEYMAP[key] ?? KEYMAP[up] ?? (key.length === 1 ? up.charCodeAt(0) : 13);
+  const k = key === "Space" ? " " : key === "Esc" || key === "Escape" ? "Escape" : key.length === 1 ? up : key;
+  const cdk = key.length === 1 ? `Key${up}` : key === "Space" ? "Space" : key;
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: k, code: cdk, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+  await sleep(80);
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code: cdk, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
 }
 
 await send("Page.navigate", { url });
+const preEvals = [];
+let midEvals = null, midAt = 0;
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--pre-eval-file") preEvals.push(...JSON.parse(fs.readFileSync(args[i + 1], "utf8")));
+  else if (args[i] === "--mid-eval-file") midEvals = JSON.parse(fs.readFileSync(args[i + 1], "utf8"));
+  else if (args[i] === "--mid-at") midAt = Number(args[i + 1]);
+}
+await sleep(2500);
+const preEvalResults = [];
+for (let attempt = 0; attempt < 24; attempt++) {
+  let done = true;
+  preEvalResults.length = 0;
+  for (const expr of preEvals) {
+    const r = await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true });
+    const v = r.result;
+    const val = v.exceptionDetails ? ("EXC:" + (v.exceptionDetails.exception?.description || v.exceptionDetails.text)) : JSON.stringify(v.result?.value ?? null);
+    preEvalResults.push({ expr: expr.slice(0, 60), result: val });
+    if (val.includes("EXC") || val.includes("noevent") || val.includes("false")) done = false;
+  }
+  if (done || attempt >= 23) break;
+  await sleep(700);
+}
 let timer = Date.now(), shotSeq = 0;
 const shots = [];
+let midDone = false;
 while (Date.now() - timer < duration) {
   const elapsed = Date.now() - timer;
+  if (midEvals && !midDone && elapsed >= midAt) {
+    midDone = true;
+    for (const expr of midEvals) { await send("Runtime.evaluate", { expression: expr, awaitPromise: true }); await sleep(400); }
+  }
   if (step > 0 && (elapsed >= (shotSeq + 1) * step || elapsed >= duration - 200)) {
     const cap = await send("Page.captureScreenshot", { format: "png" });
     const f = path.join(outDir, String(shotSeq).padStart(3, "0") + ".png");
@@ -109,6 +141,7 @@ while (Date.now() - timer < duration) {
     if (Date.now() - timer >= duration) break;
     for (let i = 0; i < times; i++) { await keyTap(key); await sleep(delay); }
   }
+  if (keysOnce) { while (Date.now() - timer < duration) await sleep(200); break; }
   await sleep(Math.min(300, Math.max(50, duration - (Date.now() - timer) - 100)));
 }
 if (step === 0) {
@@ -123,7 +156,7 @@ for (const expr of evals) {
   const v = r.result;
   evalResults.push({ expr, result: v.exceptionDetails ? ("EXC: " + (v.exceptionDetails.exception?.description || v.exceptionDetails.text)) : JSON.stringify(v.result?.value ?? null) });
 }
-const summary = { shots, evalResults, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
+const summary = { shots, preEvalResults, midDone, evalResults, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
 console.log(JSON.stringify(summary, null, 1));
 chrome.kill();
 process.exit(0);
