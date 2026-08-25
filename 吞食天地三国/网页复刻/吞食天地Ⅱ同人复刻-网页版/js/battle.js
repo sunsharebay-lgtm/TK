@@ -56,8 +56,8 @@ class Scene_Battle {
     this.actorSprites = new Map();
     this._loadSprites();
     /* 窗口 */
-    this.helpWin = new Window_Base(T.SCREEN_W / 2 - 260, 8, 520, 60);
-    this.helpWin.fontSize = 24;
+    this.helpWin = new Window_Base(T.SCREEN_W / 2 - 150, 92, 300, 46);
+    this.helpWin.fontSize = 22;
     this.cmdWin = new Window_Selectable(T.SCREEN_W - 220, T.SCREEN_H - 200, 212, 192);
     this.cmdWin.fontSize = 24;
     this.statusWin = new Window_Base(8, T.SCREEN_H - 200, 560, 192);
@@ -70,6 +70,8 @@ class Scene_Battle {
     this.itemWin = new Window_Selectable(8, T.SCREEN_H - 380, 500, 270);
     this.itemWin.fontSize = 22;
     this.bgmBackupName = null;
+    this.roundLabel = null;
+    this.roundLabelY = 0;
   }
   async _loadSprites() {
     for (const en of this.troop.members) {
@@ -87,8 +89,7 @@ class Scene_Battle {
   /* ---- 坐标 ---- */
   actorPos(a, iOffset = 0) {
     const idx = this.partyMembers.indexOf(a);
-    const n = this.partyMembers.length;
-    const cx = 250, cy = T.SCREEN_H / 2 - 20;
+    const cx = 250, cy = 168;
     return { x: cx - ((idx % 3)) * 70, y: cy + idx * 44 + iOffset };
   }
   enemyScreenPos(e) {
@@ -128,6 +129,8 @@ class Scene_Battle {
     this.phase = "party-cmd";
     this.currentActor = this.partyMembers.find(a => !a.isDead());
     this.cmdIndex = 0;
+    this.roundLabel = { text: `第 ${this.troop.turnCount + 1} 回合` };
+    this.roundLabelY = T.SCREEN_H / 2 + 88;
     this.say(`第 ${this.troop.turnCount + 1} 回合`);
   }
 
@@ -631,6 +634,7 @@ class Scene_Battle {
         lyy += 30;
       }
     }
+    this.drawRoundLabel(ctx);
     if (this.phase === "victory") {
       this.helpWin.draw(ctx);
       this.helpWin.drawText(ctx, "战 斗 胜 利", this.helpWin.innerX, this.helpWin.innerY + 10, this.helpWin.innerW, "center");
@@ -641,6 +645,18 @@ class Scene_Battle {
     return all.filter(([nm, st]) =>
       nm === "攻击" || nm === "防御" || nm === "道具" ||
       actor.usableSkills(st).length > 0);
+  }
+  drawRoundLabel(ctx) {
+    if (!this.roundLabel) return;
+    ctx.save();
+    ctx.font = T.fontStr(26, true);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillText(this.roundLabel.text, T.SCREEN_W / 2 + 2, this.roundLabelY + 2);
+    ctx.fillStyle = "#ffd24d";
+    ctx.fillText(this.roundLabel.text, T.SCREEN_W / 2, this.roundLabelY);
+    ctx.restore();
   }
 }
 function drawActorRowCompact(win, ctx, a, y, highlight) {
