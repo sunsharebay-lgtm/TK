@@ -251,11 +251,10 @@ class Scene_Equip {
   }
   currentSlot() { return this.slots[this.slotWin.index]; }
   rebuildSlots() {
+    /* G3: 显示全部 8 个槽位（武器/盾/头/身/坐骑/副将/饰品/饰品2），
+       否则空槽位永远无法装备第一件坐骑/副将/饰品 */
     this.slots = [];
-    for (let i = 1; i < this.slotNames.length; i++) {
-      if (i === 1 || this.actor.equipAt(i)) this.slots.push(i);
-    }
-    if (!this.slots.includes(1)) this.slots.unshift(1);
+    for (let i = 1; i < this.slotNames.length; i++) this.slots.push(i);
     this.slotWin.itemMax = this.slots.length;
     this.slotWin.index = 0;
   }
