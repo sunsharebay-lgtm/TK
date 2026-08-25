@@ -467,7 +467,9 @@ class Scene_Battle {
       }
       const varr = (dmg.variance || 0) / 100;
       v = Math.round(v * (1 - varr + Math.random() * varr * 2));
-      v = Math.max(v > 0 ? 1 : 0, Math.round(v));
+      /* G5: 伤害下限——物理/谋略伤害至少 1（原版公式 max(1, atk*4-def*2)），
+         否则 Lv1 队伍打高防敌人 0 伤害死循环 */
+      v = (dmg.type === 1 || dmg.type === 2) ? Math.max(1, v) : Math.max(0, v);
       /* 防御减伤 */
       if (target._guarding) v = Math.floor(v / 2);
       if (dmg.type === 1) {
