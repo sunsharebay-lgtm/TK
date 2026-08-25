@@ -29,16 +29,41 @@ T.DataManager = {
     commonevents: "$dataCommonEvents", system: "$dataSystem",
     mapinfos: "$dataMapInfos",
   },
+  /* G2b: MZ 标准 note 元数据提取（<Tag> / <Tag:value> → meta），缩地计等脚本依赖 $dataMap.meta */
+  extractMetadata(data) {
+    if (!data || !data.note) return data && (data.meta || (data.meta = {}));
+    const meta = data.meta || (data.meta = {});
+    const re = /<([^>]+)>/g;
+    let m;
+    while ((m = re.exec(data.note))) {
+      const text = m[1].trim();
+      const colon = text.indexOf(":");
+      const key = colon >= 0 ? text.slice(0, colon).trim() : text;
+      let val = colon >= 0 ? text.slice(colon + 1).trim() : true;
+      if (key) {
+        if (val === true || val === "true") meta[key] = true;
+        else if (val === "false") meta[key] = false;
+        else { const n = Number(val); meta[key] = Number.isNaN(n) ? val : n; }
+      }
+    }
+    return meta;
+  },
+  extractMetadataAll(list) {
+    if (!Array.isArray(list)) return;
+    for (const it of list) if (it) this.extractMetadata(it);
+  },
   async loadAll(onStep) {
     for (let i = 0; i < this.FILES.length; i++) {
       const f = this.FILES[i];
       T[this.KEYS[f]] = await jget(f + ".json");
+      this.extractMetadataAll(T[this.KEYS[f]]);
       if (onStep) onStep(i + 1, this.FILES.length, f);
     }
     T.MAX_BATTLE_MEMBERS = 5;   // 敌群最多5人，我方同5人
   },
   async loadMapData(mapId) {
     T.$dataMap = await jget("map" + String(mapId).padStart(3, "0") + ".json");
+    this.extractMetadata(T.$dataMap);
   },
 };
 

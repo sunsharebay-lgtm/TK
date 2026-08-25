@@ -322,6 +322,7 @@ class Scene_Battle {
         else this.doEnemyAction(b);
         if (this.animQueue.length) { const fn = this.animQueue.shift(); fn(); }
         if (this.phase === "anim") this.phase = "action";
+        if (this._EscapeGuard) { this._EscapeGuard = false; this.phase = "escaped"; this.phaseTimer = 45; return; }
         if (this.actionVisual && this.actionVisual.target) {
           const t = this.actionVisual.target;
           const pos = t.isActor ? this.actorPos(t) : this.enemyScreenPos(t);
@@ -543,7 +544,9 @@ class Scene_Battle {
           }
           case 355: this.evalCommonScript(c.parameters[0]); break;
           case 101: case 401: case 405: {
-            const txt = String(c.parameters[4] || "").replace(/%1/g, user ? user.name : "");
+            const p = c.parameters || [];
+            const raw = c.code === 101 ? p[4] : p[0];
+            const txt = String(raw || "").replace(/%1/g, user ? user.name : "");
             if (txt) this.say(txt);
             break;
           }
@@ -553,12 +556,11 @@ class Scene_Battle {
           case 201: {
             const t = c.parameters;
             T._pendingBattleTransfer = { mapId: t[0], x: t[1], y: t[2], dir: t[3] != null ? t[3] : 2 };
-            this.phase = "escaped";
-            this.phaseTimer = Math.min(this.phaseTimer || 60, 50);
+            this._EscapeGuard = true;
             return;
           }
         }
-        if (this.phase === "escaped") return;
+        if (this._EscapeGuard) return;
       }
       if (fr.i >= list.length && stack.length) stack.pop();
     }
@@ -588,6 +590,7 @@ class Scene_Battle {
   }
 
   afterAction() {
+    if (this._EscapeGuard) { this._EscapeGuard = false; this.phase = "escaped"; this.phaseTimer = 50; return; }
     if (this.phase !== "anim") return;
     if ($gameParty.isAllDead()) { this.phase = "defeat"; this.phaseTimer = 120; return; }
     if (this.troop.isAllDead()) { this.processVictory(); return; }
