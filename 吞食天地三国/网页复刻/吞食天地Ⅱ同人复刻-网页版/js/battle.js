@@ -145,7 +145,7 @@ class Scene_Battle {
     const a = this.currentActor;
     if (!a || a.isDead()) { this.nextActorOrResolve(); return; }
     if (this.cmds == null || this._cmdsFor !== a) {
-      this.cmds = ["攻击", "计策", "兵法", "阵型", "奥义", "防御", "道具", "总攻", "情报", "逃跑"];
+      this.cmds = ["攻击", "计策", "兵法", "阵型", "歌唱", "奥义", "防御", "道具", "总攻", "情报", "逃跑"]; /* G1: 补歌唱战斗指令（skillTypes 含歌唱45技） */
       this._cmdsFor = a;
       this.cmdIndex = 0;
     }
