@@ -81,6 +81,10 @@ class TilemapRenderer {
     this.sheets = imgs;
   }
   update() {
+    if (T._pendingBattleTransfer) {
+      const t = T._pendingBattleTransfer; T._pendingBattleTransfer = null;
+      T.SceneManager.gotoMap(t.mapId, t.x, t.y, [2,4,6,8].includes(t.dir) ? t.dir : 2);
+    }
     this._tick++;
     if (this._tick % 20 === 0) this.animationFrame++;
   }
@@ -367,8 +371,9 @@ class Scene_Map {
     const justMoved = p._prevX !== undefined && (p._prevX !== p.x || p._prevY !== p.y);
     const targets = [];
     if (abBtn) {
-      /* 先站立的格子，再面前一格；隔柜台对话（店铺老板/客栈）需要能触发面前两格 */
-      targets.push([p.x, p.y], [p.x + fx, p.y + fy], [p.x + fx * 2, p.y + fy * 2]);
+      /* 原版确认键优先触发“面前”的事件（宝箱/店主）；站立格用于隐藏光点；
+         面前两格仅保留给跨柜台 NPC，不用于宝箱/光点，避免隔一格误开旁边的宝箱 */
+      targets.push([p.x + fx, p.y + fy], [p.x, p.y]);
     } else if (justMoved) {
       targets.push([p.x, p.y]);
     }
@@ -379,6 +384,16 @@ class Scene_Map {
         const trig = ev.page.trigger;
         if (trig === 0 && abBtn && !p.isMoving()) { ev.start(); return; }
         if (trig === 1 && p.pos(tx, ty)) { ev.start(); return; }
+      }
+    }
+    if (abBtn && !p.isMoving()) {
+      /* 跨柜台：仅对店主/掌柜这类事件允许面前两格触发 */
+      const far = [p.x + fx * 2, p.y + fy * 2];
+      for (const ev of T.$gameMap.events) {
+        if (ev._erased || !ev.page || ev.starting || !ev.pos(...far)) continue;
+        const img = ev.imageInfo ? ev.imageInfo().name : "";
+        if (img.includes("$baoxiang") || img.includes("$guangdian")) continue;
+        if (ev.page.trigger === 0) { ev.start(); return; }
       }
     }
     if (abBtn && !p.isMoving()) {

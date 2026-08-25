@@ -58,8 +58,8 @@ class Scene_Battle {
     /* 窗口 */
     this.helpWin = new Window_Base(T.SCREEN_W / 2 - 150, 92, 300, 46);
     this.helpWin.fontSize = 22;
-    this.cmdWin = new Window_Selectable(T.SCREEN_W - 220, T.SCREEN_H - 200, 212, 192);
-    this.cmdWin.fontSize = 24;
+    this.cmdWin = new Window_Selectable(T.SCREEN_W - 328, T.SCREEN_H - 200, 320, 192);
+    this.cmdWin.fontSize = 22;
     this.statusWin = new Window_Base(8, T.SCREEN_H - 200, 560, 192);
     this.statusWin.fontSize = 22;
     this.logWin = new Window_Base(8, T.SCREEN_H / 2 - 120, 440, 150);
@@ -74,6 +74,9 @@ class Scene_Battle {
     this.roundLabelY = 0;
     this.actionVisual = null;
     this._actionFxLeft = 0;
+    this.actionSeq = null;
+    this._actionAdvance = 0;
+    this.lastPopups = [];
   }
   async _loadSprites() {
     for (const en of this.troop.members) {
@@ -91,14 +94,17 @@ class Scene_Battle {
   /* ---- 坐标 ---- */
   actorPos(a, iOffset = 0) {
     const idx = this.partyMembers.indexOf(a);
-    const cx = 250, cy = 168;
-    return { x: cx - ((idx % 3)) * 70, y: cy + idx * 44 + iOffset };
+    return { x: 120, y: 84 + idx * 72 + iOffset };
   }
   enemyScreenPos(e) {
-    return { x: T.SCREEN_W - 240 + e.screenX, y: e.screenY };
+    const idx = this.troop.members.indexOf(e);
+    return { x: T.SCREEN_W - 220, y: 84 + idx * 72 };
   }
 
   update() {
+    if (this.lastPopups.length) {
+      this.lastPopups = this.lastPopups.filter(p => --p.t > 0);
+    }
     switch (this.phase) {
       case "intro":
         if (--this.phaseTimer <= 0) this.startRound();
@@ -110,6 +116,7 @@ class Scene_Battle {
       case "select-item": this.updateItemList(); break;
       case "select-target": this.updateTarget(); break;
       case "enemy-info": this.updateEnemyInfo(); break;
+      case "action": this.updateActionSeq(); break;
       case "resolve": this.resolveNext(); break;
       case "victory": case "defeat": case "escaped":
         if (--this.phaseTimer <= 0) this.finish();
@@ -290,10 +297,8 @@ class Scene_Battle {
       const b = this.turnOrder[this.actionIndex++];
       if (b.isDead() || !b.appearOk()) continue;
       this.subject = b;
-      if (b.isActor && b.isActor()) this.doActorAction(b);
-      else this.doEnemyAction(b);
-      if (this.animQueue.length || this.phase !== "resolve") { this._actionFxLeft = 14; return; }
-      this._actionFxLeft = 14;
+      this.actionSeq = { user: b, t: 0, applied: false };
+      this.phase = "action";
       return;
     }
     // 回合结束
@@ -302,6 +307,37 @@ class Scene_Battle {
     if ($gameParty.isAllDead()) { this.phase = "defeat"; this.phaseTimer = 90; return; }
     if (this.troop.isAllDead()) { this.processVictory(); return; }
     this.startRound();
+  }
+  updateActionSeq() {
+    const seq = this.actionSeq;
+    if (!seq) { this.phase = "resolve"; return; }
+    seq.t++;
+    const b = seq.user;
+    if (!seq.applied) {
+      this._actionAdvance = Math.min(1, seq.t / 10);
+      if (seq.t >= 10) {
+        seq.applied = true; seq.t = 0;
+        this.subject = b;
+        if (b.isActor && b.isActor()) this.doActorAction(b);
+        else this.doEnemyAction(b);
+        if (this.animQueue.length) { const fn = this.animQueue.shift(); fn(); }
+        if (this.phase === "anim") this.phase = "action";
+        if (this.actionVisual && this.actionVisual.target) {
+          const t = this.actionVisual.target;
+          const pos = t.isActor ? this.actorPos(t) : this.enemyScreenPos(t);
+          const dmg = (t.result && t.result.hpDamage) || 0;
+          this.lastPopups.push({ x: pos.x + 16, y: pos.y - 8, text: `-${dmg}`, t: 40 });
+        }
+        this._actionFxLeft = 8;
+      }
+    } else {
+      this._actionAdvance = Math.max(0, 1 - seq.t / 5);
+      if (seq.t >= 5) {
+        this.actionSeq = null;
+        this._actionAdvance = 0;
+        this.phase = "resolve";
+      }
+    }
   }
   doActorAction(a) {
     const act = a._actions[0];
@@ -473,8 +509,71 @@ class Scene_Battle {
       case 31: target.addBuff(eff.dataId, eff.value2 || 3, false); break;
       case 32: target.addBuff(eff.dataId, eff.value2 || 3, true); break;
       case 42: break;   // 成长简化
-      case 44: { const ce = T.$dataCommonEvents[eff.dataId]; if (ce) T.$gameTemp.commonEventQueue.push(eff.dataId); break; }
+      case 44: { this.runBattleCommonEvent(eff.dataId, user); break; }
     }
+  }
+  /* G2: 战斗内公共事件执行器（阵型切换/缩地计等 effect 44 链路）
+     支持 111 脚本条件分支 / 117 调用公共事件 / 355 脚本 / 101+401+405 消息 / 121 开关 / 122 变量 / 249 音效 / 201 传送(撤离) */
+  runBattleCommonEvent(ceId, user) {
+    const ce = T.$dataCommonEvents[ceId];
+    if (!ce) return;
+    const prevFormation = T.$gameParty._formation;
+    const stack = [{ list: ce.list || [], i: 0, skipping: false }];
+    outer: while (stack.length) {
+      const fr = stack[stack.length - 1];
+      const list = fr.list;
+      while (fr.i < list.length) {
+        const c = list[fr.i++];
+        if (!c) continue;
+        if (fr.skipping) { if (c.code === 411 || c.code === 412) fr.skipping = false; continue; }
+        switch (c.code) {
+          case 0:
+            stack.pop(); continue outer;
+          case 111: {
+            const p = c.parameters || [];
+            const script = p[0] === 12 ? (p[1] || "") : null;
+            const truthy = script ? !!this.evalCommonExpr(script) : true;
+            if (!truthy) fr.skipping = true;
+            break;
+          }
+          case 117: {
+            const sub = T.$dataCommonEvents[c.parameters[0]];
+            if (sub) stack.push({ list: sub.list || [], i: 0, skipping: false });
+            break;
+          }
+          case 355: this.evalCommonScript(c.parameters[0]); break;
+          case 101: case 401: case 405: {
+            const txt = String(c.parameters[4] || "").replace(/%1/g, user ? user.name : "");
+            if (txt) this.say(txt);
+            break;
+          }
+          case 121: T.$gameSwitches.setValue(c.parameters[0], c.parameters[1] !== 0); break;
+          case 122: T.$gameVariables.setValue(c.parameters[0], c.parameters[1]); break;
+          case 249: T.AudioManager.playSe({ name: c.parameters[0], volume: c.parameters[1] != null ? c.parameters[1] : 90, pitch: c.parameters[2] != null ? c.parameters[2] : 100 }); break;
+          case 201: {
+            const t = c.parameters;
+            T._pendingBattleTransfer = { mapId: t[0], x: t[1], y: t[2], dir: t[3] != null ? t[3] : 2 };
+            this.phase = "escaped";
+            this.phaseTimer = Math.min(this.phaseTimer || 60, 50);
+            return;
+          }
+        }
+        if (this.phase === "escaped") return;
+      }
+      if (fr.i >= list.length && stack.length) stack.pop();
+    }
+    if (T.$gameParty._formation !== prevFormation && T.$gameParty.formationName()) {
+      this.say(`摆出了${T.$gameParty.formationName()}！`);
+    }
+  }
+  evalCommonScript(script) {
+    if (!script) return;
+    try { new Function(`with(T){${script}}`).call(T.scriptContext || {}); }
+    catch (e) { console.warn("battle-common-script:", script, e.message); }
+  }
+  evalCommonExpr(script) {
+    try { return new Function(`with(T){return (${script});}`).call(T.scriptContext || {}); }
+    catch (e) { console.warn("battle-common-expr:", script, e.message); return false; }
   }
   critChance(user, target) {
     const c = 0.03 + user.xparam(2) - target.xparam(3);
@@ -554,7 +653,7 @@ class Scene_Battle {
       if (en.hidden || en.isDead()) continue;
       const pos = this.enemyScreenPos(en);
       const img = this.enemySprites.get(en);
-      const advX = this.actionVisual && this.actionVisual.user === en && this._actionFxLeft > 0 ? -22 : 0;
+      const advX = -(22 * (this._actionAdvance || 0));
       const hit = !!(this.actionVisual && this.actionVisual.target === en && this._actionFxLeft > 0);
       if (img instanceof HTMLImageElement) {
         const isCharSheet = img.width / img.height < 1.6 && en.noteTags.svBattler;
@@ -595,7 +694,7 @@ class Scene_Battle {
       const pos = this.actorPos(a);
       const img = this.actorSprites.get(a);
       const dead = a.isDead();
-      const advX = this.actionVisual && this.actionVisual.user === a && this._actionFxLeft > 0 ? 24 : 0;
+      const advX = 22 * (this._actionAdvance || 0);
       const hit = !!(this.actionVisual && this.actionVisual.target === a && this._actionFxLeft > 0);
       if (img instanceof HTMLImageElement) {
         const fw = img.width / 3, fh = img.height / 4;
@@ -635,15 +734,16 @@ class Scene_Battle {
     if (this.phase === "actor-cmd") {
       this.cmdWin.draw(ctx);
       const avail = this.visibleCmds(this.currentActor);
-      let cy = this.cmdWin.innerY + 6;
-      for (const [nm] of avail) {
-        this.cmdWin.drawText(ctx, nm, this.cmdWin.innerX + 16, cy);
-        cy += 34;
+      const rows = Math.max(1, Math.ceil(avail.length / 2));
+      for (let i = 0; i < avail.length; i++) {
+        const [nm] = avail[i];
+        const col = Math.floor(i / rows), row = i % rows;
+        this.cmdWin.drawText(ctx, nm, this.cmdWin.innerX + 12 + col * 155, this.cmdWin.innerY + 6 + row * 31);
       }
-      const ci = this.cmdIndex % avail.length;
+      const col = Math.floor(this.cmdIndex / rows), row = this.cmdIndex % rows;
       ctx.save();
       ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2;
-      ctx.strokeRect(this.cmdWin.x + 4, this.cmdWin.y + 10 + ci * 34, this.cmdWin.w - 8, 30);
+      ctx.strokeRect(this.cmdWin.x + 8 + col * 155, this.cmdWin.y + 12 + row * 31, 148, 28);
       ctx.restore();
       this.helpWin.draw(ctx);
       this.helpWin.drawText(ctx, `${this.currentActor.name} 的行动`, this.helpWin.innerX, this.helpWin.innerY + 10);
@@ -685,6 +785,7 @@ class Scene_Battle {
     }
     this.drawEnemyInfo(ctx);
     this.drawRoundLabel(ctx);
+    this.drawPopups(ctx);
     if (this.phase === "victory") {
       this.helpWin.draw(ctx);
       this.helpWin.drawText(ctx, "战 斗 胜 利", this.helpWin.innerX, this.helpWin.innerY + 10, this.helpWin.innerW, "center");
@@ -736,6 +837,21 @@ class Scene_Battle {
     ctx.fillText(this.roundLabel.text, T.SCREEN_W / 2 + 2, this.roundLabelY + 2);
     ctx.fillStyle = "#ffd24d";
     ctx.fillText(this.roundLabel.text, T.SCREEN_W / 2, this.roundLabelY);
+    ctx.restore();
+  }
+  drawPopups(ctx) {
+    if (!this.lastPopups.length) return;
+    ctx.save();
+    ctx.font = T.fontStr(22, true);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (const p of this.lastPopups) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.t / 40));
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillText(p.text, p.x + 1, p.y + 1 - (40 - p.t) * 0.25);
+      ctx.fillStyle = "#ff7070";
+      ctx.fillText(p.text, p.x, p.y - (40 - p.t) * 0.25);
+    }
     ctx.restore();
   }
 }

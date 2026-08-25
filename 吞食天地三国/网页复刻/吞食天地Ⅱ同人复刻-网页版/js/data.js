@@ -211,10 +211,12 @@ class Game_BattlerBase {
     const plus = this.traitsSum(TRAIT.PARAM, i);
     const bonus = (this._paramBonus && this._paramBonus[i]) || 0;
     const equip = this.equipParam(i);
+    const form = this.formationBonus(i);
     /* 特性增量（如 0.95/0.05）可能带小数，最终属性一律取整 */
-    return T.clamp(Math.round(Math.round(base * rate) + plus + bonus + equip), i === 0 ? 1 : 0, this.paramMax(i));
+    return T.clamp(Math.round(Math.round(base * rate) + plus + bonus + equip + form), i === 0 ? 1 : 0, this.paramMax(i));
   }
   equipParam(i) { return 0; }
+  formationBonus(i) { return 0; }
   get mhp() { return this.param(0); } get mmp() { return this.param(1); }
   get atk() { return this.param(2); } get def() { return this.param(3); }
   get mat() { return this.param(4); } get mdf() { return this.param(5); }
@@ -525,7 +527,11 @@ class Game_Enemy extends Game_Battler {
 
 /* ---------------- 队伍 ---------------- */
 class Game_Party {
-  constructor() { this.initAllItems(); }
+  constructor() { this.initAllItems(); this._formation = -1; }
+  /* G2: 阵型 */
+  setFormation(n) { this._formation = T.clamp(n, 0, T.FORMATIONS.length - 1); return this._formation; }
+  formation() { return this._formation < 0 ? null : T.FORMATIONS[this._formation]; }
+  formationName() { const f = this.formation(); return f ? f.name : ""; }
   initAllItems() {
     this._gold = 0;
     this._items = {}; this._weapons = {}; this._armors = {};
@@ -576,7 +582,23 @@ class Game_Party {
 
 /* ---------------- 全局状态 ---------------- */
 T.resetGameState = function () {
-  T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
+  /* G2: 阵型系统（FC 吞食天地2 机制：全队持续参数加成）
+   数值为暂定初版（攻击/防御/智力/抗智/速度增减），待对照原版数值校准 */
+T.FORMATIONS = [
+  { name: "散开阵",  atk: 0,  def: 0,  mat: 0,  mdf: 0,  agi: 20 },
+  { name: "鹤翼阵",  atk: 15, def: 15, mat: 0,  mdf: 0,  agi: 0 },
+  { name: "冲方阵",  atk: 30, def: -15, mat: 0,  mdf: 0,  agi: 10 },
+  { name: "白马阵",  atk: 10, def: 10, mat: 10, mdf: 10, agi: 10 },
+  { name: "鱼鳞阵",  atk: 20, def: 20, mat: 0,  mdf: 0,  agi: -10 },
+  { name: "锋箭阵",  atk: 25, def: 0,  mat: 0,  mdf: 0,  agi: -15 },
+  { name: "一字阵",  atk: 10, def: 10, mat: 0,  mdf: 20, agi: -25 },
+  { name: "两仪阵",  atk: 0,  def: 0,  mat: 25, mdf: 25, agi: 0 },
+  { name: "雁行阵",  atk: -10, def: 10, mat: 0,  mdf: 0,  agi: 30 },
+  { name: "背水阵",  atk: 40, def: -40, mat: 0,  mdf: -20, agi: 0 },
+  { name: "掎角阵",  atk: -15, def: 25, mat: 15, mdf: 15, agi: 0 },
+  { name: "八卦阵",  atk: 0,  def: 35, mat: 20, mdf: 35, agi: -20 },
+];
+T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
   T.$gameSystem = { saveCount: 0, framesOnSave: 0, bgmOnSave: null, battleCount: 0, winCount: 0 };
   T.$gameSwitches = new Game_Switches();
   T.$gameVariables = new Game_Variables();
