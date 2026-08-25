@@ -473,6 +473,15 @@ class Game_Interpreter {
       default: return params[base];
     }
   }
+  /* 地图事件获得道具的通用反馈：事件本身没有提示文字时，补一条“获得”消息 */
+  gainItemWithFeedback(item, n) {
+    if (!item || n <= 0) return;
+    $gameParty.gainItem(item, n);
+    if (T.$gameMessage.texts.length === 0) {
+      T.$gameMessage.add(`获得〔${item.name}〕！`);
+      T.AudioManager.playSe({ name: "GainItem", volume: 80 });
+    }
+  }
   command(cmd) {
     const c = cmd.code, p = cmd.parameters;
     const M = T.$gameMessage;
@@ -590,19 +599,19 @@ class Game_Interpreter {
       case 126: {
         const n = this.valueOperand(p[2], p, 3);
         const it = T.$dataItems[p[0]];
-        p[1] === 0 ? $gameParty.gainItem(it, n) : $gameParty.loseItem(it, n);
+        p[1] === 0 ? this.gainItemWithFeedback(it, n) : $gameParty.loseItem(it, n);
         return true;
       }
       case 127: {
         const n = this.valueOperand(p[2], p, 3);
         const it = T.$dataWeapons[p[0]];
-        p[1] === 0 ? $gameParty.gainItem(it, n) : $gameParty.loseItem(it, n);
+        p[1] === 0 ? this.gainItemWithFeedback(it, n) : $gameParty.loseItem(it, n);
         return true;
       }
       case 128: {
         const n = this.valueOperand(p[2], p, 3);
         const it = T.$dataArmors[p[0]];
-        p[1] === 0 ? $gameParty.gainItem(it, n) : $gameParty.loseItem(it, n);
+        p[1] === 0 ? this.gainItemWithFeedback(it, n) : $gameParty.loseItem(it, n);
         return true;
       }
       case 129: { // 加入/离开队伍

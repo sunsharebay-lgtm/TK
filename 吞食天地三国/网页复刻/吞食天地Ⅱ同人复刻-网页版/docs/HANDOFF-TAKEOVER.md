@@ -47,6 +47,14 @@
 - Damage1→Damage2、Escape1→Run、Shop→Shop1、Recovery→Recovery
 - Equip1→Equip1、Cancel→Tstd_Cancel、Load1→Tstd_Save、Text→Tstd_Move
 
+### 隐藏物品“调查”反馈（`js/interp.js`）
+城镇里 `$guangdian` 光点（隐藏物品，如徐州城 EV023/EV024）原本站上去按确认键能拾取，但**没有任何提示**，玩家会误以为没有调查功能。
+现在事件解释器执行获得道具指令（126/127/128）时，若该事件没有自带提示文字，自动补一条「获得〔物品名〕！」消息并播放 `GainItem` 音效，让调查/开箱有明确反馈。
+
+### 隔柜台与店主对话（`js/mapscene.js`）
+店铺老板/客栈掌柜等事件通常隔柜台两格（如道具店店主在 `x=13,y=9`，玩家只能走到 `y=11`），原确认键只检查面前一格，导致无法对话。
+`Scene_Map.checkTriggers()` 现在确认键依次检查：站立格 → 面前一格 → 面前两格（仅 `trigger=0` 的按钮触发事件），已实测道具店可正常开启对话与商店。
+
 ## 五、引擎已实现的能力（代码审查）
 
 - 完整数据模型：Game_Actor/Enemy/Party、职业成长、装备加成、特性/状态/增益减益、伤害公式沙箱。

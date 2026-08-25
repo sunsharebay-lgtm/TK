@@ -366,7 +366,8 @@ class Scene_Map {
     const justMoved = p._prevX !== undefined && (p._prevX !== p.x || p._prevY !== p.y);
     const targets = [];
     if (abBtn) {
-      targets.push([p.x + fx, p.y + fy], [p.x, p.y]);
+      /* 先站立的格子，再面前一格；隔柜台对话（店铺老板/客栈）需要能触发面前两格 */
+      targets.push([p.x, p.y], [p.x + fx, p.y + fy], [p.x + fx * 2, p.y + fy * 2]);
     } else if (justMoved) {
       targets.push([p.x, p.y]);
     }
