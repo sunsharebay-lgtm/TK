@@ -211,7 +211,8 @@ class Game_BattlerBase {
     const plus = this.traitsSum(TRAIT.PARAM, i);
     const bonus = (this._paramBonus && this._paramBonus[i]) || 0;
     const equip = this.equipParam(i);
-    return T.clamp(Math.round(base * rate) + plus + bonus + equip, i === 0 ? 1 : 0, this.paramMax(i));
+    /* 特性增量（如 0.95/0.05）可能带小数，最终属性一律取整 */
+    return T.clamp(Math.round(Math.round(base * rate) + plus + bonus + equip), i === 0 ? 1 : 0, this.paramMax(i));
   }
   equipParam(i) { return 0; }
   get mhp() { return this.param(0); } get mmp() { return this.param(1); }

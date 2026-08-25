@@ -23,7 +23,7 @@
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
       "version": "v0.2.0",
-      "status": "开发版"
+      "status": "稳定版"
     }
   ]
 }

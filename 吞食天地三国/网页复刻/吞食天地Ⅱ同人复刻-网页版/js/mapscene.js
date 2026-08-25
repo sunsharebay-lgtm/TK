@@ -417,6 +417,8 @@ class Scene_Map {
       .filter(([id]) => { const ev = T.$gameMap.event(id); return ev && !ev._erased && ev.priorityType() === 0; })
       .map(([, sp]) => sp);
     for (const sp of below) sp.draw(ctx, cam.x, cam.y);
+    /* layer2 通常是桥面/地面装饰，应画在角色下方，避免桥覆盖队伍 */
+    this.tilemap.drawLayer(ctx, 2, cam.x, cam.y);
     /* 精灵按 y 排序绘制 */
     const list = [...this.sprites.entries()]
       .filter(([id]) => { const ev = T.$gameMap.event(id); return ev && !ev._erased && ev.priorityType() === 1; })
@@ -424,7 +426,6 @@ class Scene_Map {
     if (!$gamePlayer._transparent) list.push({ ev: T.$gamePlayer, sp: this.playerSprite });
     list.sort((a, b) => a.ev._realY - b.ev._realY);
     for (const it of list) it.sp.draw(ctx, cam.x, cam.y);
-    this.tilemap.drawLayer(ctx, 2, cam.x, cam.y);
     this.tilemap.drawLayer(ctx, 3, cam.x, cam.y);
     /* 高层事件（priorityType 2）再画一层保证覆盖 */
     const upper = [...this.sprites.entries()]
