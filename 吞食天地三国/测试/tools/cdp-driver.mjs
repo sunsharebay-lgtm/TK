@@ -101,7 +101,7 @@ async function keyTap(key) {
 
 await send("Page.navigate", { url });
 const preEvals = [];
-let midEvals = null, midAt = 0;
+let midEvals = null, midAt = 0, midEvalResults = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--pre-eval-file") preEvals.push(...JSON.parse(fs.readFileSync(args[i + 1], "utf8")));
   else if (args[i] === "--mid-eval-file") midEvals = JSON.parse(fs.readFileSync(args[i + 1], "utf8"));
@@ -129,7 +129,13 @@ while (Date.now() - timer < duration) {
   const elapsed = Date.now() - timer;
   if (midEvals && !midDone && elapsed >= midAt) {
     midDone = true;
-    for (const expr of midEvals) { await send("Runtime.evaluate", { expression: expr, awaitPromise: true }); await sleep(400); }
+    midEvalResults = [];
+    for (const expr of midEvals) {
+      const r = await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true });
+      const v = r.result;
+      midEvalResults.push({ expr: expr.slice(0, 70), result: v.exceptionDetails ? ("EXC:" + (v.exceptionDetails.exception?.description || v.exceptionDetails.text)) : JSON.stringify(v.result?.value ?? null) });
+      await sleep(400);
+    }
   }
   if (step > 0 && (elapsed >= (shotSeq + 1) * step || elapsed >= duration - 200)) {
     const cap = await send("Page.captureScreenshot", { format: "png" });
@@ -156,7 +162,7 @@ for (const expr of evals) {
   const v = r.result;
   evalResults.push({ expr, result: v.exceptionDetails ? ("EXC: " + (v.exceptionDetails.exception?.description || v.exceptionDetails.text)) : JSON.stringify(v.result?.value ?? null) });
 }
-const summary = { shots, preEvalResults, midDone, evalResults, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
+const summary = { shots, preEvalResults, midDone, midEvalResults, evalResults, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
 console.log(JSON.stringify(summary, null, 1));
 chrome.kill();
 process.exit(0);
