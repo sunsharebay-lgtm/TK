@@ -15,32 +15,32 @@ assert.match(tank.version, /^v\d+\.\d+\.\d+$/, '坦克大战版本必须使用�
 assert.equal(tank.status, '稳定版', '坦克大战应标记为稳定版');
 const threeKingdoms = catalog.games.find((game) => game.id === 'three-kingdoms');
 assert.ok(threeKingdoms, '游戏目录必须包含三国 RPG');
-assert.equal(threeKingdoms.version, 'v0.1.0', '三国 RPG 第一稳定切片必须为 v0.1.0');
-assert.equal(threeKingdoms.status, '稳定版', '三国 RPG v0.1.0 应标记为稳定版');
+assert.equal(threeKingdoms.version, 'v0.2.0', '三国 RPG 当前稳定切片必须为 v0.2.0');
+assert.equal(threeKingdoms.status, '稳定版', '三国 RPG v0.2.0 应标记为稳定版');
 
 const template = JSON.parse(read('game-catalog.template.json'));
 const parsedTags = parseStableTags([
   'game/tank-battle/v1.6.1',
   'game/tank-battle/v1.6.2',
-  'game/three-kingdoms/v0.1.0',
+  'game/three-kingdoms/v0.2.0',
   'v9.9.9',
   'release/foo',
 ].join('\n'));
 assert.equal(parsedTags['game/tank-battle'], 'v1.6.2', '同一游戏应取最高稳定语义版本标签');
-assert.equal(parsedTags['game/three-kingdoms'], 'v0.1.0', '不同游戏 namespace 应独立解析');
+assert.equal(parsedTags['game/three-kingdoms'], 'v0.2.0', '不同游戏 namespace 应独立解析');
 assert.equal(parsedTags['v9.9.9'], undefined, '普通全局版本标签必须被忽略');
 assert.equal(parsedTags['release/foo'], undefined, '不匹配标签必须被忽略');
 
 const taggedCatalog = generateCatalog(template, [
   'game/tank-battle/v1.6.1',
   'game/tank-battle/v1.6.2',
-  'game/three-kingdoms/v0.1.0',
+  'game/three-kingdoms/v0.2.0',
   'v9.9.9',
   'release/foo',
 ].join('\n'));
 assert.equal(taggedCatalog.games[0].version, 'v1.6.2', '目录应使用坦克大战最高 namespace 标签');
 const taggedThreeKingdoms = taggedCatalog.games.find((game) => game.id === 'three-kingdoms');
-assert.equal(taggedThreeKingdoms.version, 'v0.1.0', '目录应解析三国 RPG namespace 稳定版本');
+assert.equal(taggedThreeKingdoms.version, 'v0.2.0', '目录应解析三国 RPG namespace 稳定版本');
 assert.equal(taggedThreeKingdoms.status, '稳定版', '存在三国 RPG namespace 标签时应标记为稳定版');
 
 const fallbackCatalog = generateCatalog(template, 'v9.9.9\nrelease/foo');
