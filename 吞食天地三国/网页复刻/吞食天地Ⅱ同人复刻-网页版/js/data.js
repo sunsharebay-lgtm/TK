@@ -216,7 +216,12 @@ class Game_BattlerBase {
     return T.clamp(Math.round(Math.round(base * rate) + plus + bonus + equip + form), i === 0 ? 1 : 0, this.paramMax(i));
   }
   equipParam(i) { return 0; }
-  formationBonus(i) { return 0; }
+  /* G2: 阵型参数加成（i=2攻击 3防御 4智力 5抗智 6速度），数值来自 T.FORMATIONS（暂定初版待校准） */
+  formationBonus(i) {
+    const f = T.$gameParty.formation();
+    if (!f) return 0;
+    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 0;
+  }
   get mhp() { return this.param(0); } get mmp() { return this.param(1); }
   get atk() { return this.param(2); } get def() { return this.param(3); }
   get mat() { return this.param(4); } get mdf() { return this.param(5); }
