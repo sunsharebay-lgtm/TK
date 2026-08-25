@@ -244,9 +244,11 @@ T.GameMain = {
       this.render();
       /* 输入采样放帧末：场景更新期间 _down=本帧按键、_prev=上帧按键，triggered() 才能检测到边沿 */
       T.Input.update();
-      setTimeout(step, 16);
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(step);
+      else setTimeout(step, 16);
     };
-    setTimeout(step, 16);
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(step);
+    else setTimeout(step, 16);
   },
   render() {
     const ctx = T.mainCtx;
