@@ -37,7 +37,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 const chrome = spawn(chromePath, [
   "--headless=new", "--disable-gpu", "--hide-scrollbars", "--mute-audio",
-  "--no-first-run", "--no-default-browser-check", "--disable-extensions",
+  "--no-first-run", "--no-default-browser-check", "--disable-extensions", "--disable-http-cache",
   "--window-size=1366,900",
   `--user-data-dir=${profile}`,
   "--remote-debugging-port=9333",
@@ -57,7 +57,7 @@ await new Promise((res, rej) => { sock.onopen = res; sock.onerror = rej; });
 
 let msgId = 0;
 const pending = new Map();
-const consoleLogs = [], exceptions = [], badResponses = [], failures = [];
+const consoleLogs = [], exceptions = [], badResponses = [], failures = [], jsResponses = [];
 sock.onmessage = ev => {
   const m = JSON.parse(ev.data);
   if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
@@ -72,6 +72,9 @@ sock.onmessage = ev => {
   if (m.method === "Network.responseReceived" && m.params.response.status >= 400) {
     badResponses.push({ status: m.params.response.status, url: m.params.response.url });
   }
+  if (m.method === "Network.responseReceived" && m.params.response.url.includes("menus.js")) {
+    jsResponses.push({ status: m.params.response.status, headers: m.params.response.headers, url: m.params.response.url });
+  }
   if (m.method === "Network.loadingFailed") {
     failures.push({ errorText: m.params.errorText, url: m.params.requestId });
   }
@@ -85,6 +88,7 @@ const send = (method, params = {}) => new Promise(res => {
 await send("Page.enable");
 await send("Runtime.enable");
 await send("Network.enable");
+await send("Network.setCacheDisabled", { cacheDisabled: true });
 await send("Log.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
 
@@ -162,7 +166,7 @@ for (const expr of evals) {
   const v = r.result;
   evalResults.push({ expr, result: v.exceptionDetails ? ("EXC: " + (v.exceptionDetails.exception?.description || v.exceptionDetails.text)) : JSON.stringify(v.result?.value ?? null) });
 }
-const summary = { shots, preEvalResults, midDone, midEvalResults, evalResults, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
+const summary = { shots, preEvalResults, midDone, midEvalResults, evalResults, jsResponses, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
 console.log(JSON.stringify(summary, null, 1));
 chrome.kill();
 process.exit(0);
