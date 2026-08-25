@@ -101,7 +101,8 @@ class TilemapRenderer {
     }
   }
   drawTile(ctx, id, dx, dy) {
-    if (id >= TILE_A1 && id < TILE_A5) this.drawAutotile(ctx, id, dx, dy);
+    /* A1-A4 自动图块范围 2048-8191；原判断用了 TILE_A5(1536) 导致 A 系列永远走普通图块 */
+    if (id >= TILE_A1 && id < 8192) this.drawAutotile(ctx, id, dx, dy);
     else this.drawNormal(ctx, id, dx, dy);
   }
   sheet(n) { return this.sheets[n] || null; }
