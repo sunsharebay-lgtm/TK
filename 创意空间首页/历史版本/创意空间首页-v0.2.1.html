@@ -672,8 +672,8 @@
       </div>
       <aside class="hero-readout" aria-label="游戏库状态">
         <span class="readout-label">当前可用游戏</span>
-        <strong class="readout-number">04</strong>
-        <span class="readout-note">4 个创意已上线，更多正在装载。</span>
+        <strong class="readout-number">03</strong>
+        <span class="readout-note">3 个创意已上线，更多正在装载。</span>
       </aside>
     </section>
 
@@ -708,17 +708,9 @@
           </div>
           <div class="card-action"><span>进入游戏 / PLAY NOW</span><span class="arrow" aria-hidden="true">↗</span></div>
         </a>
-        <a class="game-card" href="../超级像素兄弟/">
-          <div>
-            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 003 · <span class="game-version" data-game-version="super-pixel-brothers">v0.1.0 开发版</span></span></div>
-            <h3>超级像素兄弟</h3>
-            <p>经典横版跳跃冒险，4 大关卡、变身系统与隐藏道具，向经典平台跳跃游戏致敬。</p>
-          </div>
-          <div class="card-action"><span>开始冒险 / PLAY NOW</span><span class="arrow" aria-hidden="true">↗</span></div>
-        </a>
         <a class="game-card" href="https://sunsharebay-lgtm.github.io/idle-screen/" target="_blank" rel="noopener noreferrer">
           <div>
-            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 004 · 闲置屏幕 v0.4</span></div>
+            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 003 · 闲置屏幕 v0.4</span></div>
             <h3>墨屏小站<br>闲置屏幕</h3>
             <p>把闲置的 Kindle 墨水屏变成信息屏：翻页时钟、天气、番茄钟与阅读清单。</p>
           </div>
@@ -772,87 +764,27 @@
     </footer>
   </main>
   <script>
-    (async function syncGameCatalog() {
+    (async function syncGameVersions() {
       const cards = Array.from(document.querySelectorAll('.game-card'));
       const liveCount = cards.filter((card) => card.querySelector('.live')).length;
       const number = document.querySelector('.readout-number');
       const note = document.querySelector('.readout-note');
-      const setCount = (count) => {
-        if (number) number.textContent = String(count).padStart(2, '0');
-        if (note) note.textContent = `${count} 个创意已上线，更多正在装载。`;
-      };
-      setCount(liveCount);
-
-      let catalog = null;
+      if (number) number.textContent = String(liveCount).padStart(2, '0');
+      if (note) note.textContent = `${liveCount} 个创意已上线，更多正在装载。`;
+      const slots = document.querySelectorAll('[data-game-version]');
+      if (!slots.length) return;
       try {
         const response = await fetch('./game-catalog.json', { cache: 'no-store' });
-        if (response.ok) catalog = await response.json();
+        if (!response.ok) throw new Error('version catalog unavailable');
+        const catalog = await response.json();
+        slots.forEach((slot) => {
+          const game = catalog.games && catalog.games.find((entry) => entry.id === slot.dataset.gameVersion);
+          if (game && game.version) slot.textContent = `${game.version} ${game.status || ''}`.trim();
+        });
       } catch (_) {
-        // Keep embedded fallback versions when the catalog is unavailable.
+        // Keep the embedded stable-version fallback when the catalog is unavailable.
       }
-
-      const games = catalog && Array.isArray(catalog.games) ? catalog.games : null;
-      const grid = document.querySelector('.games');
-      if (!games || !games.length || !grid) return;
-
-      setCount(games.length);
-      grid.replaceChildren(...games.map((game, index) => buildGameCard(game, index)));
     }());
-
-    function buildGameCard(game, index) {
-      const card = document.createElement('a');
-      card.className = 'game-card';
-      card.href = game.url;
-      if (game.external) {
-        card.target = '_blank';
-        card.rel = 'noopener noreferrer';
-      }
-
-      const content = document.createElement('div');
-      const meta = document.createElement('div');
-      meta.className = 'card-meta';
-      const live = document.createElement('span');
-      live.className = 'live';
-      live.textContent = '● LIVE';
-      meta.appendChild(live);
-
-      const metaText = document.createElement('span');
-      metaText.appendChild(document.createTextNode(`GAME ${String(index + 1).padStart(3, '0')} · `));
-      const version = document.createElement('span');
-      version.className = 'game-version';
-      version.textContent = `${game.version || ''} ${game.status || ''}`.trim();
-      metaText.appendChild(version);
-      meta.appendChild(metaText);
-      content.appendChild(meta);
-
-      const heading = document.createElement('h3');
-      String(game.title || '未命名创意').split('\n').forEach((line, lineIndex) => {
-        if (lineIndex > 0) heading.appendChild(document.createElement('br'));
-        heading.appendChild(document.createTextNode(line));
-      });
-      content.appendChild(heading);
-
-      if (game.description) {
-        const copy = document.createElement('p');
-        copy.textContent = game.description;
-        content.appendChild(copy);
-      }
-      card.appendChild(content);
-
-      const action = document.createElement('div');
-      action.className = 'card-action';
-      const actionText = document.createElement('span');
-      actionText.textContent = game.action || '进入创意 / OPEN';
-      action.appendChild(actionText);
-      const arrow = document.createElement('span');
-      arrow.className = 'arrow';
-      arrow.setAttribute('aria-hidden', 'true');
-      arrow.textContent = '↗';
-      action.appendChild(arrow);
-      card.appendChild(action);
-
-      return card;
-    }
   </script>
 </body>
 </html>

@@ -17,6 +17,15 @@ const threeKingdoms = catalog.games.find((game) => game.id === 'three-kingdoms')
 assert.ok(threeKingdoms, '游戏目录必须包含三国 RPG');
 assert.equal(threeKingdoms.version, 'v0.2.0', '三国 RPG 当前稳定切片必须为 v0.2.0');
 assert.equal(threeKingdoms.status, '稳定版', '三国 RPG v0.2.0 应标记为稳定版');
+const superPixelBrothers = catalog.games.find((game) => game.id === 'super-pixel-brothers');
+assert.ok(superPixelBrothers, '游戏目录必须包含超级像素兄弟');
+assert.equal(superPixelBrothers.version, 'v0.1.0', '超级像素兄弟尚无正式标签时使用 v0.1.0');
+assert.equal(superPixelBrothers.status, '开发版', '超级像素兄弟暂无正式标签时应为开发版');
+const idleScreen = catalog.games.find((game) => game.id === 'idle-screen');
+assert.ok(idleScreen, '游戏目录必须包含闲置屏幕');
+assert.equal(idleScreen.version, 'v0.4', '闲置屏幕应保留静态版本号');
+assert.equal(idleScreen.external, true, '闲置屏幕应标记为外部项目');
+assert.equal(catalog.games.length, 4, '当前可展示创意数量应为 4');
 
 const template = JSON.parse(read('game-catalog.template.json'));
 const parsedTags = parseStableTags([
@@ -42,6 +51,9 @@ assert.equal(taggedCatalog.games[0].version, 'v1.6.2', '目录应使用坦克大
 const taggedThreeKingdoms = taggedCatalog.games.find((game) => game.id === 'three-kingdoms');
 assert.equal(taggedThreeKingdoms.version, 'v0.2.0', '目录应解析三国 RPG namespace 稳定版本');
 assert.equal(taggedThreeKingdoms.status, '稳定版', '存在三国 RPG namespace 标签时应标记为稳定版');
+const taggedSuperPixelBrothers = taggedCatalog.games.find((game) => game.id === 'super-pixel-brothers');
+assert.equal(taggedSuperPixelBrothers.version, 'v0.1.0', '没有超级像素标签时应保留 fallback');
+assert.equal(taggedSuperPixelBrothers.status, '开发版', '没有超级像素标签时应保持开发版');
 
 const fallbackCatalog = generateCatalog(template, 'v9.9.9\nrelease/foo');
 const fallbackTank = fallbackCatalog.games.find((game) => game.id === 'tank-battle');
@@ -65,6 +77,9 @@ assert.doesNotMatch(workflow, /git tag --sort=-v:refname/, 'Pages 工作流不�
 const portal = read('index.html');
 assert.match(portal, /data-game-version/, '游戏卡片必须提供版本展示位置');
 assert.match(portal, /game-catalog\.json/, '首页必须读取自动生成的游戏目录');
+assert.match(portal, /setCount\(games\.length\)/, '首页游戏数量应读取目录中的创意数量');
+assert.match(portal, /grid\.replaceChildren/, '首页应从目录动态渲染游戏卡片');
+assert.match(portal, /buildGameCard/, '首页应使用目录数据构建游戏卡片');
 assert.match(portal, /稳定版/, '首页必须包含稳定版显示回退文案');
 
 console.log('Version catalog checks passed.');

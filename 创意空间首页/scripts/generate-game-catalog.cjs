@@ -49,6 +49,9 @@ function generateCatalog(template, tagText) {
   }
 
   for (const game of catalog.games) {
+    if (!game.tagNamespace) {
+      continue;
+    }
     const taggedVersion = versionsByNamespace[game.tagNamespace];
     game.version = taggedVersion || game.fallbackVersion;
     game.status = taggedVersion ? (game.statusWhenTagged || game.status) : game.statusWhenMissing;

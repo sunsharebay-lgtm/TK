@@ -6,24 +6,54 @@
   "games": [
     {
       "id": "tank-battle",
-      "title": "钢铁防线·坦克大战",
+      "title": "钢铁防线\n坦克大战",
+      "description": "经典即时战斗，关卡推进、敌方 AI、触屏操作和火力升级都已就位。",
+      "action": "进入战场 / PLAY NOW",
       "url": "../坦克大战/tank-battle.html",
       "tagNamespace": "game/tank-battle",
       "fallbackVersion": "v1.6.1",
       "statusWhenMissing": "稳定版",
+      "external": false,
       "version": "v1.6.1",
       "status": "稳定版"
     },
     {
       "id": "three-kingdoms",
-      "title": "吞食天地Ⅱ·网页复刻",
+      "title": "吞食天地Ⅱ\n网页复刻",
+      "description": "基于原版数据复刻的完整三国 RPG：553 张地图、60+ 武将、侧视战斗与完整剧情事件。",
+      "action": "进入游戏 / PLAY NOW",
       "url": "../吞食天地三国/",
       "tagNamespace": "game/three-kingdoms",
       "fallbackVersion": "v0.2.0",
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
+      "external": false,
       "version": "v0.2.0",
       "status": "开发版"
+    },
+    {
+      "id": "super-pixel-brothers",
+      "title": "超级像素兄弟",
+      "description": "经典横版跳跃冒险，4 大关卡、变身系统与隐藏道具，向经典平台跳跃游戏致敬。",
+      "action": "开始冒险 / PLAY NOW",
+      "url": "../超级像素兄弟/",
+      "tagNamespace": "game/super-pixel-brothers",
+      "fallbackVersion": "v0.1.0",
+      "statusWhenMissing": "开发版",
+      "statusWhenTagged": "稳定版",
+      "external": false,
+      "version": "v0.1.0",
+      "status": "开发版"
+    },
+    {
+      "id": "idle-screen",
+      "title": "墨屏小站\n闲置屏幕",
+      "description": "把闲置的 Kindle 墨水屏变成信息屏：翻页时钟、天气、番茄钟与阅读清单。",
+      "action": "去点亮屏幕 / VISIT",
+      "url": "https://sunsharebay-lgtm.github.io/idle-screen/",
+      "version": "v0.4",
+      "status": "开发版",
+      "external": true
     }
   ]
 }
