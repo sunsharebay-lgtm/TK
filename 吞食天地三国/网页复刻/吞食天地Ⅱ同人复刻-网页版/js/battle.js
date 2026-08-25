@@ -72,6 +72,8 @@ class Scene_Battle {
     this.bgmBackupName = null;
     this.roundLabel = null;
     this.roundLabelY = 0;
+    this.actionVisual = null;
+    this._actionFxLeft = 0;
   }
   async _loadSprites() {
     for (const en of this.troop.members) {
@@ -107,6 +109,7 @@ class Scene_Battle {
       case "select-skill": this.updateSkillList(); break;
       case "select-item": this.updateItemList(); break;
       case "select-target": this.updateTarget(); break;
+      case "enemy-info": this.updateEnemyInfo(); break;
       case "resolve": this.resolveNext(); break;
       case "victory": case "defeat": case "escaped":
         if (--this.phaseTimer <= 0) this.finish();
@@ -142,13 +145,14 @@ class Scene_Battle {
     const a = this.currentActor;
     if (!a || a.isDead()) { this.nextActorOrResolve(); return; }
     if (this.cmds == null || this._cmdsFor !== a) {
-      this.cmds = ["攻击", "计策", "兵法", "阵型", "奥义", "防御", "道具", "逃跑"];
+      this.cmds = ["攻击", "计策", "兵法", "阵型", "奥义", "防御", "道具", "总攻", "情报", "逃跑"];
       this._cmdsFor = a;
       this.cmdIndex = 0;
     }
     const avail = this.cmds.map((c, i) => [c, i]).filter(([c]) => {
       if (c === "防御" || c === "攻击" || c === "道具") return true;
       if (c === "逃跑") return this.req.canEscape !== false;
+      if (c === "总攻" || c === "情报") return true;
       const stypeId = T.$dataSystem.skillTypes.indexOf(c);
       if (stypeId < 0) return false;
       return a.usableSkills(stypeId).length > 0;
@@ -163,6 +167,8 @@ class Scene_Battle {
       if (name === "攻击") { a._pendingAction = { kind: "attack" }; this.beginSelectTargetEnemy(); }
       else if (name === "防御") { a._pendingAction = { kind: "guard" }; this.nextActorOrResolve(); }
       else if (name === "道具") { this.phase = "select-item"; this.itemList = $gameParty.allItems().filter(i => T.$dataItems.includes(i)); this.itemWin.index = 0; this.itemWin.itemMax = this.itemList.length; }
+      else if (name === "总攻") { this.doTotalAssault(); return; }
+      else if (name === "情报") { this.phase = "enemy-info"; this.targets = this.troop.aliveMembers(); this.targetIdx = 0; return; }
       else {
         const stypeId = T.$dataSystem.skillTypes.indexOf(name);
         this.pendingStype = stypeId;
@@ -203,6 +209,24 @@ class Scene_Battle {
       this.say("逃跑失败了！");
       this.phase = "resolve";   // 消耗当前回合
     }
+  }
+  updateEnemyInfo() {
+    const n = this.targets.length;
+    if (!n) { this.phase = "actor-cmd"; this._cmdsFor = null; return; }
+    if (T.Input.repeated("up") || T.Input.repeated("left")) this.targetIdx = (this.targetIdx - 1 + n) % n;
+    if (T.Input.repeated("down") || T.Input.repeated("right")) this.targetIdx = (this.targetIdx + 1) % n;
+    if (T.Input.triggered("cancel") || T.Input.triggered("ok")) {
+      this.phase = "actor-cmd";
+      this._cmdsFor = null;
+    }
+  }
+  doTotalAssault() {
+    for (const ac of this.partyMembers.filter(m => !m.isDead())) {
+      ac.setAction(0, T.$dataSkills[1], -1);
+      ac._guarding = false;
+    }
+    this.phase = "resolve";
+    this._cmdsFor = null;
   }
   updateSkillList() {
     this.skillWin.updateInput();
@@ -261,13 +285,16 @@ class Scene_Battle {
   /* ---- 行动结算 ---- */
   resolveNext() {
     if (this.animQueue.length) return;
+    if (this._actionFxLeft > 0) { this._actionFxLeft--; return; }
     while (this.actionIndex < this.turnOrder.length) {
       const b = this.turnOrder[this.actionIndex++];
       if (b.isDead() || !b.appearOk()) continue;
       this.subject = b;
       if (b.isActor && b.isActor()) this.doActorAction(b);
       else this.doEnemyAction(b);
-      if (this.animQueue.length || this.phase !== "resolve") return;
+      if (this.animQueue.length || this.phase !== "resolve") { this._actionFxLeft = 14; return; }
+      this._actionFxLeft = 14;
+      return;
     }
     // 回合结束
     this.troop.turnCount++;
@@ -283,14 +310,17 @@ class Scene_Battle {
     if (item.id === 1) {                       // 普通攻击
       const t = act.target && !act.target.isDead() ? act.target : this.pickRandomAliveEnemy();
       if (!t) return;
+      this.actionVisual = { user: a, target: t };
       this.applyItem(a, T.$dataSkills[1], t);
     } else if (T.$dataSkills.includes(item)) {
       const t = act.target && !act.target.isDead() ? act.target : this.defaultTargetFor(item);
       if (!t) return;
+      this.actionVisual = { user: a, target: t };
       a.paySkillCost(item);
       this.applyItem(a, item, t);
     } else if (T.$dataItems.includes(item)) {
       const t = act.target && !act.target.isDead() ? act.target : a;
+      this.actionVisual = { user: a, target: t };
       $gameParty.consumeItem(item);
       this.applyItem(a, item, t);
     }
@@ -302,11 +332,12 @@ class Scene_Battle {
     if (!skill) {
       // 普通攻击
       const t = this.pickRandomAliveActor();
-      if (t) this.applyAttack(e, t);
+      if (t) { this.actionVisual = { user: e, target: t }; this.applyAttack(e, t); }
       return;
     }
     const t = this.defaultTargetFor(skill);
     if (!t) return;
+    this.actionVisual = { user: e, target: t };
     if (skill.mpCost) e.mp -= Math.min(e.mp, skill.mpCost);
     this.applyItem(e, skill, t);
   }
@@ -523,14 +554,23 @@ class Scene_Battle {
       if (en.hidden || en.isDead()) continue;
       const pos = this.enemyScreenPos(en);
       const img = this.enemySprites.get(en);
+      const advX = this.actionVisual && this.actionVisual.user === en && this._actionFxLeft > 0 ? -22 : 0;
+      const hit = !!(this.actionVisual && this.actionVisual.target === en && this._actionFxLeft > 0);
       if (img instanceof HTMLImageElement) {
         const isCharSheet = img.width / img.height < 1.6 && en.noteTags.svBattler;
         if (isCharSheet) {
           const fw = img.width / 3, fh = img.height / 4;
-          ctx.drawImage(img, fw, 0, fw, fh, pos.x - 16, pos.y - fh + 32, fw, fh);
+          ctx.drawImage(img, fw, 0, fw, fh, pos.x - 16 + advX, pos.y - fh + 32, fw, fh);
         } else {
-          ctx.drawImage(img, pos.x, pos.y);
+          ctx.drawImage(img, pos.x + advX, pos.y);
         }
+      }
+      if (hit) {
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = "#ff4040";
+        ctx.fillRect(pos.x - 6 + advX, pos.y - 6, 64, 64);
+        ctx.restore();
       }
       /* 血条 */
       const bw = 56;
@@ -555,12 +595,21 @@ class Scene_Battle {
       const pos = this.actorPos(a);
       const img = this.actorSprites.get(a);
       const dead = a.isDead();
+      const advX = this.actionVisual && this.actionVisual.user === a && this._actionFxLeft > 0 ? 24 : 0;
+      const hit = !!(this.actionVisual && this.actionVisual.target === a && this._actionFxLeft > 0);
       if (img instanceof HTMLImageElement) {
         const fw = img.width / 3, fh = img.height / 4;
         ctx.save();
         ctx.globalAlpha = dead ? 0.25 : 1;
         const dirRow = dead ? 0 : ({ 2: 0, 8: 3, 4: 1, 6: 2 })[6]; // 面向右
-        ctx.drawImage(img, fw, dirRow * fh, fw, fh, pos.x, pos.y - fh + 32, fw, fh);
+        ctx.drawImage(img, fw, dirRow * fh, fw, fh, pos.x + advX, pos.y - fh + 32, fw, fh);
+        ctx.restore();
+      }
+      if (hit) {
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = "#ff4040";
+        ctx.fillRect(pos.x + advX - 8, pos.y - 12, 48, 48);
         ctx.restore();
       }
       /* 目标箭头 */
@@ -634,6 +683,7 @@ class Scene_Battle {
         lyy += 30;
       }
     }
+    this.drawEnemyInfo(ctx);
     this.drawRoundLabel(ctx);
     if (this.phase === "victory") {
       this.helpWin.draw(ctx);
@@ -641,10 +691,40 @@ class Scene_Battle {
     }
   }
   visibleCmds(actor) {
-    const all = [["攻击", 0], ["计策", 2], ["兵法", 3], ["阵型", 4], ["奥义", 6], ["防御", -1], ["道具", -1]];
-    return all.filter(([nm, st]) =>
-      nm === "攻击" || nm === "防御" || nm === "道具" ||
-      actor.usableSkills(st).length > 0);
+    const names = ["攻击", "计策", "兵法", "阵型", "奥义", "防御", "道具", "总攻", "情报", "逃跑"];
+    const all = names.map(nm => {
+      if (["攻击", "防御", "道具", "总攻", "情报", "逃跑"].includes(nm)) return [nm, -2];
+      return [nm, T.$dataSystem.skillTypes.indexOf(nm)];
+    });
+    return all.filter(([nm, st]) => {
+      if (nm === "攻击" || nm === "防御" || nm === "道具" || nm === "总攻" || nm === "情报") return true;
+      if (nm === "逃跑") return this.req.canEscape !== false;
+      return actor.usableSkills(st).length > 0;
+    });
+  }
+  drawEnemyInfo(ctx) {
+    if (this.phase !== "enemy-info") return;
+    const list = this.targets || [];
+    this.skillWin.draw(ctx);
+    let y = this.skillWin.innerY + 4;
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      this.skillWin.drawText(ctx, e.name, this.skillWin.innerX + 10, y);
+      this.skillWin.drawText(ctx, `兵力 ${Math.round(e.hp)}/${Math.round(e.mhp)}  谋 ${Math.round(e.mp)}/${Math.round(e.mmp)}`,
+        this.skillWin.innerX + 150, y, this.skillWin.innerW - 170, "right");
+      if (i === this.targetIdx) {
+        ctx.save();
+        ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2;
+        ctx.strokeRect(this.skillWin.innerX + 4, y - 2, this.skillWin.innerW - 8, this.skillWin.itemHeight() - 2);
+        ctx.restore();
+      }
+      y += this.skillWin.itemHeight();
+    }
+    const e = list[this.targetIdx];
+    if (e) {
+      const info = `武力 ${e.atk}　防御 ${e.def}　智 ${e.mat}　速度 ${e.agi}`;
+      this.skillWin.drawText(ctx, info, this.skillWin.innerX + 10, this.skillWin.innerY + this.skillWin.innerH - 34);
+    }
   }
   drawRoundLabel(ctx) {
     if (!this.roundLabel) return;

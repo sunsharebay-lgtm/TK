@@ -219,7 +219,14 @@ class Game_BattlerBase {
   get atk() { return this.param(2); } get def() { return this.param(3); }
   get mat() { return this.param(4); } get mdf() { return this.param(5); }
   get agi() { return this.param(6); } get luk() { return this.param(7); }
-  xparam(id) { return this.traitsPi(TRAIT.XPARAM, id); }
+  xparam(id) {
+    /* 命中(0)/目标率(9) 默认为 1，其余 X 参数默认 0，避免无再生特性的单位每回合回满血 */
+    const def = id === 0 || id === 9 ? 1 : 0;
+    for (const t of this.traits(TRAIT.XPARAM)) {
+      if (t.dataId === id) return t.value;
+    }
+    return def;
+  }
   sparam(id) { return this.traitsPi(TRAIT.SPARAM, id); }
   elementRate(el) { return el <= 0 ? 1 : this.traitsPi(TRAIT.ELEMENT_RATE, el); }
   debuffRate(el) { return this.traitsPi(TRAIT.DEBUFF_RATE, el); }
