@@ -30,12 +30,13 @@ for (let i = 0; i < args.length; i++) {
 }
 const profile = opt("--profile", "/tmp/tk-cdp-profile-" + process.pid);
 
-try { execSync("pkill -f \"remote-debugging-port=9333\""); } catch {} fs.mkdirSync(outDir, { recursive: true });
+if (!args.includes("--attach")) { try { execSync("pkill -f \"remote-debugging-port=9333\""); } catch {} }
+fs.mkdirSync(outDir, { recursive: true });
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-const chrome = spawn(chromePath, [
+const chrome = args.includes("--attach") ? null : spawn(chromePath, [
   "--headless=new", "--disable-gpu", "--hide-scrollbars", "--mute-audio",
   "--no-first-run", "--no-default-browser-check", "--disable-extensions", "--disable-http-cache",
   "--window-size=1366,900",
@@ -103,7 +104,7 @@ async function keyTap(key) {
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code: cdk, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
 }
 
-await send("Page.navigate", { url });
+if (!args.includes("--attach")) await send("Page.navigate", { url });
 const preEvals = [];
 let midEvals = null, midAt = 0, midEvalResults = [];
 for (let i = 0; i < args.length; i++) {
@@ -168,5 +169,5 @@ for (const expr of evals) {
 }
 const summary = { shots, preEvalResults, midDone, midEvalResults, evalResults, jsResponses, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
 console.log(JSON.stringify(summary, null, 1));
-chrome.kill();
+if (!args.includes("--keep")) { try { chrome.kill(); } catch {} }
 process.exit(0);
