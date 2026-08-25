@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 创意空间首页 | `创意空间首页/` | GitHub Pages 起始页 / 游戏中心，负责汇总入口、版本目录与在线分发 |
 | 坦克大战 | `坦克大战/` | 网页版坦克大战游戏，单文件 Canvas |
-| 吞食天地三国 | `吞食天地三国/` | 三国 RPG 网页复刻，单文件 + 素材 + 文档 |
+| 吞食天地三国 | `吞食天地三国/` | 三国 RPG 网页复刻（入口跳转到网页复刻引擎版），素材/文档/测试独立归档 |
 | 超级像素兄弟 | `超级像素兄弟/` | 像素平台跳跃游戏，分片源码 |
 | 舞台（共享设施） | 根目录 | `.github/`、`scripts` 归属首页、`docs/`、规则与说明文档、根跳转页 |
 
@@ -37,7 +37,7 @@ https://sunsharebay-lgtm.github.io/TK/
         ├── game-catalog.template.json
         └── scripts/generate-game-catalog.cjs
     ├── 坦克大战/tank-battle.html
-    ├── 吞食天地三国/three-kingdoms.html
+    ├── 吞食天地三国/（入口跳转到 网页复刻/吞食天地Ⅱ同人复刻-网页版/）
     └── 超级像素兄弟/index.html
 ```
 

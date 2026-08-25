@@ -17,7 +17,7 @@
     {
       "id": "three-kingdoms",
       "title": "吞食天地Ⅱ·网页复刻",
-      "url": "../吞食天地三国/three-kingdoms.html",
+      "url": "../吞食天地三国/",
       "tagNamespace": "game/three-kingdoms",
       "fallbackVersion": "v0.2.0",
       "statusWhenMissing": "开发版",
