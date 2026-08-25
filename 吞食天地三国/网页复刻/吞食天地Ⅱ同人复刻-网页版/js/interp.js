@@ -744,6 +744,10 @@ class Game_Interpreter {
         catch (e) { console.warn("script:", p[0], e.message); }
         return true;
       case 357: return true;                      // 插件命令（平台钩子，离线忽略）
+      case 136: { // 遇敌禁止开关（护身烟/烟遁计/强身烟链路；0=开启禁止,1=关闭禁止）
+        T.$gameSwitches.setValue(38, (p[0] || 0) === 0);
+        return true;
+      }
       case 505: return true;                      // 移动路线续行（205已内嵌）
       default:
         return true;

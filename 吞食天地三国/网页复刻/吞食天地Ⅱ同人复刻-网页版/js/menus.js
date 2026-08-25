@@ -128,6 +128,7 @@ class Scene_Item {
         case 12: target.mp += eff.value1 * target.mmp + eff.value2; used = true; break;
         case 21: if (!target.isStateAffected(eff.dataId)) { target.addStateRaw(eff.dataId); used = true; } break;
         case 22: target.removeStateRaw(eff.dataId); used = true; break;
+        case 44: { const msgs = T.runMapCommonEvent(eff.dataId); for (const mt of msgs) T.$gameMessage.add(mt); used = true; break; }   // G5: 公共事件类道具（护身烟/强身烟）
       }
     }
     return used;

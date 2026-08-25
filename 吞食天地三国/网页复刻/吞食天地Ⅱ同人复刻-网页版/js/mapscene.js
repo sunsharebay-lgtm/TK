@@ -403,6 +403,7 @@ class Scene_Map {
   checkEncounter() {
     const gm = T.$gameMap;
     if (!gm.encounterList.length) return;
+    if (T.$gameSwitches.value(38)) return;   // G5: 护身烟/烟遁计/强身烟 禁止遇敌（136/公共事件链路）
     const stepsAvg = gm.encounterStep || 30;
     gm.encounterProgress += 1 + T.rand(Math.round(stepsAvg / 2));
     if (gm.encounterProgress >= stepsAvg) {

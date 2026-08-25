@@ -629,6 +629,59 @@ T.FORMATIONS = [
   { name: "八卦阵",  atk: 0,  def: 35, mat: 20, mdf: 35, agi: -20 },
 ];
 T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
+
+/* G5: 地图侧公共事件迷你执行器（菜单道具 effect 44 链路：护身烟/强身烟等）
+   支持 0/101-102/111/117/121/122/124/125-128/136/249/355-357/401-405/411-413/505；选择默认取第一项，战斗类不在地图侧执行。 */
+T.runMapCommonEvent = function (ceId) {
+  const ce = T.$dataCommonEvents[ceId];
+  if (!ce) return [];
+  const msgs = [];
+  const stack = [{ list: ce.list || [], i: 0, skipping: false }];
+  outer: while (stack.length) {
+    const fr = stack[stack.length - 1];
+    const list = fr.list;
+    while (fr.i < list.length) {
+      const c = list[fr.i++];
+      if (!c) continue;
+      if (fr.skipping) { if (c.code === 411 || c.code === 412) fr.skipping = false; continue; }
+      const p = c.parameters || [];
+      switch (c.code) {
+        case 0: stack.pop(); continue outer;
+        case 111: {
+          const script = p[0] === 12 ? String(p[1] || "") : null;
+          let ok = true;
+          if (script) { try { ok = !!new Function("with(T){return (" + script + ");}").call(T.scriptContext || {}); } catch (e) { ok = false; } }
+          else if (p[0] === 3 || p[0] === 0) ok = T.$gameSwitches.value(p[1]) === !!p[2];
+          if (!ok) fr.skipping = true;
+          break;
+        }
+        case 117: { const s = T.$dataCommonEvents[p[0]]; if (s) stack.push({ list: s.list || [], i: 0, skipping: false }); break; }
+        case 121: T.$gameSwitches.setValue(p[0], p[1] !== 0); break;
+        case 122: T.$gameVariables.setValue(p[0], p[1]); break;
+        case 124: break;                    // 计时器：地图侧由主循环推进，此处忽略
+        case 125: T.$gameParty.gainGold(p[1]); break;
+        case 126: if (T.$dataItems[p[1]]) T.$gameParty.gainItem(T.$dataItems[p[1]], p[2]); break;
+        case 127: if (T.$dataWeapons[p[1]]) T.$gameParty.gainItem(T.$dataWeapons[p[1]], p[2]); break;
+        case 128: if (T.$dataArmors[p[1]]) T.$gameParty.gainItem(T.$dataArmors[p[1]], p[2]); break;
+        case 136: T.$gameSwitches.setValue(38, (p[0] || 0) === 0); break;
+        case 249: T.AudioManager.playSe({ name: p[0], volume: p[1] != null ? p[1] : 90, pitch: p[2] != null ? p[2] : 100 }); break;
+        case 355: case 655: { try { new Function("with(T){" + p[0] + "}").call(T.scriptContext || {}); } catch (e) { console.warn("map-common-script:", p[0], e.message); } break; }
+        case 357: break;
+        case 101: case 401: case 405: { const t = String((c.code === 101 ? p[4] : p[0]) || ""); if (t) msgs.push(t); break; }
+        case 102: break;                    // 选择：默认第一项（402 跟随执行）
+        case 402: case 403: case 404: break;
+        case 301: case 302: case 313: case 314: case 317: case 318: case 319: case 320: case 331: case 337: case 340: case 601: case 602: case 603: case 604: break;
+        case 505: break;
+        case 411: fr.skipping = false; break;
+        case 412: break;
+        case 413: break;
+      }
+    }
+    if (fr.i >= list.length && stack.length) stack.pop();
+  }
+  return msgs;
+};
+
   T.$gameSystem = { saveCount: 0, framesOnSave: 0, bgmOnSave: null, battleCount: 0, winCount: 0 };
   T.$gameSwitches = new Game_Switches();
   T.$gameVariables = new Game_Variables();
