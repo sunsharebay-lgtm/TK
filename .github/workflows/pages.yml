@@ -1,4 +1,4 @@
-name: Deploy Tank Battle to GitHub Pages
+name: Deploy 创意空间 to GitHub Pages
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Generate game version catalog
-        run: node scripts/generate-game-catalog.cjs
+        run: node 创意空间首页/scripts/generate-game-catalog.cjs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

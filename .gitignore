@@ -1,0 +1,8 @@
+# macOS 元数据
+.DS_Store
+
+# Node
+node_modules/
+
+# 创意空间本地总更新记录（仅本地，不推送到 GitHub）
+/更新记录.md
