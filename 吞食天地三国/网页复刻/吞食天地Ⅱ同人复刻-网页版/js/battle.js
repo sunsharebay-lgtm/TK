@@ -154,11 +154,22 @@ class Scene_Battle {
 
   say(line) { this.logLines.push(line); this.logDirty = true; }
 
-  startRound() {
-    this.roundActions = [];
+  /* G3-R9: 构建回合行动顺序——按 numActions()(攻击次数 trait 34)重复插入多动战斗者。
+     数据：陈兰/李蒙/宋宪/张允/黄忠/李湛/候选/李严/曹休/高览/满宠/曹植/韩当/丁奉/李广/泥弓 等 22 个×2 动，
+     ACTION_PLUS(61) 秦始皇/王皇帝/田丰/秘将军/幻钟王 追加行动。 */
+  buildTurnOrder() {
     const all = [...this.partyMembers.filter(a => !a.isDead()), ...this.troop.aliveMembers()];
     for (const b of all) b.makeSpeed();
-    this.turnOrder = all.slice().sort((x, y) => y.turnAddSpeed - x.turnAddSpeed);
+    const order = [];
+    for (const b of all.slice().sort((x, y) => y.turnAddSpeed - x.turnAddSpeed)) {
+      const n = Math.max(1, Math.round((b.numActions ? b.numActions() : 1) + (b.actionPlusSet ? b.actionPlusSet().reduce((s, v) => s + Math.max(0, v), 0) : 0)));
+      for (let i = 0; i < n; i++) order.push(b);
+    }
+    return order;
+  }
+  startRound() {
+    this.roundActions = [];
+    this.turnOrder = this.buildTurnOrder();
     this.actionIndex = 0;
     this.phase = "party-cmd";
     this.currentActor = this.partyMembers.find(a => !a.isDead());
