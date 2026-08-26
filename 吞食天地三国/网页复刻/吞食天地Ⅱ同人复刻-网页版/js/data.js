@@ -384,7 +384,10 @@ class Game_Battler extends Game_BattlerBase {
     if (this.xparam(8) > 0 && !this.isDead()) this.mp += mr;
     this.updateBuffsTurns();
     for (const st of this.states()) {
-      if (st.autoRemovalTiming !== 1) continue;
+      /* G3-R9: autoRemovalTiming 2(行动结束)也按回合推进解除——数据 20 个状态(灼伤/中毒/晕眩/
+         嘲骂/击返/免费等)此前永不自动解除,只能战末 removeAtBattleEnd 清理;与 timing 1 同样
+         以 min/max 回合计数,行动结束视为回合粒度近似。 */
+      if (st.autoRemovalTiming !== 1 && st.autoRemovalTiming !== 2) continue;
       const key = "st" + st.id;
       if (this._stateTurns[key] == null)
         this._stateTurns[key] = T.randBetween(st.minTurns || 1, st.maxTurns || 1);
