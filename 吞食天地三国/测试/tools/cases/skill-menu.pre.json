@@ -1,0 +1,1 @@
+["(()=>{T.$gameParty.changeLevel(10);const a=T.$gameParty.battleMembers()[0];a.hp=5;a.refresh();window.__t={mhp0:a.mhp,mp0:a.mp};T.SceneManager.push(new T.Scene_Skill(a));return 'skill-scene-open';})()"]
