@@ -658,6 +658,16 @@ class Game_Party {
   storageAll() {
     return Object.keys(this._storage || {}).map(id => T.$dataItems[+id] || T.$dataWeapons[+id] || T.$dataArmors[+id]).filter(Boolean);
   }
+  /* G3-R9: 军物品合成——役店配方（插件 BrotherJie_ItemSynthesis/AddRecipe）。
+     配方载荷 = 字符串数组："[材料..., 产物...]"，材料取自 0-53，产物恒为 54-63。
+     语义推定（FC 原版角色扮演惯例，无插件源码佐证）：持全部材料各≥1 → 各减 1 → 选一产物获得。 */
+  canSynth(mats) { return (mats || []).every(m => m && this.itemCount(m) >= 1); }
+  synth(mats, prod) {
+    if (!this.canSynth(mats)) return false;
+    for (const m of mats) if (m) this.loseItem(m, 1);
+    if (prod) this.gainItem(prod, 1);
+    return true;
+  }
   gainItem(item, n) {
     if (!item) return;
     const cont = T.$dataItems.includes(item) ? this._items
@@ -715,6 +725,35 @@ T.resetGameState = function () {
   ];
 T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
 
+/* G3-R9: 军物品合成——配方注册与界面入口（役店 BrotherJie_ItemSynthesis）
+   配方为 JSON 字符串数组："[材料..., 产物...]"；材料 0-53，产物恒 54-63；
+   界面打开时取最近一次 AddRecipe 注册的配方（役店事件顺序：AddRecipe→CallItemSynthesis）。 */
+T._synthRecipes = [];
+T.registerSynthRecipe = function (recipeStr) {
+  if (!recipeStr) return;
+  let ids = null;
+  try { ids = JSON.parse(String(recipeStr)); } catch (e) { /* 非 JSON 字符串数组 */ }
+  if (!Array.isArray(ids) || !ids.length) {
+    /* 兼容 655 续行 "recipe = [...]" 形式 */
+    const m = String(recipeStr).match(/\[([^\[\]]*)\]/);
+    if (m) { try { ids = JSON.parse("[" + m[1] + "]"); } catch (e2) { return; } }
+  }
+  if (!Array.isArray(ids)) return;
+  const mats = [], prods = [];
+  for (const raw of ids) {
+    const id = Number(raw);
+    if (!Number.isFinite(id) || id < 0) continue;
+    (id >= 54 ? prods : mats).push(T.$dataItems[id]);
+  }
+  const matsOk = mats.filter(Boolean);
+  /* 产物 54-63 中空名者为数据占位（无名物品），实体产物仅保留有名者 */
+  const prodsOk = prods.filter(p => p && p.name);
+  if (!matsOk.length && !prodsOk.length) return;
+  T._synthRecipes.push({ mats: matsOk, prods: prodsOk });
+  if (T._synthRecipes.length > 8) T._synthRecipes.shift();
+};
+T.openSynthesis = function () { if (T.Scene_Synthesis) T.SceneManager.push(new T.Scene_Synthesis()); };
+
 /* G5: 地图侧公共事件迷你执行器（菜单道具 effect 44 链路：护身烟/强身烟等）
    支持 0/101-102/111/117/121/122/124/125-128/136/249/355-357/401-405/411-413/505；选择默认取第一项，战斗类不在地图侧执行。 */
 T.runMapCommonEvent = function (ceId) {
@@ -765,9 +804,13 @@ T.runMapCommonEvent = function (ceId) {
         }
         case 655: break;   // 已被 355 收集；游离 655 忽略
         case 357: {
-          /* G3-R7: 插件命令（仓库入口） */
+          /* G3-R7: 插件命令（仓库入口）+ G3-R9: 军物品合成（役店配方/合成界面） */
           const pp = c.parameters || [];
-          if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0 && pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
+          if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0) {
+            if (pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
+            else if (pp[1] === "AddRecipe" && T.registerSynthRecipe) T.registerSynthRecipe(pp[3] && pp[3].recipe);
+            else if (pp[1] === "CallItemSynthesis" && T.openSynthesis) T.openSynthesis();
+          }
           break;
         }
         case 101: case 401: case 405: { const t = String((c.code === 101 ? p[4] : p[0]) || ""); if (t) msgs.push(t); break; }

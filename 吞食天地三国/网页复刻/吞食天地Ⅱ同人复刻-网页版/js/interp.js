@@ -766,9 +766,13 @@ class Game_Interpreter {
         return true;
       }
       case 655: return true;                      // 已被 355 收集；游离 655 忽略
-      case 357: { // G3-R7: 插件命令（仓库入口；物品合成待插件配方语义确认后接入）
+      case 357: { // G3-R7: 插件命令（仓库/军物品合成）
         const pp = c.parameters || [];
-        if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0 && pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
+        if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0) {
+          if (pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
+          else if (pp[1] === "AddRecipe" && T.registerSynthRecipe) T.registerSynthRecipe(pp[3] && pp[3].recipe);
+          else if (pp[1] === "CallItemSynthesis" && T.openSynthesis) T.openSynthesis();
+        }
         return true;
       }
       case 136: { // 遇敌禁止开关（护身烟/烟遁计/强身烟链路；0=开启禁止,1=关闭禁止）

@@ -540,6 +540,64 @@ class Scene_Status {
   }
 }
 
+/* ---------------- 军物品合成（役店 BrotherJie_ItemSynthesis） ---------------- */
+class Scene_Synthesis {
+  constructor() {
+    this.rec = (T._synthRecipes || [])[T._synthRecipes.length - 1] || { mats: [], prods: [] };
+    this.lwin = new Window_Selectable(8, 60, 320, T.SCREEN_H - 68);
+    this.rwin = new Window_Base(336, 60, T.SCREEN_W - 344, T.SCREEN_H - 68);
+    this.lwin.fontSize = 20; this.rwin.fontSize = 18;
+    this.lwin.itemMax = Math.max(1, this.rec.prods.length);
+    this.lwin.index = 0;
+    T.AudioManager.playSe({ name: "Equip1", volume: 60 });
+  }
+  canCraft() { return $gameParty.canSynth(this.rec.mats); }
+  update() {
+    if (T.Input.triggered("cancel")) { T.AudioManager.playSe({ name: "Cancel", volume: 50 }); T.SceneManager.popScene(); return; }
+    this.lwin.updateInput();
+    if (T.Input.triggered("ok")) {
+      const prod = this.rec.prods[this.lwin.index];
+      if (!prod) { T.SceneManager.popScene(); return; }
+      if (this.canCraft()) {
+        const ok = $gameParty.synth(this.rec.mats, prod);
+        if (ok) {
+          T.$gameMessage.add(`合成「${prod.name}」成功！`);
+          T.AudioManager.playSe({ name: "Shop", volume: 80 });
+        } else T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
+      } else T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
+    }
+  }
+  draw(ctx) {
+    T.drawMenuBackdrop(ctx);
+    this.lwin.draw(ctx); this.rwin.draw(ctx);
+    this.lwin.drawText(ctx, "—— 合成品类 ——", this.lwin.innerX, this.lwin.innerY + 2, this.lwin.innerW, "center");
+    let y = this.lwin.innerY + 24;
+    for (let i = 0; i < this.rec.prods.length; i++) {
+      if (y > this.lwin.y + this.lwin.h - 24) break;
+      const p = this.rec.prods[i];
+      const owned = $gameParty.itemCount(p);
+      this.lwin.drawText(ctx, p.name || "？", this.lwin.innerX + 8, y);
+      this.lwin.drawText(ctx, `×${owned}`, this.lwin.innerX + 240, y, 70, "right");
+      y += this.lwin.itemHeight();
+    }
+    this.lwin.drawCursorBox(ctx);
+    this.rwin.drawText(ctx, "—— 所需材料 ——", this.rwin.innerX, this.rwin.innerY + 2, this.rwin.innerW, "center");
+    let ry = this.rwin.innerY + 30;
+    for (const m of this.rec.mats) {
+      if (ry > this.rwin.y + this.rwin.h - 30) break;
+      const owned = $gameParty.itemCount(m);
+      const has = owned >= 1;
+      ctx.fillStyle = has ? "#7CFC00" : "#ff6b6b";
+      this.rwin.drawText(ctx, `${has ? "✓" : "✗"} ${m.name}`, this.rwin.innerX + 8, ry);
+      this.rwin.drawText(ctx, `×${owned}`, this.rwin.innerX + 200, ry, 60, "right");
+      ry += 26;
+    }
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(8, T.SCREEN_H - 34, T.SCREEN_W - 16, 28);
+    ctx.fillStyle = "#ffd24d"; ctx.font = "18px 'PingFang SC',sans-serif";
+    ctx.fillText("回车 → 合成     Esc 关闭", 16, T.SCREEN_H - 14);
+  }
+}
+
 /* ---------------- 仓库（插件 BrotherJie_MenuBase/CallActorStorage） ---------------- */
 class Scene_Storage {
   constructor() {
@@ -808,4 +866,4 @@ class Scene_Shop {
 }
 
 /* 类导出 */
-Object.assign(T, { Scene_Menu, Scene_Item, Scene_Skill, Scene_Equip, Scene_Status, Scene_Save, Scene_Load, Scene_Shop, Scene_Storage, Scene_Lineup });
+Object.assign(T, { Scene_Menu, Scene_Item, Scene_Skill, Scene_Equip, Scene_Status, Scene_Save, Scene_Load, Scene_Shop, Scene_Storage, Scene_Lineup, Scene_Synthesis });
