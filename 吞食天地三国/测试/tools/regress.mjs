@@ -2,7 +2,7 @@
 /* G3-R7: 统一回归框架——顺序执行全部 CDP 用例（cases/*.pre/end.json），汇总 PASS/FAIL 报告。
  * 用法：node 测试/tools/regress.mjs [--only name1,name2]
  * 依赖：本地 8642 服务（python3 -m http.server 8642 指向网页复刻目录）。 */
-import { spawnSync } from "node:child_process";
+import { spawnSync, execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -55,7 +55,9 @@ for (const c of CASES) {
   ];
   if (c.keys) args.push("--keys", c.keys);
   if (c.mid) args.push("--mid-eval-file", path.join(__dirname, c.mid), "--mid-at", String(c.midAt || 3000));
-  const r = spawnSync("node", args, { encoding: "utf8", timeout: 240000 });
+  /* 每用例前清掉残留 9333（cdp-driver 自带的 pkill 因 execSync 未引入而失效） */
+  try { execSync("pkill -f 'remote-debugging-port=9333' 2>/dev/null"); } catch { /* 无残留 */ }
+  const r = spawnSync("node", args, { encoding: "utf8", timeout: 400000 });
   const raw = r.stdout || "";
   let data = null;
   const sIdx = raw.indexOf("{");
