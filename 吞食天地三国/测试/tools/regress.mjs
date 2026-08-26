@@ -35,6 +35,7 @@ const CASES = [
   { name: "synth-e2e",     url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-empty.pre.json", end: "cases/synth-e2e.end.json" },
   { name: "synth-interp",  url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-empty.pre.json", end: "cases/synth-interp.end.json" },
   { name: "action-cond",   url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-empty.pre.json", end: "cases/action-cond.end.json" },
+  { name: "step-state",    url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-empty.pre.json", end: "cases/step-state.end.json" },
   { name: "equip-8slot", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 12000, keys: "Enter:300:4", pre: "cases/equip-8slot.pre.json", end: "cases/equip-8slot.end.json", custom: "equip8" },
 ];
 

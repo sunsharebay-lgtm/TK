@@ -189,9 +189,29 @@ class Game_BattlerBase {
   initMembers() {
     this._hp = 0; this._mp = 0; this._tp = 0;
     this._states = []; this._buffs = {};
+    this._stateSteps = {};   // G3-R9: 地图步数解除状态计数（stepsToRemove>0）
     this.result = new Game_ActionResult();
     this.hidden = false;
     this.turnAddSpeed = 0;
+  }
+  /* G3-R9: 地图步数解除状态——玩家每走一步推进计数，归零移除（数据实证：烟遁256/杀毒128/灼伤中毒等100步） */
+  onMapStep() {
+    for (const id of this._states.slice()) {
+      const st = T.$dataStates[id];
+      if (!st || !(st.stepsToRemove > 0)) continue;
+      const key = "s" + id;
+      if (this._stateSteps[key] == null) this._stateSteps[key] = st.stepsToRemove;
+      if (--this._stateSteps[key] <= 0) {
+        delete this._stateSteps[key];
+        this.removeStateRaw(id);
+        this.result.removedStates.push(id);
+      }
+    }
+  }
+  /* 添加状态后登记步数计数（若该状态按步数解除） */
+  registerStepState(id) {
+    const st = T.$dataStates[id];
+    if (st && st.stepsToRemove > 0) this._stateSteps["s" + id] = st.stepsToRemove;
   }
   allTraits() { return []; }
   traits(code) { return this.allTraits().filter(t => t.code === code); }
@@ -305,9 +325,13 @@ class Game_BattlerBase {
     if (!this._states.includes(id)) {
       this._states.push(id);
       this._states.sort((a, b) => ((T.$dataStates[a] || {}).priority || 0) - ((T.$dataStates[b] || {}).priority || 0));
+      this.registerStepState(id);
     }
   }
-  removeStateRaw(id) { const i = this._states.indexOf(id); if (i >= 0) this._states.splice(i, 1); }
+  removeStateRaw(id) {
+    const i = this._states.indexOf(id); if (i >= 0) this._states.splice(i, 1);
+    delete this._stateSteps["s" + id];
+  }
   die() { this._hp = 0; this.addStateRaw(1); }
   revive() { this.removeStateRaw(1); if (this._hp <= 0) this._hp = 1; }
   appear() { this.hidden = false; }

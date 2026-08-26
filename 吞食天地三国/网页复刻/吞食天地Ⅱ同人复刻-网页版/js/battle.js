@@ -593,6 +593,10 @@ class Scene_Battle {
         this.say(`${target.name} 的${names[eff.dataId] || "能力"}提升了！`);
         break;
       }
+      case 41: { // 逃跑技能（数据技能3；无敌人/脚本引用，actor 触发则纳入逃跑判定）
+        if (this.partyMembers.includes(target) && this.tryEscape) { try { this.tryEscape(); } catch (e) { /* 忽略 */ } }
+        break;
+      }
       case 44: { this.runBattleCommonEvent(eff.dataId, user); break; }
     }
   }

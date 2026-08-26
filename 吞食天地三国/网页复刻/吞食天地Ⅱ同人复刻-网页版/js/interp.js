@@ -232,7 +232,13 @@ class Game_Map {
         T.$gamePlayer.pos(x, y) && !T.$gamePlayer._through) return true;
     return false;
   }
-  onPlayerStep() { /* 遭遇判定在 Scene_Map 中 */ }
+  onPlayerStep() {
+    /* G3-R9: 地图步数解除状态（data 实证：烟遁 256 步 / 杀毒 128 步 / 灼伤中毒等 100 步）。
+       玩家每走一步，对出战成员含 stepsToRemove>0 的状态推进计数，归零移除。 */
+    for (const a of T.$gameParty.battleMembers()) {
+      if (a && a.onMapStep) a.onMapStep();
+    }
+  }
   encounterCandidates() {
     if (!this.encounterList.length) return [];
     if (T.$gameParty.encounterNone()) return [];
