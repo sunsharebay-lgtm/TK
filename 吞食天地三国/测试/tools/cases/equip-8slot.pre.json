@@ -1,0 +1,1 @@
+["(()=>{const g=T.$gameParty;g.gainItem(T.$dataWeapons[2],1);for(const et of [2,3,4,5,6,7]){T.$dataArmors.filter(k=>k&&k.etypeId===et).slice(0,2).forEach(a=>g.gainItem(a,1));}return'given';})()"]
