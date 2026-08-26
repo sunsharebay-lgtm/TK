@@ -32,6 +32,8 @@ const CASES = [
   { name: "battle-scope",  url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 8000, keys: "Enter:250:3", pre: "cases/battle-scope.pre.json",  end: "cases/battle-scope.end.json" },
   { name: "menu-nav",      url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 6000, keys: "", pre: "cases/menu-nav.pre.json", end: "cases/menu-nav.end.json" },
   { name: "synth-shop",    url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-shop.pre.json", end: "cases/synth-shop.end.json" },
+  { name: "synth-e2e",     url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-empty.pre.json", end: "cases/synth-e2e.end.json" },
+  { name: "synth-interp",  url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/synth-empty.pre.json", end: "cases/synth-interp.end.json" },
   { name: "equip-8slot", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 12000, keys: "Enter:300:4", pre: "cases/equip-8slot.pre.json", end: "cases/equip-8slot.end.json", custom: "equip8" },
 ];
 

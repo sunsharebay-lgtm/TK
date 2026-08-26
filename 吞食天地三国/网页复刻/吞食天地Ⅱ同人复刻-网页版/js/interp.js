@@ -766,8 +766,8 @@ class Game_Interpreter {
         return true;
       }
       case 655: return true;                      // 已被 355 收集；游离 655 忽略
-      case 357: { // G3-R7: 插件命令（仓库/军物品合成）
-        const pp = c.parameters || [];
+      case 357: { // G3-R7: 插件命令（仓库/军物品合成）。注意：command() 内 c=code，参数在 p！
+        const pp = p || [];
         if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0) {
           if (pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
           else if (pp[1] === "AddRecipe" && T.registerSynthRecipe) T.registerSynthRecipe(pp[3] && pp[3].recipe);
