@@ -157,6 +157,8 @@ T.AudioManager = {
     GainItem: "Tstd_GainItem",
     Heal: "Tstd_Heal",
     Text: "Tstd_Move",
+    /* G3-R5: 胜利 ME——引擎用标准名 Victory1，资源为 Tstd_Win（此前胜利音效静音） */
+    Victory1: "Tstd_Win",
   },
   ensureCtx() {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -164,7 +166,7 @@ T.AudioManager = {
     return this.ctx;
   },
   async buffer(dir, name) {
-    if (dir === "se" && this.SE_ALIAS[name]) name = this.SE_ALIAS[name];
+    if ((dir === "se" || dir === "me") && this.SE_ALIAS[name]) name = this.SE_ALIAS[name];
     const key = dir + "/" + name;
     let b = this.buffers.get(key);
     if (!b) {
