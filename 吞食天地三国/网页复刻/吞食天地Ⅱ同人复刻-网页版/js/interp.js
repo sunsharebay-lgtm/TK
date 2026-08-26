@@ -50,7 +50,7 @@ class Game_CharacterBase {
   }
   updateAnimation() {
     if (this.isMoving() && this._walkAnime) {
-      this._animationCount += (this._moveSpeed >= 5 ? 1 : 0.5) + this._moveSpeed * 0.06;
+      this._animationCount += ((this._moveSpeed >= 5 ? 0.5 : 0.26) + this._moveSpeed * 0.032);   // 放缓行走摇晃
     } else if (this._stepAnime || this.isMoving()) {
       this._animationCount += 0.12;
     } else return;

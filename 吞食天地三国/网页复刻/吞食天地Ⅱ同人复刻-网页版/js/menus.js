@@ -23,6 +23,7 @@ function drawActorRow(win, ctx, a, y) {
 /* ---------------- 主菜单 ---------------- */
 class Scene_Menu {
   constructor() {
+    for (const a of $gameParty.battleMembers()) T.loadFace(a.faceName);   // 菜单预载头像
     this.commandWindow = new Window_Selectable(8, 8, 180, 260);
     this.commandWindow.itemMax = 6;
     this.commandWindow.fontSize = 24;
@@ -84,11 +85,13 @@ class Scene_Menu {
 /* ---------------- 物品 ---------------- */
 class Scene_Item {
   constructor() {
+    for (const a of $gameParty.battleMembers()) T.loadFace(a.faceName);
     this.window = new Window_Selectable(8, 8, 500, T.SCREEN_H - 16);
-    this.window.fontSize = 22;
+    this.window.fontSize = 20;   // 行高更紧凑，一屏能看到更多物品
     this.descWindow = new Window_Base(514, 8, T.SCREEN_W - 522, 120);
     this.memberWindow = new Window_Selectable(514, 132, T.SCREEN_W - 522, T.SCREEN_H - 140);
-    this.memberWindow.fontSize = 22;
+    this.memberWindow.fontSize = 20;
+    this.mode = "list";
     this.refreshList();
   }
   refreshList() {
@@ -99,22 +102,37 @@ class Scene_Item {
   }
   currentItem() { return this.items[this.window.index]; }
   update() {
-    this.window.updateInput();
+    if (this.mode === "target" && this.memberWindow.active) {
+      // 目标选择模式：仅成员窗响应
+    } else {
+      this.window.updateInput();
+    }
+    if (this.mode === "target") {
+      this.memberWindow.updateInput();
+      if (T.Input.triggered("cancel")) { this.mode = "list"; T.AudioManager.playSe({ name: "Cancel", volume: 50 }); return; }
+      if (T.Input.triggered("ok")) {
+        const members = $gameParty.battleMembers();
+        const item = this.currentItem();
+        const target = members[this.memberWindow.index % members.length];
+        if (item && target && !target.isDead() && this.useItem(item, target)) {
+          $gameParty.consumeItem(item);
+          T.AudioManager.playSe({ name: "Recovery", volume: 80 });
+          T.$gameMessage.add(`使用「${item.name}」！`);
+          this.refreshList();
+          if (!this.items.length) { this.mode = "list"; return; }
+        } else T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
+      }
+      return;
+    }
     if (T.Input.triggered("cancel")) { T.SceneManager.popScene(); return; }
     if (!this.items.length) { if (T.Input.triggered("ok")) T.SceneManager.popScene(); return; }
     const item = this.currentItem();
     if (T.Input.triggered("ok")) {
-      if (T.$dataItems.includes(item)) {
-        // 选择目标成员使用
-        const target = $gameParty.battleMembers().find(a => !a.isDead());
-        if (target && this.useItem(item, target)) {
-          $gameParty.consumeItem(item);
-          T.AudioManager.playSe({ name: "Recovery", volume: 80 });
-          this.refreshList();
-        } else T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
-      } else {
-        T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
-      }
+      if (T.$dataItems.includes(item) && $gameParty.battleMembers().some(a => !a.isDead())) {
+        this.mode = "target";
+        this.memberWindow.index = 0;
+        T.AudioManager.playSe({ name: "Cursor", volume: 50 });
+      } else T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
     }
   }
   useItem(item, target) {
@@ -151,19 +169,32 @@ class Scene_Item {
     if (it) this.descWindow.drawRichText(ctx, it.description || it.name, this.descWindow.innerX, this.descWindow.innerY + 8);
     this.memberWindow.draw(ctx);
     let ry = this.memberWindow.innerY + 8;
-    for (const a of $gameParty.battleMembers()) { drawActorRow(this.memberWindow, ctx, a, ry); ry += 88; }
+    const members = $gameParty.battleMembers();
+    for (let i = 0; i < members.length; i++) {
+      drawActorRow(this.memberWindow, ctx, members[i], ry + i * 88);
+      if (this.mode === "target" && i === this.memberWindow.index % members.length) {
+        ctx.save();
+        ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2;
+        ctx.strokeRect(this.memberWindow.innerX + 2, ry + i * 88 - 8, this.memberWindow.w - 6, 84);
+        ctx.restore();
+      }
+    }
   }
 }
 
 /* ---------------- 技能 ---------------- */
 class Scene_Skill {
   constructor(actor) {
-    this.actor = actor;
+    this.members = $gameParty.battleMembers();
+    this.memberIndex = Math.max(0, this.members.indexOf(actor));
+    this.actor = this.members[this.memberIndex] || actor;
+    for (const a of this.members) T.loadFace(a.faceName);
+    this.mode = "list";
     this.typeWindow = new Window_Selectable(8, 8, 220, 96);
     this.listWindow = new Window_Selectable(8, 108, 500, T.SCREEN_H - 116);
     this.listWindow.fontSize = 22;
     this.descWindow = new Window_Base(514, 8, T.SCREEN_W - 522, 130);
-    this.memberWindow = new Window_Selectable(514, 142, T.SCREEN_W - 522, 200);
+    this.memberWindow = new Window_Selectable(514, 142, T.SCREEN_W - 522, T.SCREEN_H - 150);
     this.memberWindow.fontSize = 22;
     this.types = ["攻击", ...[...actor.addedSkillTypes()].map(id => T.$dataSystem.skillTypes[id]).filter(Boolean)];
     this.typeIndex = 0;
@@ -189,11 +220,78 @@ class Scene_Skill {
       if (T.Input.triggered("up") && this.listWindow.index === 0) { this.typeWindow.active = true; this.listWindow.active = false; }
     }
     if (T.Input.triggered("cancel")) { T.SceneManager.popScene(); return; }
+    if (T.Input.repeated("pageup")) { this.memberIndex = (this.memberIndex - 1 + this.members.length) % this.members.length; this.actor = this.members[this.memberIndex]; this.refresh(); T.AudioManager.playSe({ name: "Cursor", volume: 50 }); return; }
+    if (T.Input.repeated("pagedown")) { this.memberIndex = (this.memberIndex + 1) % this.members.length; this.actor = this.members[this.memberIndex]; this.refresh(); T.AudioManager.playSe({ name: "Cursor", volume: 50 }); return; }
     if (T.Input.triggered("ok")) {
       const s = this.skills[this.listWindow.index];
-      if (s) this.pendingSkill = s;   // 菜单中仅查看；战斗内另有处理
-      else T.AudioManager.playSe({ name: "Buzzer", volume: 50 });
+      if (!s) { T.AudioManager.playSe({ name: "Buzzer", volume: 50 }); return; }
+      const scope = s.scope ?? (s.damage ? s.damage.scope : null) ?? 1;
+      if ([1, 2, 9].includes(scope)) {   // 攻击敌方类：战斗外不可用
+        T.AudioManager.playSe({ name: "Buzzer", volume: 50 });
+        T.$gameMessage.add("该技能只能在战斗中使用！");
+        return;
+      }
+      if (this.actor.mp < (s.mpCost || 0)) { T.AudioManager.playSe({ name: "Buzzer", volume: 50 }); T.$gameMessage.add("谋点不足！"); return; }
+      if ([7, 11, 14].includes(scope)) {     // 单体我方：选目标
+        this.pendingSkill = s;
+        this.mode = "target";
+        this.memberWindow.index = 0;
+        T.AudioManager.playSe({ name: "Cursor", volume: 50 });
+      } else {                              // 自身/全体
+        this.applySkillOutOfBattle(s, scope === 8 || scope === 10 ? this.members.filter(a => !a.isDead()) : [this.actor]);
+      }
     }
+    if (this.mode === "target") {
+      this.memberWindow.updateInput();
+      if (T.Input.triggered("cancel")) { this.mode = "list"; T.AudioManager.playSe({ name: "Cancel", volume: 50 }); }
+      if (T.Input.triggered("ok")) {
+        const members = this.members.filter(a => !a.isDead());
+        const t = members[this.memberWindow.index % members.length];
+        if (t) { this.applySkillOutOfBattle(this.pendingSkill, [t]); this.mode = "list"; }
+      }
+    }
+  }
+  applySkillOutOfBattle(skill, targets) {
+    this.actor.paySkillCost(skill);
+    T.$gameMessage.add("使用「" + skill.name + "」！");
+    const dmg = skill.damage || {};
+    for (const target of targets) {
+      /* damage 型恢复（赤心计等 kind=3/4） */
+      if (dmg.type === 3 || dmg.type === 4) {
+        try {
+          let v = T.evalFormula(dmg.formula, this.actor, target);
+          v = Math.max(0, Math.round(v));
+          if (dmg.type === 3) {
+            target.hp += v;
+            if (target.isDead() && target.hp > 0) target.revive();
+            T.$gameMessage.add("「" + target.name + "」恢复了 " + v + " 兵力");
+          } else { target.mp += v; }
+        } catch (e) { console.warn("skill-menu-formula:", e.message); }
+      }
+      for (const eff of skill.effects || []) {
+        switch (eff.code) {
+          case 11: {
+            const v = Math.round(eff.value1 * target.mhp + eff.value2);
+            target.hp += v;
+            if (target.isDead() && target.hp > 0) target.revive();
+            T.$gameMessage.add("「" + target.name + "」恢复了 " + v + " 兵力");
+            break;
+          }
+          case 12: { target.mp += Math.round(eff.value1 * target.mmp + eff.value2); break; }
+          case 21: if (!target.isStateAffected(eff.dataId)) target.addStateRaw(eff.dataId); break;
+          case 22: target.removeStateRaw(eff.dataId); break;
+          case 31: target.addBuff(eff.dataId, eff.value2 || 3, false); break;
+          case 32: target.addBuff(eff.dataId, eff.value2 || 3, true); break;
+          case 44: {
+            const msgs = T.runMapCommonEvent(eff.dataId);
+            for (const mt of msgs) T.$gameMessage.add(mt);
+            break;
+          }
+        }
+      }
+    }
+    T.AudioManager.playSe({ name: "Recovery", volume: 80 });
+    this.refresh();
   }
   draw(ctx) {
     T.drawMenuBackdrop(ctx);
@@ -232,6 +330,15 @@ class Scene_Skill {
     }
     this.actorWindow.draw(ctx);
     drawActorRow(this.actorWindow, ctx, this.actor, this.actorWindow.innerY + 26);
+    this.actorWindow.drawText(ctx, "PgUp/PgDn 切换武将", this.actorWindow.innerX + 8, this.actorWindow.h - 26, 240, "left");
+    if (this.mode === "target") {
+      const members = this.members.filter(a => !a.isDead());
+      const idx = this.memberWindow.index % members.length;
+      ctx.save();
+      ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2;
+      ctx.strokeRect(this.memberWindow.innerX + 2, this.memberWindow.innerY + 8 + idx * 88 - 8, this.memberWindow.w - 6, 84);
+      ctx.restore();
+    }
   }
 }
 
@@ -382,8 +489,25 @@ class Scene_Equip {
 
 /* ---------------- 状态 ---------------- */
 class Scene_Status {
-  constructor(actor) { this.actor = actor; this.win = new Window_Base(8, 8, T.SCREEN_W - 16, T.SCREEN_H - 16); this.win.fontSize = 24; }
-  update() { if (T.Input.triggered("cancel") || T.Input.triggered("ok")) T.SceneManager.popScene(); }
+  constructor(actor) {
+    this.members = $gameParty.battleMembers();
+    this.memberIndex = Math.max(0, this.members.indexOf(actor));
+    this.actor = this.members[this.memberIndex] || actor;
+    T.loadFace(this.actor.faceName);
+    this.win = new Window_Base(8, 8, T.SCREEN_W - 16, T.SCREEN_H - 16); this.win.fontSize = 24;
+  }
+  switchMember(d) {
+    if (this.members.length < 2) return;
+    this.memberIndex = (this.memberIndex + d + this.members.length) % this.members.length;
+    this.actor = this.members[this.memberIndex];
+    T.loadFace(this.actor.faceName);
+    T.AudioManager.playSe({ name: "Cursor", volume: 50 });
+  }
+  update() {
+    if (T.Input.repeated("pageup")) this.switchMember(-1);
+    else if (T.Input.repeated("pagedown")) this.switchMember(1);
+    if (T.Input.triggered("cancel") || T.Input.triggered("ok")) T.SceneManager.popScene();
+  }
   draw(ctx) {
     T.drawMenuBackdrop(ctx);
     this.win.draw(ctx);
@@ -392,6 +516,7 @@ class Scene_Status {
     const cx = this.win.innerX + 170;
     let y = this.win.innerY + 4;
     this.win.drawText(ctx, `${a.name}`, cx, y); y += 44;
+    if (this.members.length > 1) { this.win.drawText(ctx, "PgUp/PgDn 切换武将", this.win.innerX + 8, this.win.h - 40, 260, "left"); }
     this.win.drawText(ctx, `等级 ${a.level}`, cx, y); y += 44;
     this.win.drawText(ctx, a.profile || "", cx, y); y += 44;
     const stats = [

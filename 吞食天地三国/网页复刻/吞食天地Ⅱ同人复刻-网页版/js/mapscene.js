@@ -172,6 +172,24 @@ T.loadCharImg = async function (name) {
   return T.charImgCache.get(name);
 };
 
+
+/* 跟随显示：>3人显示3人（刘备+2队友），≤3人显示实际人数 */
+class FollowerChar {
+  constructor(actor) {
+    this.actor = actor;
+    this._realX = 0; this._realY = 0; this._moving = false;
+    this._direction = 2;
+    this._pattern = 1;
+  }
+  x() { return this._tx; } y() { return this._ty; }
+  direction() { return this._direction; }
+  pattern() { return this._pattern; }
+  imageInfo() { return { name: "$" + (this.actor.svBattlerName ? this.actor.svBattlerName() : ""), index: 0 }; }
+  isMoving() { return this._moving; }
+  get _transparent() { return false; }
+  get _erased() { return false; }
+}
+
 class Sprite_Character {
   constructor(chr) {
     this.chr = chr;
@@ -231,6 +249,9 @@ class Scene_Map {
     this.sprites = new Map();
     for (const ev of T.$gameMap.events) this.sprites.set(ev.eventId, new Sprite_Character(ev));
     this.playerSprite = new Sprite_Character(T.$gamePlayer);
+    this.followerSprites = [];
+    this._trail = [];
+    this._lastTrailKey = "";
     this.messageWindow = new Window_Message();
     this.goldWindow = new Window_Gold(8, 8, 160);
     this.goldWindow.close();
@@ -347,9 +368,42 @@ class Scene_Map {
       this.checkEncounter();
     }
 
+    this.updateFollowers();
     /* 同步精灵图像 */
     for (const sp of this.sprites.values()) sp.syncImage();
     this.syncPlayerSprite();
+  }
+  updateFollowers() {
+    const members = T.$gameParty.battleMembers();
+    const count = Math.min(Math.max(0, members.length - 1), 2);
+    if (!count) return;
+    const p = T.$gamePlayer;
+    const key = Math.round(p.x) + ',' + Math.round(p.y);
+    if (key !== this._lastTrailKey) {
+      this._trail.unshift({ x: Math.round(p.x), y: Math.round(p.y), d: p.direction() });
+      if (this._trail.length > 30) this._trail.pop();
+      this._lastTrailKey = key;
+    }
+    while (this.followerSprites.length < count) this.followerSprites.push(null);
+    this.followerSprites.length = count;
+    for (let i = 0; i < count; i++) {
+      const actor = members[i + 1];
+      let sp = this.followerSprites[i];
+      if (!sp || sp.follow.actor !== actor) { sp = new Sprite_Character(new FollowerChar(actor)); sp.follow = { actor }; this.followerSprites[i] = sp; }
+      const t = this._trail[(i + 1) * 4] || this._trail[this._trail.length - 1];
+      const ch = sp.chr;
+      if (t) {
+        const tx = t.x + 0.5, ty = t.y + 0.5;
+        ch._tx = t.x; ch._ty = t.y;
+        ch._direction = t.d;
+        if (Math.abs(ch._realX - tx) > 0.02 || Math.abs(ch._realY - ty) > 0.02) {
+          ch._realX += Math.max(-0.12, Math.min(0.12, tx - ch._realX));
+          ch._realY += Math.max(-0.12, Math.min(0.12, ty - ch._realY));
+          ch._moving = true;
+          ch._pattern = (ch._pattern || 1) % 2 === 1 ? 2 : 0;
+        } else { ch._moving = false; ch._pattern = 1; }
+      }
+    }
   }
   syncPlayerSprite() {
     const ps = this.playerSprite;
@@ -429,6 +483,8 @@ class Scene_Map {
     ctx.translate(shx, 0);
     this.tilemap.drawLayer(ctx, 0, cam.x, cam.y);
     this.tilemap.drawLayer(ctx, 1, cam.x, cam.y);
+    const cam2 = this.camPos();
+    for (const sp of this.followerSprites || []) { if (sp) sp.draw(ctx, cam2.x, cam2.y); }
     /* 低于角色层（priorityType 0）的事件：先画，作为地面装饰 */
     const below = [...this.sprites.entries()]
       .filter(([id]) => { const ev = T.$gameMap.event(id); return ev && !ev._erased && ev.priorityType() === 0; })
