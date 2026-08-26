@@ -223,6 +223,13 @@ class Game_BattlerBase {
     this._buffs[pid] = { level: lv, turns };
   }
   removeBuff(pid) { delete this._buffs[pid]; }
+  /* G3-R3: 永久成长（道具效果码 42：蛇胆/武力石/智力石/速度石/统率石）
+     累加到 _paramBonus（param() 已并入结算），随存档持久化 */
+  growParam(pid, n) {
+    this._paramBonus = this._paramBonus || {};
+    this._paramBonus[pid] = (this._paramBonus[pid] || 0) + (n || 0);
+    return this._paramBonus[pid];
+  }
   isBuffAffected(pid) { return this.buffLevel(pid) !== 0; }
   updateBuffsTurns() {
     for (const pid in this._buffs) {
@@ -783,7 +790,9 @@ function serializeActors(ids) {
     const a = T.getActor(id);
     return { id: a.actorId, level: a.level, hp: a.hp, mp: a.mp, exp: a.exp, equips: a._equips,
              /* G3-R2: 天赋/称号并入存档 */
-             talents: a._ownTalents, chengHao: a._chengHao };
+             talents: a._ownTalents, chengHao: a._chengHao,
+             /* G3-R3: 永久成长（蛇胆/武力石等）并入存档 */
+             paramBonus: a._paramBonus };
   });
 }
 T.saveGame = async function (slot) {
@@ -847,6 +856,7 @@ T.loadGame = async function (slot) {
     a._equips = snap.equips || {};
     a._ownTalents = snap.talents || [];
     a._chengHao = snap.chengHao || [];
+    a._paramBonus = snap.paramBonus || {};
     a.refresh();
     a.hp = snap.hp; a.mp = snap.mp;
   }

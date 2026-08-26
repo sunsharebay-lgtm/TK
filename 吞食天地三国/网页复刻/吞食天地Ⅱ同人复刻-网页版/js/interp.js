@@ -134,6 +134,13 @@ class MoveRouteExecutor {
       case 29: c._moveSpeed = p[0]; return true;
       case 33: return c.moveStraight(c.direction());
       case 34: { const opp = { 2: 8, 8: 2, 4: 6, 6: 4 }; return c.moveStraight(opp[c.direction()] || 2); }
+      case 14: { // G3-R3: 位置相对移动（TNW 路线扩展命令 [dx,dy]）
+        const m = T.$gameMap;
+        const w = m ? m.width - 1 : 999, h = m ? m.height - 1 : 999;
+        c.x = T.clamp((c.x || 0) + (p[0] || 0), 0, Math.max(0, w));
+        c.y = T.clamp((c.y || 0) + (p[1] || 0), 0, Math.max(0, h));
+        return true;
+      }
       case 37: c._stepAnime = true; return true;
       case 38: c._stepAnime = false; return true;
       case 39: c._walkAnime = true; return true;
@@ -643,6 +650,11 @@ class Game_Interpreter {
         return false;
       }
       case 202: return this.commandSetEventLocation(p);
+      case 204: { // G3-R3: 事件位置变更扩展（TNW 数据 [eventId,x,y,...]，与 202 同语义宽化；推定参数位）
+        const ch = this.character(p[0]);
+        if (ch && p[1] != null && p[2] != null) { ch.x = p[1]; ch.y = p[2]; }
+        return true;
+      }
       case 205: { // 移动路线
         const ch = this.character(p[0]);
         if (ch) ch.forceMoveRoute(p[1]);
