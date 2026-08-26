@@ -781,13 +781,15 @@ T.resetGameState();
 function serializeActors(ids) {
   return ids.map(id => {
     const a = T.getActor(id);
-    return { id: a.actorId, level: a.level, hp: a.hp, mp: a.mp, exp: a.exp, equips: a._equips };
+    return { id: a.actorId, level: a.level, hp: a.hp, mp: a.mp, exp: a.exp, equips: a._equips,
+             /* G3-R2: 天赋/称号并入存档 */
+             talents: a._ownTalents, chengHao: a._chengHao };
   });
 }
 T.saveGame = async function (slot) {
   T.$gameSystem.framesOnSave = T.GameMain ? T.GameMain.frameCount : 0;
   const snap = {
-    version: 1,
+    version: 2,
     system: T.$gameSystem,
     switches: T.$gameSwitches._data,
     variables: T.$gameVariables._data,
@@ -797,6 +799,12 @@ T.saveGame = async function (slot) {
       gold: T.$gameParty._gold, items: T.$gameParty._items,
       weapons: T.$gameParty._weapons, armors: T.$gameParty._armors,
       actors: T.$gameParty._actors, lastItem: T.$gameParty._lastItem ? T.$gameParty._lastItem.id : 0,
+      /* G3-R2: c718918 新增字段并入存档 v2（旧档缺失时读取侧给默认值） */
+      formation: T.$gameParty._formation,
+      surrendered: T.$gameParty._surrendered,
+      winPoint: T.$gameParty._winPoint,
+      pvpLevel: T.$gameParty._pvpLevel,
+      pvpCount: T.$gameParty._pvpCount,
     },
     actorSnapshots: serializeActors(T.$gameParty._actors),
     mapId: T.$gameMap ? T.$gameMap.mapId : 1,
@@ -827,10 +835,18 @@ T.loadGame = async function (slot) {
   T.$gameParty._armors = s.party.armors || {};
   T.$gameParty._actors = s.party.actors || [];
   T.$gameParty._lastItem = null;
+  /* G3-R2: 恢复 c718918 新字段（v1 旧档缺失 → 默认值） */
+  T.$gameParty._formation = (s.party.formation != null) ? s.party.formation : -1;
+  T.$gameParty._surrendered = s.party.surrendered || [];
+  T.$gameParty._winPoint = s.party.winPoint || 0;
+  T.$gameParty._pvpLevel = s.party.pvpLevel || 0;
+  T.$gameParty._pvpCount = s.party.pvpCount || 0;
   for (const snap of (s.actorSnapshots || [])) {
     const a = T.getActor(snap.id);
     a.level = snap.level; a.exp = snap.exp || a.expForLevel(snap.level);
     a._equips = snap.equips || {};
+    a._ownTalents = snap.talents || [];
+    a._chengHao = snap.chengHao || [];
     a.refresh();
     a.hp = snap.hp; a.mp = snap.mp;
   }
