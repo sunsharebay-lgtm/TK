@@ -1,0 +1,1 @@
+["(async()=>{for(let i=0;i<40;i++){if(T.$gameMap&&T.$gameParty&&T.$gameParty._actors.length)break;await new Promise(r=>setTimeout(r,250));}localStorage.removeItem('tndt_save_0');if(!(T.SceneManager.current()&&T.SceneManager.current().constructor.name==='Scene_SaveLoad'))T.SceneManager.push(new T.Scene_SaveLoad('save'));return 'save-scene-open';})()"]
