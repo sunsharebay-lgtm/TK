@@ -1,0 +1,1 @@
+["(async()=>{for(let i=0;i<50;i++){if(T.$gameMap&&T.$gameParty&&T.$gameParty._actors.length)break;await new Promise(r=>setTimeout(r,250));}localStorage.removeItem('tndt_save_0');T.$gameParty.gainGold(77);T.$gameParty.gainItem(T.$dataItems[21],1);await T.saveGame(0);return 'saved:'+T.$gameParty.gold();})()"]

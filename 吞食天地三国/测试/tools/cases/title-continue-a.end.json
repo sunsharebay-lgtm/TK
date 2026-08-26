@@ -1,0 +1,1 @@
+["(()=>{return JSON.stringify({saved:T.hasSaveFile(0),ver:T.hasSaveFile(0)?T.saveInfo(0).version:null,gold:T.$gameParty.gold(),scene:T.SceneManager.current()?T.SceneManager.current().constructor.name:null});})()"]

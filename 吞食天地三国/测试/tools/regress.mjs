@@ -21,6 +21,7 @@ const CASES = [
   { name: "ch1-victory", url: BASE,                  dur: 10000, keys: "",                  pre: "cases/ch1-victory.pre.json", end: "cases/ch1-victory.end.json" },
   { name: "storage",     url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 6000, keys: "Enter:400:2", pre: "cases/storage.pre.json", end: "cases/storage.end.json" },
   { name: "shop",         url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "",                  pre: "cases/shop.pre.json",       end: "cases/shop.end.json" },
+  { name: "title-continue", url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 12000, pre: "cases/title-continue-a.pre.json", end: "cases/title-continue-b.end.json", mid: "cases/title-continue.mid.json", midAt: 4000 },
   { name: "equip-8slot", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 12000, keys: "Enter:300:4", pre: "cases/equip-8slot.pre.json", end: "cases/equip-8slot.end.json", custom: "equip8" },
 ];
 
@@ -52,6 +53,7 @@ for (const c of CASES) {
     "--out", "/tmp/regress-" + c.name,
   ];
   if (c.keys) args.push("--keys", c.keys);
+  if (c.mid) args.push("--mid-eval-file", path.join(__dirname, c.mid), "--mid-at", String(c.midAt || 3000));
   const r = spawnSync("node", args, { encoding: "utf8", timeout: 240000 });
   const raw = r.stdout || "";
   let data = null;
