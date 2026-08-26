@@ -24,10 +24,10 @@ function drawActorRow(win, ctx, a, y) {
 class Scene_Menu {
   constructor() {
     for (const a of $gameParty.battleMembers()) T.loadFace(a.faceName);   // 菜单预载头像
-    this.commandWindow = new Window_Selectable(8, 8, 180, 260);
-    this.commandWindow.itemMax = 6;
+    this.commandWindow = new Window_Selectable(8, 8, 180, 300);
+    this.commandWindow.itemMax = 7;
     this.commandWindow.fontSize = 24;
-    this.commands = ["物品", "技能", "装备", "状态", "存档", "离开"];
+    this.commands = ["物品", "技能", "装备", "编成", "状态", "存档", "离开"];
     this.statusWindow = new Window_Selectable(196, 8, T.SCREEN_W - 204, T.SCREEN_H - 16);
     this.statusWindow.fontSize = 22;
     this.goldWindow = new Window_Gold(8, T.SCREEN_H - 60, 180);
@@ -51,13 +51,14 @@ class Scene_Menu {
           if (m) T.SceneManager.push(new Scene_Equip(m));
           break;
         }
-        case 3: {
+        case 3: T.SceneManager.push(new Scene_Lineup()); break;   // G3-R8: 编成
+        case 4: {
           const m = $gameParty.battleMembers()[0] || $gameParty.allMembers()[0];
           if (m) T.SceneManager.push(new Scene_Status(m));
           break;
         }
-        case 4: T.SceneManager.push(new Scene_Save()); break;
-        case 5: T.SceneManager.popScene(); break;
+        case 5: T.SceneManager.push(new Scene_Save()); break;
+        case 6: T.SceneManager.popScene(); break;
       }
     }
   }
@@ -612,6 +613,74 @@ class Scene_Storage {
 }
 T.openStorage = function () { T.SceneManager.push(new T.Scene_Storage()); };
 
+/* ---------------- 编成（出战/候补 换人；武将超 5 人时的首发选择） ---------------- */
+class Scene_Lineup {
+  constructor() {
+    for (const a of $gameParty.allMembers()) T.loadFace(a.faceName);
+    this.lwin = new Window_Selectable(8, 60, 400, T.SCREEN_H - 68);
+    this.rwin = new Window_Selectable(416, 60, T.SCREEN_W - 424, T.SCREEN_H - 68);
+    this.lwin.fontSize = 18; this.rwin.fontSize = 18;
+    this.side = 0;
+    this.refresh();
+    T.AudioManager.playSe({ name: "Equip1", volume: 60 });
+  }
+  refresh() {
+    this.all = $gameParty.allMembers();
+    this.act = this.all.slice(0, T.MAX_BATTLE_MEMBERS);
+    this.bench = this.all.slice(T.MAX_BATTLE_MEMBERS);
+    this.lwin.itemMax = this.act.length;
+    this.rwin.itemMax = Math.max(1, this.bench.length);
+    this.lwin.index = T.clamp(this.lwin.index || 0, 0, Math.max(0, this.act.length - 1));
+    this.rwin.index = T.clamp(this.rwin.index || 0, 0, Math.max(0, this.bench.length - 1));
+  }
+  update() {
+    if (T.Input.triggered("cancel")) { T.AudioManager.playSe({ name: "Cancel", volume: 50 }); T.SceneManager.popScene(); return; }
+    if (T.Input.triggered("left")) { this.side = 0; this.lwin.updateInput(); return; }
+    if (T.Input.triggered("right")) { this.side = 1; this.rwin.updateInput(); return; }
+    const w = this.side === 0 ? this.lwin : this.rwin;
+    w.updateInput();
+    if (T.Input.triggered("ok")) {
+      const ia = this.lwin.index, ib = this.rwin.index;
+      const aId = this.act[ia] ? this.act[ia].actorId : null;
+      const bId = this.bench[ib] ? this.bench[ib].actorId : null;
+      if (aId != null && bId != null) {
+        const ids = $gameParty._actors;
+        const pa = ids.indexOf(aId), pb = ids.indexOf(bId);
+        if (pa >= 0 && pb >= 0) { ids[pa] = bId; ids[pb] = aId; }
+        T.$gameMessage.add(`编成变更：${T.$dataActors[aId].name} ↔ ${T.$dataActors[bId].name}`);
+        T.AudioManager.playSe({ name: "Equip1", volume: 70 });
+        this.refresh();
+      } else T.AudioManager.playSe({ name: "Buzzer", volume: 50 });
+    }
+  }
+  draw(ctx) {
+    T.drawMenuBackdrop(ctx);
+    this.lwin.draw(ctx); this.rwin.draw(ctx);
+    this.lwin.drawText(ctx, `—— 出战（${this.act.length}/${T.MAX_BATTLE_MEMBERS}） ——`, this.lwin.innerX, this.lwin.innerY + 2, this.lwin.innerW, "center");
+    this.rwin.drawText(ctx, "—— 候补 ——", this.rwin.innerX, this.rwin.innerY + 2, this.rwin.innerW, "center");
+    let y = this.lwin.innerY + 24;
+    for (const a of this.act) {
+      if (y > this.lwin.y + this.lwin.h - 24) break;
+      this.lwin.drawText(ctx, a.name, this.lwin.innerX + 8, y);
+      this.lwin.drawText(ctx, `Lv${a.level}`, this.lwin.innerX + 330, y, 60, "right");
+      y += this.lwin.itemHeight();
+    }
+    this.lwin.drawCursorBox(ctx);
+    let y2 = this.rwin.innerY + 24;
+    for (const a of this.bench) {
+      if (y2 > this.rwin.y + this.rwin.h - 24) break;
+      this.rwin.drawText(ctx, a.name, this.rwin.innerX + 8, y2);
+      this.rwin.drawText(ctx, `Lv${a.level}`, this.rwin.innerX + 330, y2, 60, "right");
+      y2 += this.rwin.itemHeight();
+    }
+    this.rwin.drawCursorBox(ctx);
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(8, T.SCREEN_H - 34, T.SCREEN_W - 16, 28);
+    ctx.fillStyle = "#ffd24d"; ctx.font = "18px 'PingFang SC',sans-serif";
+    ctx.fillText(`${this.side === 0 ? "回车 → 换下候补" : "回车 → 换上出战"}    左右切换   Esc 关闭`, 16, T.SCREEN_H - 14);
+  }
+}
+T.openLineup = function () { T.SceneManager.push(new T.Scene_Lineup()); };
+
 /* ---------------- 存读档 ---------------- */
 class Scene_SaveLoad {
   constructor(mode) {
@@ -739,4 +808,4 @@ class Scene_Shop {
 }
 
 /* 类导出 */
-Object.assign(T, { Scene_Menu, Scene_Item, Scene_Skill, Scene_Equip, Scene_Status, Scene_Save, Scene_Load, Scene_Shop, Scene_Storage });
+Object.assign(T, { Scene_Menu, Scene_Item, Scene_Skill, Scene_Equip, Scene_Status, Scene_Save, Scene_Load, Scene_Shop, Scene_Storage, Scene_Lineup });
