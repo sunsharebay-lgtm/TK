@@ -1,0 +1,1 @@
+["(()=>{T.SceneManager.push(new T.Scene_Skill(T.$gameParty.battleMembers()[0]));return 'skill-open';})()"]
