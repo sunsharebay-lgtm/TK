@@ -29,6 +29,7 @@ const CASES = [
   { name: "defeat-recover", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 9000, keys: "Enter:250:3", pre: "cases/defeat-recover.pre.json", end: "cases/defeat-recover.end.json" },
   { name: "tactic-formula", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 8000, keys: "Enter:250:3", pre: "cases/tactic-formula.pre.json", end: "cases/tactic-formula.end.json" },
   { name: "battle-item",   url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 7000, keys: "Enter:250:3", pre: "cases/battle-item.pre.json",   end: "cases/battle-item.end.json" },
+  { name: "battle-scope",  url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 8000, keys: "Enter:250:3", pre: "cases/battle-scope.pre.json",  end: "cases/battle-scope.end.json" },
   { name: "equip-8slot", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 12000, keys: "Enter:300:4", pre: "cases/equip-8slot.pre.json", end: "cases/equip-8slot.end.json", custom: "equip8" },
 ];
 
