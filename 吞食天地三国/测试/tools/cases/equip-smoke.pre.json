@@ -1,0 +1,1 @@
+["(()=>{const a=T.$gameParty.battleMembers()[0];T.SceneManager.push(new T.Scene_Equip(a));return 'equip-open:'+a.name;})()"]
