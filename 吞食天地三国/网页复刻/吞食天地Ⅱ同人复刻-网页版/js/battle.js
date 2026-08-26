@@ -445,8 +445,18 @@ class Scene_Battle {
     switch (a.conditionType) {
       case 0: return true;
       case 1: return hpRate >= (a.conditionParam1 || 0) / 100;
-      case 2: return hpRate <= (a.conditionParam1 || 100) / 100;
-      case 3: return true;                     // MP 条件简化
+      /* G3-R9: 比例条件纳入 param2（数据实证：type2 290条 param2=0.5 低血回复计，
+         type3 290条 param2=0.2 低蓝回蓝计；引擎此前忽略 param2 导致敌人满血乱放回复/回蓝永远可用）。
+         阈值取 param2>0 优先，回退 param1/100；param1=0 无 param2 → 恒真（兼容旧行为）。 */
+      case 2: {
+        const thr = (a.conditionParam2 > 0) ? a.conditionParam2 : (a.conditionParam1 || 100) / 100;
+        return hpRate <= thr;
+      }
+      case 3: {
+        const mpRate = e.mmp > 0 ? e.mp / e.mmp : 0;
+        const thr = (a.conditionParam2 > 0) ? a.conditionParam2 : (a.conditionParam1 || 100) / 100;
+        return mpRate <= thr;
+      }
       case 4: return e.isStateAffected(a.conditionParam1);
       case 5: return $gameParty.highestLevel() >= a.conditionParam1;
       case 6: return T.$gameSwitches.value(a.conditionParam1);
