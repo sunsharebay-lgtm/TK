@@ -447,6 +447,25 @@ class Game_Actor extends Game_Battler {
     return (this.cls().learnings || []).filter(l => l.level === level).map(l => l.skillId);
   }
   takeLevelUpReport() { const r = this._lastLevelUps || []; this._lastLevelUps = []; return r; }
+  /* G3-R1: 直接设定绝对等级（数据脚本 actor.changeLevel(level, show)：剧情升/降级、二周目重置）。
+     与 changeExp 不同——不依赖经验值，直接把 level 设为目标；show=false 时不产出升级播报 */
+  changeLevel(level, show) {
+    const target = T.clamp(Math.round(level) || 1, 1, this.maxLevel);
+    const delta = target - this.level;
+    this.level = target;
+    this.refresh();
+    if (show !== false && delta > 0) {
+      this._lastLevelUps = this._lastLevelUps || [];
+      this._lastLevelUps.push({ level: this.level, learned: this.newSkillsAt(this.level) });
+    }
+    return this.level;
+  }
+  /* G3-R1: 武将天赋持有（数据脚本 actor.addOwnTalent(id)；天赋系统主体留待后续，先落存储避免脚本失效） */
+  addOwnTalent(id) {
+    this._ownTalents = this._ownTalents || [];
+    if (id != null && !this._ownTalents.includes(id)) this._ownTalents.push(id);
+    return this._ownTalents;
+  }
   skills() {
     const ids = (this.cls().learnings || []).filter(l => l.level <= this.level)
       .sort((x, y) => x.level - y.level).map(l => l.skillId);
@@ -580,10 +599,35 @@ class Game_Party {
     this._items = {}; this._weapons = {}; this._armors = {};
     this._actors = []; this._lastItem = null;
   }
-  get gold() { return this._gold; }
+  /* 数据脚本以方法调用形式使用 $gameParty.gold()（else 属 getter 兼容失败），故定义为方法 */
+  gold() { return this._gold; }
   gainGold(n) { this._gold = T.clamp(this._gold + n, 0, 99999999); }
   loseGold(n) { this.gainGold(-n); }
   maxGold() { return 99999999; }
+  /* G3-R1: 客栈价格（数据脚本 $gameParty.innPrice(rate)，rate=城镇档位 1/2/3/5）。
+     公式为推定值（基础4金/档，待原版实机比对），与部分客栈硬编码 var6=4 一致 */
+  innPrice(rate) { return Math.max(1, Math.round(rate || 0)) * 4; }
+  /* G3-R1: 收服敌将（颜良/文丑等投诚系统；数据脚本 addSurrenderedEnemy/hasSurrenderedEnemy） */
+  addSurrenderedEnemy(id) { this._surrendered = this._surrendered || []; if (!this._surrendered.includes(id)) this._surrendered.push(id); return true; }
+  hasSurrenderedEnemy(id) { return (this._surrendered || []).includes(id); }
+  /* G3-R1: 胜点/剧情等级/pvp 计数（数据脚本引用，最小存储语义） */
+  gainWinPoint(n) { this._winPoint = (this._winPoint || 0) + (n || 1); return this._winPoint; }
+  changePvpLevel(n) { this._pvpLevel = T.clamp((this._pvpLevel || 0) + (n || 0), 0, 99); return this._pvpLevel; }
+  addPvpCount() { this._pvpCount = (this._pvpCount || 0) + 1; return this._pvpCount; }
+  /* G3-R1: 战斗中/菜单武将访问（数据脚本引用） */
+  inBattle() { return !!T.BattleScene; }
+  menuActor() { return this._menuActor || this.battleMembers()[0] || null; }
+  /* G3-R1: 称号（封号）装备/隐藏（数据脚本 changeEquipChengHao/hideChengHao，最小存储：穿戴即替换） */
+  changeEquipChengHao(actorId, chengHaoId) {
+    const a = T.getActor(actorId);
+    if (a) a._chengHao = [chengHaoId];
+    return a;
+  }
+  hideChengHao(actorId) {
+    const a = T.getActor(actorId);
+    if (a) a._chengHao = [];
+    return a;
+  }
   items() { return Object.keys(this._items).map(id => T.$dataItems[+id]); }
   weapons() { return Object.keys(this._weapons).map(id => T.$dataWeapons[+id]); }
   armors() { return Object.keys(this._armors).map(id => T.$dataArmors[+id]); }
@@ -621,6 +665,13 @@ class Game_Party {
   goldDouble() { return this.battleMembers().some(a => a.partyAbility(3)); }
   dropDouble() { return this.battleMembers().some(a => a.partyAbility(4)); }
   highestLevel() { return Math.max(0, ...this.battleMembers().map(a => a.level)); }
+  /* G3-R1: 剧情里程碑升/降级（数据脚本 $gameParty.changeLevel(N)，N=绝对目标等级，
+     全队同步到该等级；配合 Game_Actor.changeLevel(level, show) 语义） */
+  changeLevel(lv) {
+    const target = T.clamp(Math.round(lv) || 1, 1, 99);
+    for (const a of this.allMembers()) if (a) a.changeLevel(target, false);
+    return target;
+  }
 }
 
 /* ---------------- 全局状态 ---------------- */
@@ -680,7 +731,20 @@ T.runMapCommonEvent = function (ceId) {
         case 128: if (T.$dataArmors[p[1]]) T.$gameParty.gainItem(T.$dataArmors[p[1]], p[2]); break;
         case 136: T.$gameSwitches.setValue(38, (p[0] || 0) === 0); break;
         case 249: T.AudioManager.playSe({ name: p[0], volume: p[1] != null ? p[1] : 90, pitch: p[2] != null ? p[2] : 100 }); break;
-        case 355: case 655: { try { new Function("with(T){" + p[0] + "}").call(T.scriptContext || {}); } catch (e) { console.warn("map-common-script:", p[0], e.message); } break; }
+        case 355: {
+          /* G3-R1: 多行脚本——655 为续行，收集齐全再执行（此前逐行执行导致 forEach/if 块首行
+             语法错误被吞，CE5 客栈治愈等脚本全部失效） */
+          let script = String(p[0] || "");
+          while (fr.i < list.length) {
+            const nx = list[fr.i];
+            if (nx && nx.code === 655) { script += "\n" + String((nx.parameters || [])[0] || ""); fr.i++; }
+            else break;
+          }
+          try { new Function("with(T){" + script + "}").call(T.scriptContext || {}); }
+          catch (e) { console.warn("map-common-script:", script.slice(0, 80), e.message); }
+          break;
+        }
+        case 655: break;   // 已被 355 收集；游离 655 忽略
         case 357: break;
         case 101: case 401: case 405: { const t = String((c.code === 101 ? p[4] : p[0]) || ""); if (t) msgs.push(t); break; }
         case 102: break;                    // 选择：默认第一项（402 跟随执行）
@@ -705,6 +769,8 @@ T.runMapCommonEvent = function (ceId) {
   T.$gameTimer = new Game_Timer();
   T.$gameMessage = new Game_Message();
   T.$gameParty = new Game_Party();
+  /* G3-R1: 全局角色访问器（数据脚本 $gameActors.actor(id)，此前缺失导致 339 处脚本调用静默抛错） */
+  T.$gameActors = { actor(id) { return T.getActor(id); } };
   T.$gameTroop = null;   // 战斗时创建
   T.$gameMap = null;     // 地图场景创建
   T.$gamePlayer = null;
@@ -778,7 +844,7 @@ T.loadGame = async function (slot) {
 (function installGlobals() {
   const gameKeys = ["$gameTemp", "$gameSystem", "$gameSwitches", "$gameVariables",
     "$gameSelfSwitches", "$gameScreen", "$gameTimer", "$gameMessage",
-    "$gameParty", "$gameTroop", "$gameMap", "$gamePlayer"];
+    "$gameParty", "$gameTroop", "$gameMap", "$gamePlayer", "$gameActors"];
   const dataKeys = ["$dataActors", "$dataClasses", "$dataSkills", "$dataItems",
     "$dataWeapons", "$dataArmors", "$dataEnemies", "$dataTroops", "$dataStates",
     "$dataAnimations", "$dataTilesets", "$dataCommonEvents", "$dataSystem",

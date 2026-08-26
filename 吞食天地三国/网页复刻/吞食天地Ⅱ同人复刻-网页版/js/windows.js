@@ -41,7 +41,7 @@ T.parseEscapes = function (raw) {
         if (m) { cur += `\u3000`; i += 2 + m[0].length; break; } // 图标简化为空位
         cur += ch; i++; break;
       }
-      case "G": cur += `${$gameParty.gold}${T.$dataSystem.currencyUnit || "两"}`; i += 2; break;
+      case "G": cur += `${$gameParty.gold()}${T.$dataSystem.currencyUnit || "两"}`; i += 2; break;
       case ".": cur += ch; pauses.push(cur.length); i += 2; break;
       case "|": cur += ch; pauses.push(cur.length); pauses.push(cur.length); pauses.push(cur.length);
         pauses.push(cur.length); i += 2; break;
@@ -443,7 +443,7 @@ class Window_Gold extends Window_Base {
   draw(ctx) {
     super.draw(ctx);
     const unit = T.$dataSystem.currencyUnit || "两";
-    this.drawText(ctx, `${T.fmt($gameParty.gold)} ${unit}`, this.innerX, this.innerY + 4,
+    this.drawText(ctx, `${T.fmt($gameParty.gold())} ${unit}`, this.innerX, this.innerY + 4,
       this.innerW, "right");
   }
 }

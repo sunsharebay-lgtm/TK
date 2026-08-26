@@ -469,7 +469,7 @@ class Game_Interpreter {
       case 0: return params[base];
       case 1: return T.$gameVariables.value(params[base]);
       case 2: return T.randBetween(Math.min(params[base], params[base + 1]), Math.max(params[base], params[base + 1]));
-      case 4: try { return Math.trunc(new Function(`return (${params[base]})`)()); } catch (e) { return 0; }
+      case 4: try { return Math.trunc(new Function(`with(T){return (${params[base]});}`)()); } catch (e) { return 0; }
       default: return params[base];
     }
   }
@@ -739,10 +739,21 @@ class Game_Interpreter {
       case 331: case 337: return true;            // 敌人相关简化处理
       case 340: return true;
       /* ---- 脚本 ---- */
-      case 355: case 655:
-        try { new Function(`with(T){${p[0]}}`).call(T.scriptContext || {}); }
-        catch (e) { console.warn("script:", p[0], e.message); }
+      /* G3-R1: 多行脚本——655 为 355 的续行，收集齐全后一次执行（此前逐行执行，
+         forEach/if 等块首行语法错误被吞，CE5 客栈治愈等多行脚本全部失效） */
+      case 355: {
+        let scr = String(p[0] || "");
+        const list = this.list;
+        while (this.index < list.length) {
+          const nx = list[this.index];
+          if (nx && nx.code === 655) { scr += "\n" + String((nx.parameters || [])[0] || ""); this.index++; }
+          else break;
+        }
+        try { new Function(`with(T){${scr}}`).call(T.scriptContext || {}); }
+        catch (e) { console.warn("script:", scr.slice(0, 80), e.message); }
         return true;
+      }
+      case 655: return true;                      // 已被 355 收集；游离 655 忽略
       case 357: return true;                      // 插件命令（平台钩子，离线忽略）
       case 136: { // 遇敌禁止开关（护身烟/烟遁计/强身烟链路；0=开启禁止,1=关闭禁止）
         T.$gameSwitches.setValue(38, (p[0] || 0) === 0);
@@ -799,7 +810,7 @@ class Game_Interpreter {
         else result = ch.direction() === p[2];
         break;
       }
-      case 7: result = p[2] === 0 ? $gameParty.gold >= p[1] : $gameParty.gold <= p[1]; break;
+      case 7: result = p[2] === 0 ? $gameParty.gold() >= p[1] : $gameParty.gold() <= p[1]; break;
       case 8: result = $gameParty.hasItem(T.$dataItems[p[1]]) === (p[2] === 0); break;
       case 9: result = $gameParty.itemCount(T.$dataWeapons[p[1]]) > 0 === (p[2] === 0); break;
       case 10: result = $gameParty.itemCount(T.$dataArmors[p[1]]) > 0 === (p[2] === 0); break;
@@ -832,7 +843,7 @@ class Game_Interpreter {
           const o = p[4];
           v = o === 0 ? (T.$gameMap ? T.$gameMap.mapId : 0)
             : o === 1 ? $gameParty._actors.length
-            : o === 2 ? $gameParty.gold
+            : o === 2 ? $gameParty.gold()
             : 0;
           break;
         }
@@ -855,7 +866,7 @@ class Game_Interpreter {
       case 3: { const ac = T.getActor(arg1); return ac ? (arg2 === 0 ? ac.level : arg2 === 1 ? ac.exp : ac.hp) : 0; }
       case 4: { const en = T.BattleScene ? T.BattleScene.enemyAt(arg1) : null; return en ? (arg2 === -1 ? en.hp : en.param(arg2)) : 0; }
       case 5: { const ch = this.character(arg1); return ch ? (arg2 === 0 ? ch.x : arg2 === 1 ? ch.y : ch.direction()) : 0; }
-      case 6: return arg1 === 0 ? $gameParty.gold : arg1 === 1 ? $gameParty.steps() : 0;
+      case 6: return arg1 === 0 ? $gameParty.gold() : arg1 === 1 ? $gameParty.steps() : 0;
       case 7: return arg1 === 0 ? T.$gameMap.mapId : 0;
       default: return 0;
     }

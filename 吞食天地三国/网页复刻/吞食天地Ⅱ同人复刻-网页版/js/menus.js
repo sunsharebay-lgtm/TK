@@ -629,7 +629,7 @@ class Scene_Shop {
     const e = this.entries[this.win.index];
     if (!e) { if (T.Input.triggered("ok")) { T.SceneManager.popScene(); return; } }
     if (T.Input.triggered("ok")) {
-      if ($gameParty.gold >= e.price) {
+      if ($gameParty.gold() >= e.price) {
         $gameParty.loseGold(e.price);
         $gameParty.gainItem(e.item, 1);
         T.AudioManager.playSe({ name: "Shop", volume: 80 });
