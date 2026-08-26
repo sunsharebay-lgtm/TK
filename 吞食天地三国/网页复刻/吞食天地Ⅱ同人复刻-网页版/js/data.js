@@ -236,15 +236,17 @@ class Game_BattlerBase {
     const plus = this.traitsSum(TRAIT.PARAM, i);
     const bonus = (this._paramBonus && this._paramBonus[i]) || 0;
     const equip = this.equipParam(i);
-    const form = this.formationBonus(i);
+    /* G2-R3: 阵型按 FC 语义为【乘算倍率】——对最终属性（基础×成长×buff + 特性 + 装备）整体乘算
+       （此前为 flat 加法，无法表达"背水阵攻2倍/防减半"这类随属性缩放的效果） */
+    const v = Math.round((Math.round(base * rate) + plus + bonus + equip) * this.formationRate(i));
     /* 特性增量（如 0.95/0.05）可能带小数，最终属性一律取整 */
-    return T.clamp(Math.round(Math.round(base * rate) + plus + bonus + equip + form), i === 0 ? 1 : 0, this.paramMax(i));
+    return T.clamp(v, i === 0 ? 1 : 0, this.paramMax(i));
   }
   equipParam(i) { return 0; }
-  /* G2-R2: 阵型加成按阵营隔离——基类归零，我方在 Game_Actor、敌方在 Game_Enemy 分别读取各自的阵型。
+  /* G2-R3: 阵型倍率按阵营隔离——基类恒 1.0（不变），我方在 Game_Actor、敌方在 Game_Enemy 分别读取各自的阵型。
      （此前基类直接读 $gameParty，导致我方摆阵时敌方同受加成，两侧共用一套数值）
-     i=2攻击 3防御 4智力 5抗智 6速度，数值来自 T.FORMATIONS（暂定初版待对照原版校准） */
-  formationBonus(i) { return 0; }
+     i=2攻击 3防御 4智力 5抗智 6速度，数值来自 T.FORMATIONS（倍率，1.0=不变） */
+  formationRate(i) { return 1.0; }
   get mhp() { return this.param(0); } get mmp() { return this.param(1); }
   get atk() { return this.param(2); } get def() { return this.param(3); }
   get mat() { return this.param(4); } get mdf() { return this.param(5); }
@@ -473,11 +475,11 @@ class Game_Actor extends Game_Battler {
     }
     return sum;
   }
-  /* G2-R2: 我方阵型加成（读队伍阵型 $gameParty.setFormation 设置的 T.FORMATIONS 项） */
-  formationBonus(i) {
+  /* G2-R3: 我方阵型倍率（读队伍阵型 $gameParty.setFormation 设置的 T.FORMATIONS 项，1.0=不变） */
+  formationRate(i) {
     const f = T.$gameParty.formation();
-    if (!f) return 0;
-    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 0;
+    if (!f) return 1.0;
+    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 1.0;
   }
   allTraits() {
     let ts = [];
@@ -543,12 +545,12 @@ class Game_Enemy extends Game_Battler {
     for (const st of this.states()) ts = ts.concat(st.traits || []);
     return ts;
   }
-  /* G2-R2: 敌方阵型加成（读敌群阵型 $gameTroop.setFormation 设置的 T.FORMATIONS 项；
-     战斗期 $gameTroop 由 Scene_Battle 绑定，战场外为 null → 0） */
-  formationBonus(i) {
+  /* G2-R3: 敌方阵型倍率（读敌群阵型 $gameTroop.setFormation 设置的 T.FORMATIONS 项，1.0=不变；
+     战斗期 $gameTroop 由 Scene_Battle 绑定，战场外为 null → 1.0） */
+  formationRate(i) {
     const f = T.$gameTroop ? T.$gameTroop.formation() : null;
-    if (!f) return 0;
-    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 0;
+    if (!f) return 1.0;
+    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 1.0;
   }
   battlerImage() {
     if (this.noteTags.svBattler) return { type: "char", name: this.noteTags.svBattler };
@@ -623,22 +625,24 @@ class Game_Party {
 
 /* ---------------- 全局状态 ---------------- */
 T.resetGameState = function () {
-  /* G2: 阵型系统（FC 吞食天地2 机制：全队持续参数加成）
-   数值为暂定初版（攻击/防御/智力/抗智/速度增减），待对照原版数值校准 */
-T.FORMATIONS = [
-  { name: "散开阵",  atk: 0,  def: 0,  mat: 0,  mdf: 0,  agi: 20 },
-  { name: "鹤翼阵",  atk: 15, def: 15, mat: 0,  mdf: 0,  agi: 0 },
-  { name: "冲方阵",  atk: 30, def: -15, mat: 0,  mdf: 0,  agi: 10 },
-  { name: "白马阵",  atk: 10, def: 10, mat: 10, mdf: 10, agi: 10 },
-  { name: "鱼鳞阵",  atk: 20, def: 20, mat: 0,  mdf: 0,  agi: -10 },
-  { name: "锋箭阵",  atk: 25, def: 0,  mat: 0,  mdf: 0,  agi: -15 },
-  { name: "一字阵",  atk: 10, def: 10, mat: 0,  mdf: 20, agi: -25 },
-  { name: "两仪阵",  atk: 0,  def: 0,  mat: 25, mdf: 25, agi: 0 },
-  { name: "雁行阵",  atk: -10, def: 10, mat: 0,  mdf: 0,  agi: 30 },
-  { name: "背水阵",  atk: 40, def: -40, mat: 0,  mdf: -20, agi: 0 },
-  { name: "掎角阵",  atk: -15, def: 25, mat: 15, mdf: 15, agi: 0 },
-  { name: "八卦阵",  atk: 0,  def: 35, mat: 20, mdf: 35, agi: -20 },
-];
+  /* G2-R3: 阵型系统——FC 吞食天地2 机制为【乘算倍率】，对全队/敌群最终属性乘算。
+     数值为按 FC 原版公开机制整定的【推定倍率】（1.0=不变），待原版实机比对校准：
+       散开=极速 鹤翼=攻守兼 冲方=强攻 白马=全面小幅 鱼鳞=重守 锋箭=攻速换
+       一字=守+抗计 两仪=计策强化 雁行=极速(降攻) 背水=攻2倍防减半 掎角=守+智 八卦=重守+计策 */
+  T.FORMATIONS = [
+    { name: "散开阵",  atk: 1.0,  def: 1.0,  mat: 1.0,  mdf: 1.0,  agi: 1.30 },
+    { name: "鹤翼阵",  atk: 1.25, def: 1.25, mat: 1.0,  mdf: 1.0,  agi: 1.0  },
+    { name: "冲方阵",  atk: 1.50, def: 0.85, mat: 1.0,  mdf: 1.0,  agi: 1.10 },
+    { name: "白马阵",  atk: 1.15, def: 1.15, mat: 1.15, mdf: 1.15, agi: 1.15 },
+    { name: "鱼鳞阵",  atk: 1.0,  def: 1.50, mat: 1.0,  mdf: 1.0,  agi: 0.90 },
+    { name: "锋箭阵",  atk: 1.40, def: 1.0,  mat: 1.0,  mdf: 1.0,  agi: 0.85 },
+    { name: "一字阵",  atk: 0.90, def: 1.50, mat: 1.0,  mdf: 1.40, agi: 0.80 },
+    { name: "两仪阵",  atk: 1.0,  def: 1.0,  mat: 1.50, mdf: 1.40, agi: 1.0  },
+    { name: "雁行阵",  atk: 0.90, def: 1.0,  mat: 1.0,  mdf: 1.0,  agi: 1.80 },
+    { name: "背水阵",  atk: 2.0,  def: 0.50, mat: 1.0,  mdf: 0.80, agi: 1.0  },
+    { name: "掎角阵",  atk: 1.0,  def: 1.40, mat: 1.30, mdf: 1.30, agi: 1.0  },
+    { name: "八卦阵",  atk: 1.0,  def: 1.80, mat: 1.40, mdf: 1.60, agi: 0.80 },
+  ];
 T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
 
 /* G5: 地图侧公共事件迷你执行器（菜单道具 effect 44 链路：护身烟/强身烟等）
