@@ -25,6 +25,7 @@ const CASES = [
   { name: "skill-menu",  url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 6000, keys: "", pre: "cases/skill-menu.pre.json", end: "cases/skill-menu.end.json" },
   { name: "equip-smoke", url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/equip-smoke.pre.json", end: "cases/equip-smoke.end.json" },
   { name: "lineup",      url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "", pre: "cases/lineup.pre.json",       end: "cases/lineup.end.json" },
+  { name: "battle-order", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 7000, keys: "Enter:250:3", pre: "cases/battle-order.pre.json", end: "cases/battle-order.end.json" },
   { name: "equip-8slot", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 12000, keys: "Enter:300:4", pre: "cases/equip-8slot.pre.json", end: "cases/equip-8slot.end.json", custom: "equip8" },
 ];
 
