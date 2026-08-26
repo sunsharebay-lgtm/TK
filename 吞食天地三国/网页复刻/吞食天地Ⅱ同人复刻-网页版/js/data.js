@@ -612,10 +612,14 @@ class Game_Enemy extends Game_Battler {
   makeDropItems() {
     const drops = [];
     for (const d of this.dropItems) {
+      /* G3-R9: 掉落概率修正——MZ 语义 denominator = 1/N 概率（denominator=1 必掉）。
+         此前误用 rand(100)<denominator，数据 768 条 denominator=1 的必掉物品只按 1% 掉落，
+         玩家几乎打不出任何稀有掉落；现改为 rand(N)===0 判定。 */
+      const n = Math.max(1, d.denominator || 1);
       const kind = d.kind, dataId = d.dataId;
-      if (kind === 1 && T.rand(100) < d.denominator) drops.push(T.$dataItems[dataId]);
-      else if (kind === 2 && T.rand(100) < d.denominator) drops.push(T.$dataWeapons[dataId]);
-      else if (kind === 3 && T.rand(100) < d.denominator) drops.push(T.$dataArmors[dataId]);
+      if (kind === 1 && T.rand(n) === 0) drops.push(T.$dataItems[dataId]);
+      else if (kind === 2 && T.rand(n) === 0) drops.push(T.$dataWeapons[dataId]);
+      else if (kind === 3 && T.rand(n) === 0) drops.push(T.$dataArmors[dataId]);
     }
     return drops.filter(Boolean);
   }
