@@ -605,6 +605,7 @@ class Game_Party {
     this._gold = 0;
     this._items = {}; this._weapons = {}; this._armors = {};
     this._actors = []; this._lastItem = null;
+    this._storage = {};   // G3-R7: 仓库
   }
   /* 数据脚本以方法调用形式使用 $gameParty.gold()（else 属 getter 兼容失败），故定义为方法 */
   gold() { return this._gold; }
@@ -646,6 +647,17 @@ class Game_Party {
     return cont[item.id] || 0;
   }
   maxItemCount(item) { return T.$dataItems.includes(item) ? 99 : 1; }
+  /* G3-R7: 仓库（插件 BrotherJie_MenuBase/CallActorStorage：背包 ⇄ 仓库双向存取，随存档持久化） */
+  storageCount(item) { return item ? ((this._storage || {})[item.id] || 0) : 0; }
+  storageGain(item, n) {
+    if (!item) return;
+    this._storage = this._storage || {};
+    this._storage[item.id] = T.clamp((this._storage[item.id] || 0) + (n || 0), 0, 999);
+  }
+  storageLose(item, n) { this.storageGain(item, -(n || 0)); }
+  storageAll() {
+    return Object.keys(this._storage || {}).map(id => T.$dataItems[+id] || T.$dataWeapons[+id] || T.$dataArmors[+id]).filter(Boolean);
+  }
   gainItem(item, n) {
     if (!item) return;
     const cont = T.$dataItems.includes(item) ? this._items
@@ -752,7 +764,12 @@ T.runMapCommonEvent = function (ceId) {
           break;
         }
         case 655: break;   // 已被 355 收集；游离 655 忽略
-        case 357: break;
+        case 357: {
+          /* G3-R7: 插件命令（仓库入口） */
+          const pp = c.parameters || [];
+          if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0 && pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
+          break;
+        }
         case 101: case 401: case 405: { const t = String((c.code === 101 ? p[4] : p[0]) || ""); if (t) msgs.push(t); break; }
         case 102: break;                    // 选择：默认第一项（402 跟随执行）
         case 402: case 403: case 404: break;
@@ -814,6 +831,7 @@ T.saveGame = async function (slot) {
       winPoint: T.$gameParty._winPoint,
       pvpLevel: T.$gameParty._pvpLevel,
       pvpCount: T.$gameParty._pvpCount,
+      storage: T.$gameParty._storage,
     },
     actorSnapshots: serializeActors(T.$gameParty._actors),
     mapId: T.$gameMap ? T.$gameMap.mapId : 1,
@@ -850,6 +868,7 @@ T.loadGame = async function (slot) {
   T.$gameParty._winPoint = s.party.winPoint || 0;
   T.$gameParty._pvpLevel = s.party.pvpLevel || 0;
   T.$gameParty._pvpCount = s.party.pvpCount || 0;
+  T.$gameParty._storage = s.party.storage || {};   // G3-R7: 仓库
   for (const snap of (s.actorSnapshots || [])) {
     const a = T.getActor(snap.id);
     a.level = snap.level; a.exp = snap.exp || a.expForLevel(snap.level);

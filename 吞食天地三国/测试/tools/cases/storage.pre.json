@@ -1,0 +1,1 @@
+["(()=>{const gm=T.$gameParty;gm.gainItem(T.$dataItems[21],2);localStorage.removeItem('tndt_save_5');T.openStorage();return 'storage-open';})()"]

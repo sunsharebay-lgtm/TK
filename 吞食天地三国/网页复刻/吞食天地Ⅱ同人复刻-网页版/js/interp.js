@@ -766,7 +766,11 @@ class Game_Interpreter {
         return true;
       }
       case 655: return true;                      // 已被 355 收集；游离 655 忽略
-      case 357: return true;                      // 插件命令（平台钩子，离线忽略）
+      case 357: { // G3-R7: 插件命令（仓库入口；物品合成待插件配方语义确认后接入）
+        const pp = c.parameters || [];
+        if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0 && pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
+        return true;
+      }
       case 136: { // 遇敌禁止开关（护身烟/烟遁计/强身烟链路；0=开启禁止,1=关闭禁止）
         T.$gameSwitches.setValue(38, (p[0] || 0) === 0);
         return true;

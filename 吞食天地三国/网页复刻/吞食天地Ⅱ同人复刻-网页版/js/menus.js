@@ -539,6 +539,79 @@ class Scene_Status {
   }
 }
 
+/* ---------------- 仓库（插件 BrotherJie_MenuBase/CallActorStorage） ---------------- */
+class Scene_Storage {
+  constructor() {
+    for (const a of $gameParty.battleMembers()) T.loadFace(a.faceName);
+    this.lwin = new Window_Selectable(8, 60, 400, T.SCREEN_H - 68);
+    this.rwin = new Window_Selectable(416, 60, T.SCREEN_W - 424, T.SCREEN_H - 68);
+    this.lwin.fontSize = 18; this.rwin.fontSize = 18;
+    this.side = 0;   // 0=背包 1=仓库
+    this.refresh();
+    T.AudioManager.playSe({ name: "Equip1", volume: 60 });
+  }
+  refresh() {
+    this.bag = $gameParty.allItems().filter(i => i && $gameParty.itemCount(i) > 0);
+    this.sto = $gameParty.storageAll();
+    this.lwin.itemMax = this.bag.length;
+    this.rwin.itemMax = this.sto.length;
+    this.lwin.index = T.clamp(this.lwin.index || 0, 0, Math.max(0, this.bag.length - 1));
+    this.rwin.index = T.clamp(this.rwin.index || 0, 0, Math.max(0, this.sto.length - 1));
+  }
+  update() {
+    if (T.Input.triggered("cancel")) { T.AudioManager.playSe({ name: "Cancel", volume: 50 }); T.SceneManager.popScene(); return; }
+    if (T.Input.triggered("left")) { this.side = 0; this.lwin.updateInput(); return; }
+    if (T.Input.triggered("right")) { this.side = 1; this.rwin.updateInput(); return; }
+    const w = this.side === 0 ? this.lwin : this.rwin;
+    w.updateInput();
+    if (T.Input.triggered("ok")) {
+      const it = this.side === 0 ? this.bag[w.index] : this.sto[w.index];
+      if (!it) return;
+      if (this.side === 0) {
+        const n = $gameParty.itemCount(it);
+        if (n <= 0) return;
+        $gameParty.loseItem(it, n); $gameParty.storageGain(it, n);
+        T.$gameMessage.add(`存入「${it.name}」×${n}`);
+      } else {
+        const n = $gameParty.storageCount(it);
+        if (n <= 0) return;
+        $gameParty.storageLose(it, n); $gameParty.gainItem(it, n);
+        T.$gameMessage.add(`取出「${it.name}」×${n}`);
+      }
+      T.AudioManager.playSe({ name: "Equip1", volume: 70 });
+      this.refresh();
+    }
+  }
+  draw(ctx) {
+    T.drawMenuBackdrop(ctx);
+    this.lwin.draw(ctx); this.rwin.draw(ctx);
+    this.lwin.drawText(ctx, "—— 背包 ——", this.lwin.innerX, this.lwin.innerY + 2, this.lwin.innerW, "center");
+    this.rwin.drawText(ctx, "—— 仓库 ——", this.rwin.innerX, this.rwin.innerY + 2, this.rwin.innerW, "center");
+    let y = this.lwin.innerY + 24;
+    for (let i = 0; i < this.bag.length; i++) {
+      if (y > this.lwin.y + this.lwin.h - 24) break;
+      const it = this.bag[i];
+      this.lwin.drawText(ctx, it.name || "?", this.lwin.innerX + 8, y);
+      this.lwin.drawText(ctx, `×${$gameParty.itemCount(it)}`, this.lwin.innerX + 300, y, 90, "right");
+      y += this.lwin.itemHeight();
+    }
+    this.lwin.drawCursorBox(ctx);
+    let y2 = this.rwin.innerY + 24;
+    for (let i = 0; i < this.sto.length; i++) {
+      if (y2 > this.rwin.y + this.rwin.h - 24) break;
+      const it = this.sto[i];
+      this.rwin.drawText(ctx, it.name || "?", this.rwin.innerX + 8, y2);
+      this.rwin.drawText(ctx, `×${$gameParty.storageCount(it)}`, this.rwin.innerX + 300, y2, 90, "right");
+      y2 += this.rwin.itemHeight();
+    }
+    this.rwin.drawCursorBox(ctx);
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(8, T.SCREEN_H - 34, T.SCREEN_W - 16, 28);
+    ctx.fillStyle = "#ffd24d"; ctx.font = "18px 'PingFang SC',sans-serif";
+    ctx.fillText(`${this.side === 0 ? "回车 → 存入仓库" : "回车 → 取出到背包"}    左右键切换   Esc 关闭`, 16, T.SCREEN_H - 14);
+  }
+}
+T.openStorage = function () { T.SceneManager.push(new T.Scene_Storage()); };
+
 /* ---------------- 存读档 ---------------- */
 class Scene_SaveLoad {
   constructor(mode) {
@@ -666,4 +739,4 @@ class Scene_Shop {
 }
 
 /* 类导出 */
-Object.assign(T, { Scene_Menu, Scene_Item, Scene_Skill, Scene_Equip, Scene_Status, Scene_Save, Scene_Load, Scene_Shop });
+Object.assign(T, { Scene_Menu, Scene_Item, Scene_Skill, Scene_Equip, Scene_Status, Scene_Save, Scene_Load, Scene_Shop, Scene_Storage });
