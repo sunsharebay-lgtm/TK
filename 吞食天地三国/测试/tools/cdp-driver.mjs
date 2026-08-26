@@ -98,7 +98,8 @@ async function keyTap(key) {
   const up = key.toUpperCase();
   const vk = KEYMAP[key] ?? KEYMAP[up] ?? (key.length === 1 ? up.charCodeAt(0) : 13);
   const k = key === "Space" ? " " : key === "Esc" || key === "Escape" ? "Escape" : key.length === 1 ? up : key;
-  const cdk = key.length === 1 ? `Key${up}` : key === "Space" ? "Space" : key;
+  const cdk = key.length === 1 ? `Key${up}` : key === "Space" ? "Space" : (key === "Esc" || key === "Escape") ? "Escape"
+    : key === "Down" ? "ArrowDown" : key === "Up" ? "ArrowUp" : key === "Left" ? "ArrowLeft" : key === "Right" ? "ArrowRight" : key;
   await send("Input.dispatchKeyEvent", { type: "keyDown", key: k, code: cdk, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
   await sleep(80);
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code: cdk, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
