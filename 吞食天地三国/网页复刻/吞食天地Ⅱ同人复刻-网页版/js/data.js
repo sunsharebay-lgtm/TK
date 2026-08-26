@@ -241,12 +241,10 @@ class Game_BattlerBase {
     return T.clamp(Math.round(Math.round(base * rate) + plus + bonus + equip + form), i === 0 ? 1 : 0, this.paramMax(i));
   }
   equipParam(i) { return 0; }
-  /* G2: 阵型参数加成（i=2攻击 3防御 4智力 5抗智 6速度），数值来自 T.FORMATIONS（暂定初版待校准） */
-  formationBonus(i) {
-    const f = T.$gameParty.formation();
-    if (!f) return 0;
-    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 0;
-  }
+  /* G2-R2: 阵型加成按阵营隔离——基类归零，我方在 Game_Actor、敌方在 Game_Enemy 分别读取各自的阵型。
+     （此前基类直接读 $gameParty，导致我方摆阵时敌方同受加成，两侧共用一套数值）
+     i=2攻击 3防御 4智力 5抗智 6速度，数值来自 T.FORMATIONS（暂定初版待对照原版校准） */
+  formationBonus(i) { return 0; }
   get mhp() { return this.param(0); } get mmp() { return this.param(1); }
   get atk() { return this.param(2); } get def() { return this.param(3); }
   get mat() { return this.param(4); } get mdf() { return this.param(5); }
@@ -475,6 +473,12 @@ class Game_Actor extends Game_Battler {
     }
     return sum;
   }
+  /* G2-R2: 我方阵型加成（读队伍阵型 $gameParty.setFormation 设置的 T.FORMATIONS 项） */
+  formationBonus(i) {
+    const f = T.$gameParty.formation();
+    if (!f) return 0;
+    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 0;
+  }
   allTraits() {
     let ts = [];
     ts = ts.concat(this.data.traits || []);
@@ -538,6 +542,13 @@ class Game_Enemy extends Game_Battler {
     let ts = (this.data.traits || []).slice();
     for (const st of this.states()) ts = ts.concat(st.traits || []);
     return ts;
+  }
+  /* G2-R2: 敌方阵型加成（读敌群阵型 $gameTroop.setFormation 设置的 T.FORMATIONS 项；
+     战斗期 $gameTroop 由 Scene_Battle 绑定，战场外为 null → 0） */
+  formationBonus(i) {
+    const f = T.$gameTroop ? T.$gameTroop.formation() : null;
+    if (!f) return 0;
+    return i === 2 ? f.atk : i === 3 ? f.def : i === 4 ? f.mat : i === 5 ? f.mdf : i === 6 ? f.agi : 0;
   }
   battlerImage() {
     if (this.noteTags.svBattler) return { type: "char", name: this.noteTags.svBattler };

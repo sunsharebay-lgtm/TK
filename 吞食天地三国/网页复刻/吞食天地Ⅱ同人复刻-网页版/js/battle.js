@@ -12,7 +12,12 @@ class Game_Troop {
     this.members = t.members.map(m => new Game_Enemy(m.enemyId, m.x, m.y));
     this.turnCount = 0;
     this.name = t.name || "";
+    this._formation = -1;   // G2-R2: 敌方阵型（CE 121-132 脚本 $gameTroop.setFormation(N)）
   }
+  /* G2-R2: 敌方阵型，与 $gameParty 同构；n=-1 为无阵型（解阵/初始状态） */
+  setFormation(n) { this._formation = T.clamp(n, -1, T.FORMATIONS.length - 1); return this._formation; }
+  formation() { return this._formation < 0 ? null : T.FORMATIONS[this._formation]; }
+  formationName() { const f = this.formation(); return f ? f.name : ""; }
   aliveMembers() { return this.members.filter(m => !m.isDead() && m.appearOk()); }
   isAllDead() { return this.aliveMembers().length === 0; }
   expTotal() { return this.members.reduce((s, m) => s + m.expValue, 0); }
@@ -34,6 +39,8 @@ class Scene_Battle {
     this.req = request;
     this.interpreterRef = interpreter;
     this.troop = new Game_Troop(request.troopId);
+    /* G2-R2: 战斗期绑定 $gameTroop（此前恒为 null，敌方阵型脚本 $gameTroop.setFormation 必然抛错被吞） */
+    T.$gameTroop = this.troop;
     this.phase = "intro";
     this.phaseTimer = 30;
     this.logLines = [];
@@ -425,7 +432,7 @@ class Scene_Battle {
         T.AudioManager.playSe({ name: "Damage1", volume: 70 });
       }
     }, targets);
-    if (item.message1) this.say(item.message1.replace("%1", user.name));
+    if (item.message1) this.say(item.message1.replace("%1", user.name).replace("%2", item.name));
     /* 结算后检查 */
     if ($gameParty.isAllDead()) { this.phase = "defeat"; this.phaseTimer = 120; }
     else if (this.troop.isAllDead()) this.processVictory();
@@ -521,6 +528,7 @@ class Scene_Battle {
     const ce = T.$dataCommonEvents[ceId];
     if (!ce) return;
     const prevFormation = T.$gameParty._formation;
+    const prevTroopFormation = T.$gameTroop ? T.$gameTroop._formation : prevFormation;
     const stack = [{ list: ce.list || [], i: 0, skipping: false }];
     outer: while (stack.length) {
       const fr = stack[stack.length - 1];
@@ -568,6 +576,10 @@ class Scene_Battle {
     }
     if (T.$gameParty._formation !== prevFormation && T.$gameParty.formationName()) {
       this.say(`摆出了${T.$gameParty.formationName()}！`);
+    }
+    /* G2-R2: 敌方阵型（CE 121-132）变化日志 */
+    if (T.$gameTroop && T.$gameTroop._formation !== prevTroopFormation && T.$gameTroop.formationName()) {
+      this.say(`敌方摆出了${T.$gameTroop.formationName()}！`);
     }
   }
   evalCommonScript(script) {
@@ -635,6 +647,7 @@ class Scene_Battle {
       for (const a of $gameParty.allMembers()) { if (a.isDead()) { a.hp = 1; a.revive(); } }
     }
     T.BattleScene = null;
+    T.$gameTroop = null;   // G2-R2: 战斗结束解绑敌群引用
     if (this.interpreterRef) this.interpreterRef._battleResult = result;
     T.AudioManager.replaySavedBgm();
     T.SceneManager.popScene(true);

@@ -37,7 +37,7 @@ const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 const chrome = args.includes("--attach") ? null : spawn(chromePath, [
-  "--headless=new", "--disable-gpu", "--hide-scrollbars", "--mute-audio",
+  "--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", "--mute-audio",
   "--no-first-run", "--no-default-browser-check", "--disable-extensions", "--disable-http-cache",
   "--window-size=1366,900",
   `--user-data-dir=${profile}`,

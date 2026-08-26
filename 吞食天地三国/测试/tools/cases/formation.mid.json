@@ -1,0 +1,1 @@
+["(()=>{const bs=T.BattleScene;return JSON.stringify({alive:!!bs,phase:bs?bs.phase:null,cur:bs&&bs.currentActor?bs.currentActor.name:null,party:bs?bs.partyMembers.map(a=>a.name+':'+a.level).join(','):null,wired:!!T.$gameTroop&&T.$gameTroop===bs?.troop});})()"]

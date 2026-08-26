@@ -1,0 +1,1 @@
+["(()=>{const bs=T.BattleScene;if(!bs&&T.$gameMap&&T.$gameMap.interpreter&&!T._fb){T._fb=1;T.PendingBattle={troopId:16,canEscape:true,canLose:true,interpreter:T.$gameMap.interpreter};}return bs&&bs.troop&&bs.troop.aliveMembers().length>0?'ready':'false:not-in-battle-yet';})()"]
