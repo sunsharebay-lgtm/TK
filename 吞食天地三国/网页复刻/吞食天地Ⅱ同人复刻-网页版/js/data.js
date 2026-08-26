@@ -368,7 +368,10 @@ class Game_Battler extends Game_BattlerBase {
   }
   setAction(n, item, targetIndex) { this.action(n).item = item; this.action(n).targetIndex = targetIndex; }
   makeSpeed() {
+    /* G3-R9: specialFlag(2)=必定先攻（MZ 语义）。数据：典韦×4/周泰。加成 10000 保证
+       回合行动顺序吊顶优先（FC 原版猛将先手特性）。 */
     let sp = this.agi + T.rand(Math.floor(Math.abs(this.agi) / 4) + 1) + this.attackSpeedAdd();
+    if (this.specialFlag(2)) sp += 10000;
     this.turnAddSpeed = sp; return sp;
   }
   onBattleStart() { this._tp = T.rand(25); this.clearActions(); }
