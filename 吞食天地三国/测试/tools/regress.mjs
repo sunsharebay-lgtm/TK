@@ -20,6 +20,7 @@ const CASES = [
   { name: "audio-check", url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 8000, keys: "", pre: "cases/audio-check.pre.json", end: "cases/audio-check.end.json" },
   { name: "ch1-victory", url: BASE,                  dur: 10000, keys: "",                  pre: "cases/ch1-victory.pre.json", end: "cases/ch1-victory.end.json" },
   { name: "storage",     url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 6000, keys: "Enter:400:2", pre: "cases/storage.pre.json", end: "cases/storage.end.json" },
+  { name: "shop",         url: "http://localhost:8642/?autostart&goto=23,114,141", dur: 5000, keys: "",                  pre: "cases/shop.pre.json",       end: "cases/shop.end.json" },
   { name: "equip-8slot", url: "http://localhost:8642/?autostart&autointro=18&goto=23,114,141", dur: 12000, keys: "Enter:300:4", pre: "cases/equip-8slot.pre.json", end: "cases/equip-8slot.end.json", custom: "equip8" },
 ];
 
