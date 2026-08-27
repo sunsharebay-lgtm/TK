@@ -32,12 +32,12 @@
       "status": "稳定版"
     },
     {
-      "id": "super-pixel-brothers",
-      "title": "超级像素兄弟",
+      "id": "super-mario",
+      "title": "超级玛丽",
       "description": "经典横版跳跃冒险，4 大关卡、变身系统与隐藏道具，向经典平台跳跃游戏致敬。",
       "action": "开始冒险 / PLAY NOW",
-      "url": "../超级像素兄弟/",
-      "tagNamespace": "game/super-pixel-brothers",
+      "url": "../超级玛丽/",
+      "tagNamespace": "game/super-mario",
       "fallbackVersion": "v0.1.0",
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
@@ -50,10 +50,14 @@
       "title": "墨屏小站\n闲置屏幕",
       "description": "把闲置的 Kindle 墨水屏变成信息屏：翻页时钟、天气、番茄钟与阅读清单。",
       "action": "去点亮屏幕 / VISIT",
-      "url": "https://sunsharebay-lgtm.github.io/idle-screen/",
-      "version": "v0.4",
-      "status": "开发版",
-      "external": true
+      "url": "../墨水屏小站/",
+      "tagNamespace": "game/idle-screen",
+      "fallbackVersion": "v0.4.0",
+      "statusWhenMissing": "开发版",
+      "statusWhenTagged": "稳定版",
+      "external": false,
+      "version": "v0.4.0",
+      "status": "开发版"
     }
   ]
 }

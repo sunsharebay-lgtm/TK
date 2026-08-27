@@ -11,15 +11,19 @@
 | 创意空间首页 | `创意空间首页/` | GitHub Pages 起始页 / 游戏中心，负责汇总入口、版本目录与在线分发 |
 | 坦克大战 | `坦克大战/` | 网页版坦克大战游戏，单文件 Canvas |
 | 吞食天地三国 | `吞食天地三国/` | 三国 RPG 网页复刻（入口跳转到网页复刻引擎版），素材/文档/测试独立归档 |
-| 超级像素兄弟 | `超级像素兄弟/` | 像素平台跳跃游戏，分片源码 |
+| 超级玛丽 | `超级玛丽/` | 原创素材的像素平台跳跃游戏，分片源码 |
+| 墨水屏小站 | `墨水屏小站/` | Kindle 墨水屏信息屏，单文件 ES5 兼容页面，站内维护 |
+| 粉丝资源 | `粉丝资源/` | 视频资源数据与长资料页，独立维护，首页只做展示联动 |
 | 舞台（共享设施） | 根目录 | `.github/`、`scripts` 归属首页、`docs/`、规则与说明文档、根跳转页 |
 
 每个项目的开发约定：**一个创意一个文件夹，所有该创意的文件都放进对应文件夹**。详见 [AGENTS.md](AGENTS.md)。
 
 ## 2. 项目之间的关系
 
-- `创意空间首页` 是**总入口**（游戏中心 / GitHub Pages 起始页），它用卡片链接到 `坦克大战`、`吞食天地三国` 等项目页面。
+- `创意空间首页` 是**总入口**（游戏中心 / GitHub Pages 起始页），它用板块导航和卡片链接到所有子项目页面。
 - 各游戏项目**互相独立**，互不依赖，各自拥有源码、测试、素材与历史版本。
+- `墨水屏小站` 已从外部仓库迁入站内，线上入口为 `/TK/墨水屏小站/`。
+- `粉丝资源` 独立维护 `resources.json` 与资料页；首页只读取 `../粉丝资源/resources.json`，不重复维护内容。
 - 首页通过 `创意空间首页/game-catalog.json` 动态显示各游戏的最新稳定版本号；版本号来自 Git 标签，不是手写。
 - 生成版本目录的脚本 `创意空间首页/scripts/generate-game-catalog.cjs` 属于首页项目。
 - 部署工作流 `.github/workflows/pages.yml` 属于整个创意空间（部署整仓库到 GitHub Pages）。
@@ -38,7 +42,9 @@ https://sunsharebay-lgtm.github.io/TK/
         └── scripts/generate-game-catalog.cjs
     ├── 坦克大战/tank-battle.html
     ├── 吞食天地三国/（入口跳转到 网页复刻/吞食天地Ⅱ同人复刻-网页版/）
-    └── 超级像素兄弟/index.html
+    ├── 超级玛丽/index.html
+    ├── 墨水屏小站/index.html
+    └── 粉丝资源/index.html
 ```
 
 注意：根目录的 `index.html` 只是一个**跳转占位页**，用于保持旧地址 `/TK/` 可用。以后修改首页请改 `创意空间首页/index.html`，不要改根目录那个跳转页。
@@ -51,7 +57,7 @@ https://sunsharebay-lgtm.github.io/TK/
 2. 提交并推送到 `main` 分支：
 
    ```bash
-   cd "/Users/sun/Desktop/pgcs/创意空间"
+   cd "/Users/sun/Desktop/AI/创意空间"
    git add -A
    git commit -m "描述这次改动"
    git push origin main
@@ -63,10 +69,14 @@ https://sunsharebay-lgtm.github.io/TK/
 
 ### 4.2 发布某个游戏的新稳定版本
 
-两个游戏使用各自的 namespaced Git 标签：
+各子项目使用各自的 namespaced Git 标签：
 
 - 坦克大战：`git tag game/tank-battle/vX.Y.Z`
 - 三国 RPG：`git tag game/three-kingdoms/vX.Y.Z`
+- 超级玛丽：`git tag game/super-mario/vX.Y.Z`
+- 墨水屏小站：`git tag game/idle-screen/vX.Y.Z`
+- 创意空间首页：`git tag site/home/vX.Y.Z`
+- 粉丝资源：`git tag content/fan-resources/vX.Y.Z`
 
 发布示例：
 
@@ -75,7 +85,7 @@ git tag game/three-kingdoms/v1.0.0
 git push origin game/three-kingdoms/v1.0.0
 ```
 
-推送 `game/**/v*` 标签也会触发 Pages 部署，`generate-game-catalog.cjs` 会自动把该游戏的最新稳定版本写进首页的 `game-catalog.json`。**不要**创建旧的全局版本标签。
+推送 namespaced 标签（`game/**/v*`、`site/**/v*`、`content/**/v*`）会触发 Pages 部署，`generate-game-catalog.cjs` 会自动把游戏的最新稳定版本写进首页的 `game-catalog.json`；`site/**/v*` 与 `content/**/v*` 同时作为首页/粉丝资源的发布里程碑。普通改动直接推 `main` 即可。**不要**创建旧的全局版本标签。
 
 ## 5. 维护本文档
 

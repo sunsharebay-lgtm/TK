@@ -1,6 +1,6 @@
-# SUPER PIXEL LAND · 超级像素大陆
+# SUPER MARIO · 超级玛丽
 
-一个致敬经典 FC 横版跳跃平台游戏的网页作品。玩法机制完整复刻原版手感,
+一个致敬经典 FC 横版跳跃平台游戏的网页作品。玩法机制延续经典手感,
 但**所有美术、音乐、关卡均为原创设计**(程序化绘制 + WebAudio 合成,零外部资源)。
 
 ## 运行方式
@@ -10,7 +10,7 @@
 也可以在本地起个静态服务:
 
 ```bash
-cd super-pixel-bros
+cd /Users/sun/Desktop/AI/创意空间/超级玛丽
 python3 -m http.server 8000
 # 浏览器访问 http://localhost:8000
 ```

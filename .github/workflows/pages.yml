@@ -3,7 +3,7 @@ name: Deploy 创意空间 to GitHub Pages
 on:
   push:
     branches: [main]
-    tags: ['game/**/v*']
+    tags: ['game/**/v*', 'site/**/v*', 'content/**/v*']
   workflow_dispatch:
 
 permissions:

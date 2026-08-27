@@ -357,7 +357,7 @@ const RND={
     ctx.fillStyle='rgba(12,16,38,.42)';
     if(ctx.roundRect){ctx.beginPath();ctx.roundRect(cx-118,26,236,74,10);ctx.fill();}
     else ctx.fillRect(cx-118,26,236,74);
-    this.txt(ctx,'SUPER PIXEL LAND',cx,38,21,'#ffe27a','center',true);
+    this.txt(ctx,'SUPER MARIO',cx,38,21,'#ffe27a','center',true);
     this.txt(ctx,'超 级 像 素 大 陆',cx,68,12,'#fff','center');
     const items=['开 始 游 戏','操 作 说 明'];
     if(G.unlocked>1)items.push('选关 ◀ '+LV.defs[G.pickLevel].name.split(' ')[0]+' ▶');
@@ -427,7 +427,7 @@ const RND={
     ctx.translate(G.offX,G.offY);
     ctx.scale(G.Z,G.Z);
     this.txt(ctx,'通 关 达 成 !',G.viewW/2,66,22,'#ffe27a','center',true);
-    this.txt(ctx,'感谢游玩 SUPER PIXEL LAND',G.viewW/2,102,9,'#fff','center');
+    this.txt(ctx,'感谢游玩 SUPER MARIO',G.viewW/2,102,9,'#fff','center');
     this.txt(ctx,'最终得分 '+U.pad(G.score,6),G.viewW/2,126,10,'#ffd94a','center');
     this.txt(ctx,'金币 ×'+G.coins+'   剩余生命 ×'+Math.max(0,G.lives),G.viewW/2,146,8,'rgba(255,255,255,.85)','center');
     if(Math.floor(G.tick/22)%2===0)

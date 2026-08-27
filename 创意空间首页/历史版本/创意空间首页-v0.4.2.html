@@ -109,41 +109,6 @@
       box-shadow: 0 0 16px var(--green);
     }
 
-    .board-nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 14px 0 16px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .board-nav a {
-      display: inline-flex;
-      align-items: center;
-      padding: 7px 10px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      text-decoration: none;
-      border: 1px solid transparent;
-      transition: color .2s ease, border-color .2s ease, background .2s ease;
-    }
-
-    .board-nav a:hover,
-    .board-nav a:focus-visible {
-      color: var(--ink);
-      border-color: var(--line);
-      background: var(--panel);
-    }
-
-    .board-nav a.current {
-      color: var(--cyan);
-      border-color: rgba(67, 232, 255, .35);
-      background: rgba(67, 232, 255, .06);
-    }
-
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
@@ -756,25 +721,16 @@
       <div class="system-status"><span class="status-dot" aria-hidden="true"></span>系统在线 · 可直接游玩</div>
     </header>
 
-    <nav class="board-nav" aria-label="板块导航">
-      <a class="current" href="./" aria-current="page">首页</a>
-      <a href="../坦克大战/tank-battle.html">坦克大战</a>
-      <a href="../吞食天地三国/">三国</a>
-      <a href="../超级玛丽/">超级玛丽</a>
-      <a href="../墨水屏小站/">墨水屏小站</a>
-      <a href="../粉丝资源/">粉丝资源</a>
-    </nav>
-
     <section class="hero" aria-labelledby="page-title">
       <div>
         <p class="eyebrow">创意空间 / Creative Space</p>
         <h1 id="page-title">选择<br><span>你的战场</span></h1>
-        <p class="hero-copy">从这里进入正在持续更新的网页版小游戏与实用小工具。无需下载，打开浏览器，选一个板块就能开始。</p>
+        <p class="hero-copy">从这里进入正在持续更新的网页版小游戏。无需下载，打开浏览器，选一款游戏就能开始。</p>
       </div>
       <aside class="hero-readout" aria-label="游戏库状态">
-        <span class="readout-label">当前可用创意</span>
+        <span class="readout-label">当前可用游戏</span>
         <strong class="readout-number">04</strong>
-        <span class="readout-note">4 个创意在线，更多板块持续装载。</span>
+        <span class="readout-note">4 个创意已上线，更多正在装载。</span>
       </aside>
     </section>
 
@@ -809,17 +765,17 @@
           </div>
           <div class="card-action"><span>进入游戏 / PLAY NOW</span><span class="arrow" aria-hidden="true">↗</span></div>
         </a>
-        <a class="game-card" href="../超级玛丽/">
+        <a class="game-card" href="../超级像素兄弟/">
           <div>
-            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 003 · <span class="game-version" data-game-version="super-mario">v0.1.0 开发版</span></span></div>
-            <h3>超级玛丽</h3>
+            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 003 · <span class="game-version" data-game-version="super-pixel-brothers">v0.1.0 开发版</span></span></div>
+            <h3>超级像素兄弟</h3>
             <p>经典横版跳跃冒险，4 大关卡、变身系统与隐藏道具，向经典平台跳跃游戏致敬。</p>
           </div>
           <div class="card-action"><span>开始冒险 / PLAY NOW</span><span class="arrow" aria-hidden="true">↗</span></div>
         </a>
-        <a class="game-card" href="../墨水屏小站/">
+        <a class="game-card" href="https://sunsharebay-lgtm.github.io/idle-screen/" target="_blank" rel="noopener noreferrer">
           <div>
-            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 004 · <span class="game-version" data-game-version="idle-screen">v0.4.0 开发版</span></span></div>
+            <div class="card-meta"><span class="live">● LIVE</span><span>GAME 004 · 闲置屏幕 v0.4</span></div>
             <h3>墨屏小站<br>闲置屏幕</h3>
             <p>把闲置的 Kindle 墨水屏变成信息屏：翻页时钟、天气、番茄钟与阅读清单。</p>
           </div>
@@ -961,7 +917,7 @@
 
       let data = null;
       try {
-        const response = await fetch('../粉丝资源/resources.json', { cache: 'no-store' });
+        const response = await fetch('./resources.json', { cache: 'no-store' });
         if (response.ok) data = await response.json();
       } catch (_) {
         // Keep the embedded empty state when the resource file is unavailable.
@@ -1006,7 +962,7 @@
       if (item.detailUrl) {
         const open = document.createElement('a');
         open.className = 'resource-open';
-        open.href = '../粉丝资源/' + item.detailUrl.replace(/^\.\//, '');
+        open.href = item.detailUrl;
         open.textContent = '查看完整资料 ↗';
         card.appendChild(open);
       }
