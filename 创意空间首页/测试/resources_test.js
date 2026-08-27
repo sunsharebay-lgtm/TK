@@ -20,7 +20,7 @@ for (const item of data.resources) {
 const links = Array.isArray(item.links) ? item.links : [];
 const texts = Array.isArray(item.texts) ? item.texts : [];
 const detailUrl = typeof item.detailUrl === 'string' ? item.detailUrl.trim() : '';
-assert.ok(links.length || texts.length || detailUrl, `资源 ${item.id} 至少需要链接、文字或资料页地址`);
+assert.ok(detailUrl, `资源 ${item.id} 必须提供独立资料页地址`);
 
 if (detailUrl) {
   assert.ok(!/^https?:\/\//i.test(detailUrl), `资源 ${item.id} 的资料页地址应使用站点内相对路径`);

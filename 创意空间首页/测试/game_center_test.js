@@ -41,5 +41,7 @@ assert.match(portal, /resource-empty/, '首页应保留粉丝资源为空时的�
 assert.match(portal, /detailUrl/, '首页资源卡应支持跳转到独立资料页');
 assert.match(portal, /查看完整资料/, '首页资源卡应提供查看完整资料入口');
 assert.match(portal, /item\.detailUrl\s*\)/, '首页筛选资源时应保留只有资料页地址的条目');
+assert.match(portal, /resource-main/, '首页资源卡应使用紧凑行布局');
+assert.match(portal, /resource-open/, '首页资源卡应保留小号跳转入口');
 
 console.log('Game center entry checks passed.');
