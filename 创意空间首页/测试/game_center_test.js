@@ -33,5 +33,13 @@ assert.ok(fs.existsSync(path.join(root, 'qq-group-qrcode.jpg')), 'QQ 群二维�
 assert.match(portal, /src=["']qq-group-qrcode\.jpg["']/, '首页应引用 QQ 群二维码图片');
 assert.match(portal, /href=["']https:\/\/t\.me\/\+uBlnbTJGnXRkMWFk["']/, '首页应提供 Telegram 群组链接');
 assert.match(portal, /玩过游戏后有什么创意灵感、功能建议、Bug 反馈，或者想一起共创更多有趣的项目/, '首页应说明加入社群的理由');
+assert.match(portal, /粉丝资源\s*\/\s*Fan Resources/, '首页应显示粉丝资源区块');
+assert.match(portal, /fetch\(['"]\.\/resources\.json['"],\s*\{\s*cache:\s*['"]no-store['"]\s*\}\)/, '首页应从资源数据文件动态读取粉丝资源');
+assert.match(portal, /buildResourceCard/, '首页应使用资源数据构建资源卡片');
+assert.match(portal, /navigator\.clipboard|execCommand\(['"]copy['"]\)/, '首页应支持复制文字资源');
+assert.match(portal, /resource-empty/, '首页应保留粉丝资源为空时的回退状态');
+assert.match(portal, /detailUrl/, '首页资源卡应支持跳转到独立资料页');
+assert.match(portal, /查看完整资料/, '首页资源卡应提供查看完整资料入口');
+assert.match(portal, /item\.detailUrl\s*\)/, '首页筛选资源时应保留只有资料页地址的条目');
 
 console.log('Game center entry checks passed.');
