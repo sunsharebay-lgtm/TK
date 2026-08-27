@@ -1,0 +1,1 @@
+["(()=>{const sc=T.SceneManager.current();return (sc&&sc.constructor.name==='Scene_Title')?'title-showing':'false:'+(sc?sc.constructor.name:'none');})()"]

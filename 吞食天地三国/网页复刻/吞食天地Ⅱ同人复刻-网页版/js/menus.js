@@ -30,6 +30,8 @@ class Scene_Menu {
     this.commands = ["物品", "技能", "装备", "编成", "状态", "存档", "离开"];
     this.statusWindow = new Window_Selectable(196, 8, T.SCREEN_W - 204, T.SCREEN_H - 16);
     this.statusWindow.fontSize = 22;
+    this.infoWin = new Window_Base(8, 316, 180, 120);
+    this.infoWin.fontSize = 20;
     this.goldWindow = new Window_Gold(8, T.SCREEN_H - 60, 180);
     this.helpText = "";
   }
@@ -78,6 +80,15 @@ class Scene_Menu {
     for (const a of members) {
       drawActorRow(this.statusWindow, ctx, a, ry);
       ry += 92;
+    }
+    this.infoWin.draw(ctx);
+    const lead = members[0];
+    if (lead) {
+      const nextExp = Math.max(0, lead.expForLevel(lead.level + 1) - lead.exp);
+      this.infoWin.drawText(ctx, `等级 ${lead.level}`, this.infoWin.innerX + 8, this.infoWin.innerY + 4);
+      this.infoWin.drawText(ctx, `升级 ${T.fmt(nextExp)}`, this.infoWin.innerX + 8, this.infoWin.innerY + 28);
+      this.infoWin.drawText(ctx, `难度 标准`, this.infoWin.innerX + 8, this.infoWin.innerY + 52);
+      this.infoWin.drawText(ctx, `阵型 ${T.$gameParty.formationName() || "无"}`, this.infoWin.innerX + 8, this.infoWin.innerY + 76);
     }
     this.goldWindow.draw(ctx);
   }
@@ -802,6 +813,8 @@ class Scene_Shop {
   constructor(goods, purchaseOnly) {
     this.goods = goods;         // [[kind,id],...] kind 0物品 1武器 2防具
     this.purchaseOnly = purchaseOnly;
+    this.tabs = ["物品", "武器", "防具"];
+    this.tabIndex = 0;
     this.win = new Window_Selectable(8, 8, 520, T.SCREEN_H - 16);
     this.win.fontSize = 22;
     this.infoWin = new Window_Base(532, 8, T.SCREEN_W - 540, 150);
@@ -811,8 +824,8 @@ class Scene_Shop {
     this.refresh();
   }
   refresh() {
-    this.entries = this.goods.map(([kind, id]) => {
-      const item = kind === 0 ? T.$dataItems[id] : kind === 1 ? T.$dataWeapons[id] : T.$dataArmors[id];
+    this.entries = this.goods.filter(([kind]) => kind === this.tabIndex).map(([, id]) => {
+      const item = this.tabIndex === 0 ? T.$dataItems[id] : this.tabIndex === 1 ? T.$dataWeapons[id] : T.$dataArmors[id];
       const price = item ? (item.price || 0) : 0;
       return { item, price };
     }).filter(e => e.item);
@@ -820,6 +833,16 @@ class Scene_Shop {
     this.win.index = 0;
   }
   update() {
+    if (T.Input.repeated("left")) {
+      this.tabIndex = (this.tabIndex - 1 + this.tabs.length) % this.tabs.length;
+      T.AudioManager.playSe({ name: "Cursor", volume: 60 });
+      this.refresh(); return;
+    }
+    if (T.Input.repeated("right")) {
+      this.tabIndex = (this.tabIndex + 1) % this.tabs.length;
+      T.AudioManager.playSe({ name: "Cursor", volume: 60 });
+      this.refresh(); return;
+    }
     this.win.updateInput();
     if (T.Input.triggered("cancel")) {
       /* 通知挂起的解释器继续执行 */
@@ -845,7 +868,20 @@ class Scene_Shop {
     T.drawMenuBackdrop(ctx);
     this.win.draw(ctx);
     const ih = this.win.itemHeight();
-    let y = this.win.innerY + 4 - this.win.topRow * ih;
+    /* 分类 tab */
+    const tabW = 84;
+    for (let i = 0; i < this.tabs.length; i++) {
+      const x = this.win.x + 8 + i * (tabW + 6);
+      ctx.save();
+      ctx.fillStyle = i === this.tabIndex ? "rgba(255,210,77,0.14)" : "rgba(0,0,0,0.35)";
+      T.roundRect(ctx, x, this.win.y + 6, tabW, 26, 4, true);
+      ctx.strokeStyle = i === this.tabIndex ? "#ffd24d" : "rgba(220,230,255,0.5)";
+      ctx.lineWidth = i === this.tabIndex ? 2 : 1;
+      T.roundRect(ctx, x, this.win.y + 6, tabW, 26, 4, false, true);
+      this.win.drawText(ctx, this.tabs[i], x + 6, this.win.y + 10, tabW - 12, "center");
+      ctx.restore();
+    }
+    let y = this.win.innerY + 34 - this.win.topRow * ih;
     for (let i = 0; i < this.entries.length; i++) {
       const e = this.entries[i];
       this.win.drawText(ctx, e.item.name, this.win.innerX + 8, y);

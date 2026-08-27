@@ -1,0 +1,1 @@
+["(()=>{const bs=T.BattleScene;if(!bs&&T.$gameMap&&!T._fb){T._fb=1;T.PendingBattle={troopId:16,canEscape:true,canLose:true,interpreter:T.$gameMap.interpreter};}const s=T.BattleScene;return s&&s.phase==='actor-cmd'?'ready':'false:'+(s?s.phase:'wait');})()"]

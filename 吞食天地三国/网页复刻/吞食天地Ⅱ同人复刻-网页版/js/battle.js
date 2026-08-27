@@ -71,8 +71,8 @@ class Scene_Battle {
     this.cmdWin.fontSize = 20;
     this.cmdWin.lineHeight = 26;
     this.logWin = new Window_Base(12, T.SCREEN_H - 132, 440, 116);
-    this.logWin.fontSize = 18;
-    this.logWin.lineHeight = 24;
+    this.logWin.fontSize = 20;
+    this.logWin.lineHeight = 28;
     this.targetIdx = 0;
     this.selectMode = "";   // "" | target-enemy | target-ally | skill | item | skilltype
     this.skillWin = new Window_Selectable(12, T.SCREEN_H - 232, 560, 190);
@@ -919,8 +919,6 @@ class Scene_Battle {
       ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2;
       ctx.strokeRect(this.cmdWin.x + 10 + col * 166, this.cmdWin.y + 14 + row * 33, 158, 27);
       ctx.restore();
-      this.helpWin.draw(ctx);
-      this.helpWin.drawText(ctx, `${this.currentActor.name} 的行动`, this.helpWin.innerX, this.helpWin.innerY + 10);
     }
     /* 技能/道具列表 */
     if (this.phase === "select-skill") {
@@ -951,7 +949,10 @@ class Scene_Battle {
     if (this.logLines.length && !["select-skill", "select-item", "enemy-info"].includes(this.phase)) {
       this.logWin.draw(ctx);
       const recent = this.logLines.slice(-3);
-      const face = this.messageActor;
+      const av = this.actionVisual && this.actionVisual.user;
+      const face = this.messageActor || (av && av.isActor && av.isActor() ? av : null) ||
+        this.partyMembers.find(a => recent.some(l => l.includes(a.name + "的攻击") || l.includes(a.name + "布下") ||
+          l.includes(a.name + "使出") || l.includes(a.name + "使用了"))) || null;
       const tx = this.logWin.innerX + (face ? 76 : 10);
       if (face) {
         this.logWin.drawActorFace(ctx, face.faceName, face.faceIndex, this.logWin.innerX + 8, this.logWin.innerY + 8, 52);
@@ -959,7 +960,7 @@ class Scene_Battle {
       let lyy = this.logWin.innerY + 8;
       for (const line of recent) {
         this.logWin.drawText(ctx, line, tx, lyy, face ? this.logWin.innerW - 82 : this.logWin.innerW - 20);
-        lyy += 25;
+        lyy += 28;
       }
     }
     this.drawEnemyInfo(ctx);
@@ -972,66 +973,73 @@ class Scene_Battle {
   }
   drawPartyStatus(ctx) {
     ctx.save();
+    const refHp = Math.max(1, ...this.partyMembers.map(a => a.hp));
     for (let i = 0; i < this.partyMembers.length; i++) {
       const a = this.partyMembers[i];
-      const y = 52 + i * 72;
-      const active = this.currentActor === a && ["actor-cmd", "select-skill", "select-item"].includes(this.phase);
+      const y = 58 + i * 58;
+      const isCurrent = this.currentActor === a && ["actor-cmd", "select-skill", "select-item"].includes(this.phase);
+      const isActing = this.messageActor === a;
       const face = T.faceCache.get(a.faceName);
       if (face && face.img) {
-        this.logWin.drawActorFace(ctx, a.faceName, a.faceIndex, 8, y + 2, 44);
+        this.logWin.drawActorFace(ctx, a.faceName, a.faceIndex, 8, y, 34);
       } else {
         ctx.fillStyle = "#22334d";
-        T.roundRect(ctx, 8, y + 2, 44, 44, 6, true);
+        T.roundRect(ctx, 8, y, 34, 34, 6, true);
         ctx.fillStyle = "#ffd24d";
         ctx.font = T.fontStr(18, true);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText((a.name || "?").charAt(0), 30, y + 24);
+        ctx.fillText((a.name || "?").charAt(0), 25, y + 18);
+      }
+      const nx = isCurrent || isActing ? 58 : 52;
+      if (isActing) {
+        ctx.font = T.fontStr(16, true);
+        ctx.fillStyle = "#ffd24d";
+        ctx.fillText("▶", 46, y);
       }
       ctx.font = T.fontStr(20, true);
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = isCurrent || isActing ? "#ffd24d" : "#fff";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(a.name, 60, y + 2);
-      ctx.font = T.numFontStr(17);
+      ctx.fillText(a.name, nx, y);
+      ctx.font = T.numFontStr(16);
       ctx.fillStyle = "#d8ffe0";
-      ctx.fillText(`${T.fmt(a.hp)}/${T.fmt(a.mhp)}`, 60, y + 24);
-      const bx = 190, bw = 210;
+      ctx.fillText(T.fmt(a.hp), nx, y + 24);
+      const bx = nx, bw = 170;
       ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(bx - 1, y + 8, bw + 2, 10);
+      ctx.fillRect(bx - 1, y + 38, bw + 2, 12);
       ctx.fillStyle = a.hp / a.mhp > 0.5 ? "#40c060" : a.hp / a.mhp > 0.25 ? "#f0a040" : "#f06060";
-      ctx.fillRect(bx, y + 9, Math.max(0, Math.min(1, a.hp / a.mhp)) * bw, 8);
-      ctx.font = T.fontStr(13);
-      ctx.fillStyle = "#9fb8ff";
-      ctx.fillText(`谋 ${T.fmt(a.mp)}/${T.fmt(a.mmp)}`, bx + 120, y + 26);
-      if (active) {
-        ctx.strokeStyle = "rgba(255,210,77,0.9)";
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(6, y - 2, 396, 46);
+      const fillW = Math.max(0, Math.min(1, a.hp / refHp)) * bw;
+      ctx.fillRect(bx, y + 39, fillW, 10);
+      if (isCurrent && !isActing) {
+        ctx.fillStyle = "#ffd24d";
+        ctx.fillRect(nx, y - 2, 320, 2);
       }
     }
     ctx.restore();
   }
   drawEnemyStatus(ctx) {
     ctx.save();
+    const refHp = Math.max(1, ...this.troop.members.map(e => e.hp));
     for (let i = 0; i < this.troop.members.length; i++) {
       const en = this.troop.members[i];
-      const y = 52 + i * 64;
+      const y = 58 + i * 56;
       const dead = en.isDead();
-      ctx.globalAlpha = dead ? 0.45 : 1;
+      ctx.globalAlpha = dead ? 0.4 : 1;
+      const x = 650, bw = 140;
       ctx.font = T.fontStr(20, true);
       ctx.fillStyle = "#fff";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(en.name, 646, y + 2);
-      ctx.font = T.numFontStr(17);
+      ctx.fillText(en.name, x, y);
+      ctx.font = T.numFontStr(16);
       ctx.fillStyle = dead ? "#ff4040" : "#ffe0e0";
-      ctx.fillText(T.fmt(en.hp), 646, y + 24);
-      const bx = 646, bw = 150;
+      ctx.fillText(T.fmt(en.hp), x, y + 24);
       ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(bx - 1, y + 8, bw + 2, 10);
+      ctx.fillRect(x - 1, y + 38, bw + 2, 12);
       ctx.fillStyle = dead ? "#ff4040" : "#4080ff";
-      ctx.fillRect(bx, y + 9, Math.max(0, Math.min(1, en.hp / en.mhp)) * bw, 8);
+      const fillW = Math.max(0, Math.min(1, en.hp / refHp)) * bw;
+      ctx.fillRect(x + bw - fillW, y + 39, fillW, 10);
     }
     ctx.restore();
   }
