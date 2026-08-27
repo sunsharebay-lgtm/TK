@@ -10,6 +10,7 @@ assert.ok(Array.isArray(data.resources), 'resources.json 必须包含 resources 
 
 for (const item of data.resources) {
   assert.ok(item && typeof item === 'object', '资源条目必须是对象');
+  assert.ok(typeof item.number === 'string' && /^\d{2}$/.test(item.number), `资源 ${item.id} 必须提供两位编号`);
   assert.ok(typeof item.id === 'string' && item.id.trim(), '资源条目必须提供 id');
   assert.ok(
     typeof item.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.date),

@@ -449,15 +449,6 @@
       white-space: nowrap;
     }
 
-    .resource-number {
-      flex: 0 0 auto;
-      min-width: 24px;
-      color: var(--cyan);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .04em;
-    }
-
     .resource-main {
       display: flex;
       align-items: baseline;
@@ -937,10 +928,7 @@
       const date = document.createElement('span');
       date.className = 'resource-date';
       date.textContent = item.date || '近期更新';
-      const number = document.createElement('span');
-      number.className = 'resource-number';
-      number.textContent = item.number || '--';
-      card.append(number, date);
+      card.appendChild(date);
 
       const main = document.createElement('div');
       main.className = 'resource-main';
