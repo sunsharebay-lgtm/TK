@@ -357,8 +357,8 @@ const RND={
     ctx.fillStyle='rgba(12,16,38,.42)';
     if(ctx.roundRect){ctx.beginPath();ctx.roundRect(cx-118,26,236,74,10);ctx.fill();}
     else ctx.fillRect(cx-118,26,236,74);
-    this.txt(ctx,'SUPER MARIO',cx,38,21,'#ffe27a','center',true);
-    this.txt(ctx,'超 级 像 素 大 陆',cx,68,12,'#fff','center');
+    this.txt(ctx,'待开发',cx,38,21,'#ffe27a','center',true);
+    this.txt(ctx,'超 级 玛 丽',cx,68,12,'#fff','center');
     const items=['开 始 游 戏','操 作 说 明'];
     if(G.unlocked>1)items.push('选关 ◀ '+LV.defs[G.pickLevel].name.split(' ')[0]+' ▶');
     items.forEach((s,i)=>{

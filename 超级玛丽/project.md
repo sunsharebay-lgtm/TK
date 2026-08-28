@@ -4,6 +4,10 @@
 
 创意空间子项目：超级玛丽风格的像素平台跳跃游戏实验。
 
+## 当前状态
+
+- **待开发（暂停推进）**：当前 `v0.1.0` 保留为可运行存档，后续可能从头重新设计，不继续在此版本上扩展。
+
 ## 交付规格（v0.1.0）
 
 - 分片源码 `src/` + 构建脚本 `build.sh`，产物 `index.html`。
@@ -21,7 +25,7 @@
 
 ## 源文件 SHA-256
 
-- `index.html`：`97aef4fb4a3118cad8384cad4d683bf977ba4151225736fe178f31ceba146a94`
-- `src/00_head.html`：`c544d0538d6aa4137cd08588858ca9c9932b526251a1445300672748997d0134`
-- `src/75_render.js`：`034a34f721a485dad5a87ef4c92817ab37fea7bd6b5a0a3a0c94bf965e081b91`
+- `index.html`：`ddbb6a4620517811a968af3213b89df8a7496b376191dcd899bcb974893723c9`
+- `src/00_head.html`：`6603bf087d04881ea71031fc8eea2f17635661b18c3b0843246394449c0c0ee2`
+- `src/75_render.js`：`6aeca3ee755c0264c80c96cd8acc474be7f88dcc5bbe37666bb2f91ad88c0499`
 - `test/harness.js`：`bd0a77adb5b844dd1c552013ade74365b68897255605cba1e6c1e099d3d13716`
