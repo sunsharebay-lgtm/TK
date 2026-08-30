@@ -67,7 +67,7 @@ https://sunsharebay-lgtm.github.io/TK/
 
 > 关于更新记录：各分支项目的 `更新记录.md` 与 `历史版本/` 属于仓库内容，会随 `git add -A` 一起推送；但根目录的 `创意空间/更新记录.md` 是**仅本地的总更新记录**，已在 `.gitignore` 中排除，`git add -A` 不会把它推上 GitHub。
 
-### 4.2 发布某个游戏的新稳定版本
+### 4.2 发布某个子项目的新稳定版本
 
 各子项目使用各自的 namespaced Git 标签：
 
@@ -83,9 +83,12 @@ https://sunsharebay-lgtm.github.io/TK/
 ```bash
 git tag game/three-kingdoms/v1.0.0
 git push origin game/three-kingdoms/v1.0.0
+git push origin main
 ```
 
-推送 namespaced 标签（`game/**/v*`、`site/**/v*`、`content/**/v*`）会触发 Pages 部署，`generate-game-catalog.cjs` 会自动把游戏的最新稳定版本写进首页的 `game-catalog.json`；`site/**/v*` 与 `content/**/v*` 同时作为首页/粉丝资源的发布里程碑。普通改动直接推 `main` 即可。**不要**创建旧的全局版本标签。
+标签先推送作为版本记录，再推送 `main` 触发唯一一次 Pages 部署。部署时 `generate-game-catalog.cjs` 会读取远端标签并把最新稳定版本写进首页的 `game-catalog.json`；`site/**/v*` 与 `content/**/v*` 只作为首页/粉丝资源的发布里程碑。**不要**创建旧的全局版本标签。
+
+发布完成的判定不是“推送成功”，而是：GitHub Actions 成功、部署版本标记与提交一致、六个入口返回 200、粉丝资源数据与详情页验收通过。
 
 ## 5. 维护本文档
 

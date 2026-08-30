@@ -3,7 +3,6 @@ name: Deploy 创意空间 to GitHub Pages
 on:
   push:
     branches: [main]
-    tags: ['game/**/v*', 'site/**/v*', 'content/**/v*']
   workflow_dispatch:
 
 permissions:
@@ -30,6 +29,9 @@ jobs:
       - name: Generate game version catalog
         run: node 创意空间首页/scripts/generate-game-catalog.cjs
 
+      - name: Write deployment metadata
+        run: node 创意空间首页/scripts/write-deployment-meta.cjs
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
@@ -41,3 +43,11 @@ jobs:
       - name: Deploy to Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify published site
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          PUBLISHED_SITE_METADATA_RETRIES: 12
+          PUBLISHED_SITE_RETRY_DELAY_MS: 5000
+        run: node 创意空间首页/测试/published_site_test.mjs "$PAGE_URL" "$EXPECTED_COMMIT"

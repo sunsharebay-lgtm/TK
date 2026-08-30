@@ -74,8 +74,11 @@ assert.match(generator, /module\.exports\s*=.*parseStableTags/s, '版本生成�
 const workflow = read('../.github/workflows/pages.yml');
 assert.match(workflow, /fetch-depth:\s*0/, 'Pages 工作流必须拉取完整 Git 历史和标签');
 assert.match(workflow, /generate-game-catalog\.cjs/, 'Pages 工作流必须生成游戏目录');
-assert.match(workflow, /tags:\s*\['game\/\*\*\/v\*'\s*,\s*'site\/\*\*\/v\*'\s*,\s*'content\/\*\*\/v\*'\]/, '推送 namespaced 版本标签时必须触发 Pages 部署');
+assert.match(workflow, /branches:\s*\[main\]/, 'Pages 工作流必须只由 main 分支触发部署');
+assert.doesNotMatch(workflow, /tags:/, 'Pages 工作流不得由版本标签触发竞争部署');
 assert.match(workflow, /run:\s*node 创意空间首页\/scripts\/generate-game-catalog\.cjs/, '目录生成步骤应指向创意空间首页项目里的生成脚本');
+assert.match(workflow, /write-deployment-meta\.cjs/, 'Pages 工作流必须写入部署版本标记');
+assert.match(workflow, /published_site_test\.mjs/, 'Pages 工作流必须执行线上验收');
 assert.doesNotMatch(workflow, /git tag --sort=-v:refname/, 'Pages 工作流不得再读取全局版本标签');
 
 const portal = read('index.html');
@@ -85,5 +88,12 @@ assert.match(portal, /setCount\(games\.length\)/, '首页游戏数量应读取�
 assert.match(portal, /grid\.replaceChildren/, '首页应从目录动态渲染游戏卡片');
 assert.match(portal, /buildGameCard/, '首页应使用目录数据构建游戏卡片');
 assert.match(portal, /稳定版/, '首页必须包含稳定版显示回退文案');
+
+const publishedSiteTest = read('测试/published_site_test.mjs');
+assert.match(publishedSiteTest, /deployment-meta\.json/, '线上验收必须检查部署版本标记');
+assert.match(publishedSiteTest, /resources\.json/, '线上验收必须检查资源数据');
+assert.match(publishedSiteTest, /detailUrl/, '线上验收必须检查资源详情页');
+assert.match(publishedSiteTest, /超级玛丽/, '线上验收必须检查超级玛丽入口');
+assert.match(publishedSiteTest, /game-catalog\.json/, '线上验收必须检查游戏目录入口');
 
 console.log('Version catalog checks passed.');

@@ -18,6 +18,8 @@
 - 关于博主与社群入口已整合成单个紧凑模块，QQ 二维码与 QQ 群号合并展示，Telegram 群组并排。
 - 新增板块导航：首页 / 坦克大战 / 三国 / 超级玛丽 / 墨水屏小站 / 粉丝资源。
 - 墨水屏小站由外部链接改为站内 `/TK/墨水屏小站/`，版本 `v0.4.0`。
+- Pages 只由 `main` 推送触发；版本标签不再触发独立部署，避免受保护环境拒绝标签和并发取消。
+- 每次 Pages 部署写入 `deployment-meta.json`，并执行 `测试/published_site_test.mjs` 验收部署提交、六个入口、资源数据与详情页。
 
 ## 处理决策
 
@@ -37,6 +39,11 @@
 - v0.4.2 落地后再次验证：Giffgaff保命资料显示固定编号 `01`。
 - `git diff --check`：通过。
 
+## 发布链路 QA（2026-08-30）
+
+- 已复现并记录故障：`content/fan-resources/v0.2.0` 标签部署被 `github-pages` 环境保护拒绝，同行的 `main` 部署因全局并发组被取消。
+- 修复方案：Pages 工作流只监听 `main`；标签保留为版本来源，先推标签再推 `main`；部署后线上验收失败即让工作流失败。
+
 ## QA 结果（2026-08-28，v0.5.0）
 
 - `node 创意空间首页/测试/game_center_test.js`：通过。
@@ -51,5 +58,7 @@
 - `index.html`：`ab5901a1fbf380882cee30fe1adc8179cce55c7703b5470a97bdec0f94aea6ce`
 - `game-catalog.json`：`5936d349d2740f9fa91998f87fa2e1f763070ef4be895460b91b14cda22a30aa`
 - `测试/game_center_test.js`：`80f04110647eeabe52aeb2e66dc157a7ae8758606cb1e106ff55ceb933f4fdb8`
-- `测试/version_catalog_test.js`：`8f8d5994c1ede67d9e93538823d5b32cf4a4ad4c252d038a8d3bc17bacc1e829`
+- `测试/version_catalog_test.js`：`35ca47be3b8a7e00b395418c8aba30fb15bcff7c5338a58c3cf604a566cc9ca2`
+- `测试/published_site_test.mjs`：`f326a5ea7d74c6c77c9fb9c385ae12c8c8e25045fa6e2f4e4e81446a261f2163`
+- `scripts/write-deployment-meta.cjs`：`32de7b13c27ab58e0ba4fab1455b1ecce68e25a441012cace20c66f149ae6db2`
 - `历史版本/创意空间首页-v0.4.2.html`：`32f6ad5775240841356e218ce3dadf60c1db06b8e1938f57802706a77aec902a`

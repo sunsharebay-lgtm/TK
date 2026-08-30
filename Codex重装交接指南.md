@@ -47,7 +47,7 @@
 3. 新创意 → 在根目录新建同名文件夹，之后所有产物都放进去。
 4. 首页改动只改 `创意空间首页/index.html`；根目录 `index.html` 只是跳转占位。
 5. 根目录 `更新记录.md` 是**本地总记录**，已被 `.gitignore`（`/更新记录.md`）排除，**不推 GitHub**；不要 `git add -A` 后误提交它。
-6. 改动推送到 `main` 会自动触发 GitHub Pages 重新部署；各子项目用各自 namespace 标签发布。
+6. 改动推送到 `main` 会自动触发 GitHub Pages 重新部署；各子项目用各自 namespace 标签记录发布版本，标签本身不触发部署。
 7. 每个子项目都是独立 Codex 本地项目，边界只在本文件夹，完整注册路径见第 6 节。
 
 完整规则见 [AGENTS.md](AGENTS.md)。
@@ -110,8 +110,8 @@
 - GitHub Pages 从仓库根目录发布整站。
 - 根 `index.html` → 自动跳 `创意空间首页/`。
 - 首页卡片：版本号从 `game-catalog.json` 读；`game-catalog.json` 由生成脚本从 Git 标签生成（`game/<id>/vX.Y.Z`）。
-- 部署工作流 `.github/workflows/pages.yml`：推送 `main` 或 `game/**/v*`、`site/**/v*`、`content/**/v*` 标签时运行生成脚本并部署。
-- 标签规范：坦克大战 `game/tank-battle/vX.Y.Z`；三国 RPG `game/three-kingdoms/vX.Y.Z`；超级玛丽 `game/super-mario/vX.Y.Z`；墨水屏小站 `game/idle-screen/vX.Y.Z`；创意空间首页 `site/home/vX.Y.Z`；粉丝资源 `content/fan-resources/vX.Y.Z`。不要创建全局旧式标签。
+- 部署工作流 `.github/workflows/pages.yml`：只响应 `main` 推送和手动触发；生成目录、写入部署版本标记，并在 Pages 部署后执行线上验收。
+- 标签规范：坦克大战 `game/tank-battle/vX.Y.Z`；三国 RPG `game/three-kingdoms/vX.Y.Z`；超级玛丽 `game/super-mario/vX.Y.Z`；墨水屏小站 `game/idle-screen/vX.Y.Z`；创意空间首页 `site/home/vX.Y.Z`；粉丝资源 `content/fan-resources/vX.Y.Z`。标签只记录版本，部署统一由 `main` 触发。不要创建全局旧式标签。
 - 定时汇报：`创意空间周报`（每周一 09:00）读取各子项目并更新 `docs/项目状态.md`；`总项目月报`（每月 1 日 09:00）汇总 `/Users/sun/Desktop/AI` 下所有项目。配置在 `~/.codex/automations/`。
 
 ## 6.5 Codex 平级项目注册清单
@@ -143,7 +143,7 @@ git tag game/three-kingdoms/v1.0.0
 git push origin game/three-kingdoms/v1.0.0
 ```
 
-推 `main` 或标签都会自动部署。各项目自己的 `更新记录.md` 和 `历史版本/` 会一起推送；根目录 `更新记录.md` 不会。
+只有推 `main` 或手动触发才会部署；标签只作为版本记录。部署后必须通过线上验收。各项目自己的 `更新记录.md` 和 `历史版本/` 会一起推送；根目录 `更新记录.md` 不会。
 
 ## 8. 重装 Codex 后的第一步
 

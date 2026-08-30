@@ -11,7 +11,7 @@
 - 远程仓库：`https://github.com/sunsharebay-lgtm/TK.git`（origin）
 - 当前分支：`main`
 - GitHub Pages 在线地址：<https://sunsharebay-lgtm.github.io/TK/>（当前 HTTP 200 可访问）
-- Pages 工作流：`.github/workflows/pages.yml`，在 `main` 推送或 `game/**/v*` 标签推送时自动生成 `创意空间首页/game-catalog.json` 并部署整站
+- Pages 工作流：`.github/workflows/pages.yml`，只在 `main` 推送或手动触发时生成 `创意空间首页/game-catalog.json`、写入部署标记并部署整站；标签只作为版本记录
 - 目录生成器：`创意空间首页/scripts/generate-game-catalog.cjs`，从 git 标签解析每款游戏的最高稳定版本
 
 ## 版本状态

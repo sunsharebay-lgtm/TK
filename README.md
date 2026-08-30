@@ -64,4 +64,4 @@ GitHub Pages 会自动部署到 `main` 分支，原有二维码地址现在是�
 - 创意空间首页：`site/home/vX.Y.Z`
 - 粉丝资源：`content/fan-resources/vX.Y.Z`
 
-`创意空间首页/scripts/generate-game-catalog.cjs` 会读取每个 namespace 下的最高稳定语义版本并写入 `创意空间首页/game-catalog.json`；没有匹配标签时保留卡片 fallback。普通代码、文档或测试提交不会被当作游戏新版本，也不需要创建旧式全局标签。
+`创意空间首页/scripts/generate-game-catalog.cjs` 会在 `main` 部署时读取每个 namespace 下的最高稳定语义版本并写入 `创意空间首页/game-catalog.json`；没有匹配标签时保留卡片 fallback。版本标签只作为发布标记，不单独触发 Pages 部署。
