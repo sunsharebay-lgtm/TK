@@ -7,6 +7,14 @@
       "title": "Giffgaff保命资料",
       "summary": "退款工单模板、僵局确认函话术与通信监察专员申诉流程",
       "detailUrl": "./资源/giffgaff保命资料/"
+    },
+    {
+      "number": "02",
+      "id": "auto-video-editing-skill-kit",
+      "date": "2026-08-30",
+      "title": "自动剪辑视频技能包",
+      "summary": "用 Codex 自动剪辑视频的技能包，下载后放到桌面并交给 Codex 读取",
+      "detailUrl": "./资源/自动剪辑视频技能包/"
     }
   ]
 }
