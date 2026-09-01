@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b12">
+  <meta name="description" content="iStoreOS 安装 OpenClash：官方版本发布页、iStoreOS 入口和安装提示。">
+  <title>iStoreOS 安装 OpenClash · 创意空间</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b12;
+      --panel: rgba(14, 23, 36, .86);
+      --panel-strong: #111d2d;
+      --ink: #edf4ff;
+      --muted: #8da0b9;
+      --line: rgba(139, 169, 208, .2);
+      --cyan: #43e8ff;
+      --amber: #ffb347;
+      --green: #5ce08a;
+      font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; background: var(--bg); }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 560px at 78% -8%, rgba(37, 109, 145, .26), transparent 68%),
+        radial-gradient(760px 520px at 12% 110%, rgba(200, 130, 60, .14), transparent 70%),
+        linear-gradient(155deg, #0a111c 0%, var(--bg) 55%, #090d16 100%);
+    }
+
+    .shell {
+      width: min(880px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 20px 0 34px;
+    }
+
+    .topbar,
+    .footer,
+    .section-heading,
+    .template-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar {
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: #061018;
+      background: var(--cyan);
+      clip-path: polygon(0 0, 100% 0, 100% 76%, 76% 100%, 0 100%);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .system-status,
+    .eyebrow,
+    .label,
+    .step-index {
+      color: var(--amber);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .system-status { color: var(--muted); }
+
+    .hero { padding: clamp(28px, 6vw, 54px) 0 30px; }
+
+    .eyebrow { margin: 0 0 12px; }
+
+    h1 {
+      max-width: 680px;
+      margin: 0;
+      font-size: clamp(34px, 7vw, 58px);
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .hero-copy,
+    .step p,
+    .template-note,
+    .note {
+      color: var(--muted);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      line-height: 1.75;
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      margin: 14px 0 0;
+      font-size: 14px;
+    }
+
+    .section { margin-top: 24px; }
+
+    .section-heading { margin-bottom: 14px; }
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .steps,
+    .links {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .links { grid-template-columns: 1fr 1fr; }
+
+    .step,
+    .link-card,
+    .template-block,
+    .note {
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .step,
+    .link-card,
+    .template-block { padding: 16px; }
+
+    .step-index,
+    .label { display: block; margin-bottom: 10px; }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .step p,
+    .template-note,
+    .note {
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .link-card {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .label { color: var(--cyan); font-weight: 700; }
+
+    .link-card a {
+      color: var(--ink);
+      overflow-wrap: anywhere;
+      text-decoration-color: rgba(67, 232, 255, .6);
+      text-underline-offset: 3px;
+      font-size: 12px;
+    }
+
+    .template-head { margin-bottom: 12px; }
+
+    .template-head h3 { margin: 0; font-size: 17px; }
+
+    .copy-btn {
+      flex: 0 0 auto;
+      min-width: 64px;
+      height: 30px;
+      padding: 0 12px;
+      border: 1px solid rgba(67, 232, 255, .4);
+      background: rgba(67, 232, 255, .08);
+      color: var(--cyan);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover,
+    .copy-btn:focus-visible {
+      border-color: var(--cyan);
+      background: rgba(67, 232, 255, .18);
+      color: var(--ink);
+    }
+
+    .copy-btn.copied {
+      border-color: rgba(92, 224, 138, .6);
+      background: rgba(92, 224, 138, .12);
+      color: var(--green);
+    }
+
+    .template-note { margin-bottom: 10px; }
+
+    .template-text {
+      margin: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: rgba(9, 16, 27, .72);
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      user-select: all;
+    }
+
+    .note {
+      padding: 16px 18px;
+      border-left: 3px solid var(--amber);
+      background: rgba(255, 179, 71, .06);
+    }
+
+    .note strong { color: var(--ink); }
+
+    .footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .footer a { color: var(--cyan); }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 28px, 560px); }
+      .steps, .links { grid-template-columns: 1fr; }
+      .section-heading,
+      .template-head,
+      .footer { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="返回粉丝资源列表">
+        <span class="brand-mark">创</span>
+        <span>创意空间 // CREATIVE SPACE</span>
+      </a>
+      <div class="system-status">FAN RESOURCE / 粉丝资料</div>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">资源 03 / 无感科学上网</p>
+      <h1>iStoreOS 安装 OpenClash</h1>
+      <p class="hero-copy">这是一期关于在自己的 iStoreOS 中安装 OpenClash，通过 OpenClash 实现无感科学上网的视频资料。下面整理了视频中需要用到的官方入口和 OpenClash 指定版本发布页。</p>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>安装流程 / QUICK START</h2>
+        <p>按顺序操作</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="step-index">STEP 01</span>
+          <h3>准备 iStoreOS</h3>
+          <p>确认路由器已经正常运行 iStoreOS，并进入管理后台。建议先备份当前配置。</p>
+        </div>
+        <div class="step">
+          <span class="step-index">STEP 02</span>
+          <h3>安装 OpenClash</h3>
+          <p>打开下方 OpenClash 发布页，选择与设备架构和系统版本匹配的安装包，再在 iStoreOS 中安装。</p>
+        </div>
+        <div class="step">
+          <span class="step-index">STEP 03</span>
+          <h3>完成配置</h3>
+          <p>在 OpenClash 中导入自己的配置文件，检查 DNS、代理模式和启动状态后再开始使用。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>官方入口 / OFFICIAL LINKS</h2>
+        <p>请以官方页面为准</p>
+      </div>
+      <div class="links">
+        <div class="link-card">
+          <span class="label">OpenClash v0.47.156</span>
+          <a href="https://github.com/vernesong/OpenClash/releases/tag/v0.47.156" target="_blank" rel="noopener noreferrer">https://github.com/vernesong/OpenClash/releases/tag/v0.47.156</a>
+        </div>
+        <div class="link-card">
+          <span class="label">iStoreOS 官方 GitHub</span>
+          <a href="https://github.com/istoreos" target="_blank" rel="noopener noreferrer">https://github.com/istoreos</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>安装前检查 / CHECKLIST</h2>
+        <p>避免版本不匹配</p>
+      </div>
+      <div class="template-block">
+        <div class="template-head">
+          <div>
+            <span class="label">REMINDERS</span>
+            <h3>安装前请确认</h3>
+          </div>
+          <button class="copy-btn" type="button" aria-label="复制安装前检查清单">复制</button>
+        </div>
+        <p class="template-note">复制这份检查清单，安装时逐项确认。</p>
+        <pre class="template-text">1. 已确认 iStoreOS 版本和设备 CPU 架构
+2. 已从 OpenClash 官方发布页选择匹配的安装包
+3. 已备份 iStoreOS 当前配置
+4. 已准备自己的 OpenClash 配置文件
+5. 安装后已检查 DNS、代理模式和运行状态</pre>
+      </div>
+    </section>
+
+    <section class="section note">
+      <strong>提示：</strong>OpenClash 安装包和 iStoreOS 版本需要匹配，具体以官方发布页说明为准。请使用自己的网络配置并遵守当地法律法规；本资料页只提供官方入口和视频配套信息，不代提供配置文件。
+    </section>
+
+    <footer class="footer">
+      <a href="../../">返回粉丝资源列表</a>
+      <span>Resource 03 / Creative Space</span>
+    </footer>
+  </main>
+  <script>
+    (function setupCopy() {
+      const button = document.querySelector('.copy-btn');
+      const source = document.querySelector('.template-text');
+      if (!button || !source) return;
+
+      const done = () => {
+        const original = button.textContent;
+        button.textContent = '已复制';
+        button.classList.add('copied');
+        button.disabled = true;
+        setTimeout(() => {
+          button.textContent = original;
+          button.classList.remove('copied');
+          button.disabled = false;
+        }, 1500);
+      };
+
+      button.addEventListener('click', () => {
+        const value = source.textContent.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(value).then(done).catch(() => fallbackCopy(value));
+        } else {
+          fallbackCopy(value);
+        }
+      });
+
+      function fallbackCopy(value) {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try { document.execCommand('copy'); done(); } catch (_) {}
+        textarea.remove();
+      }
+    }());
+  </script>
+</body>
+</html>

@@ -15,14 +15,6 @@
       "title": "自动剪辑视频技能包",
       "summary": "用 Codex 自动剪辑视频的技能包，下载后放到桌面并交给 Codex 读取",
       "detailUrl": "./资源/自动剪辑视频技能包/"
-    },
-    {
-      "number": "03",
-      "id": "istoreos-openclash-setup",
-      "date": "2026-09-01",
-      "title": "iStoreOS安装OpenClash",
-      "summary": "在 iStoreOS 中安装 OpenClash，实现无感科学上网的官方入口和版本链接",
-      "detailUrl": "./资源/iStoreOS安装OpenClash/"
     }
   ]
 }
