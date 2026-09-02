@@ -1,0 +1,1 @@
+["(()=>{const x=window.__recruitLevel||{};const out={party:x.party,lead:x.lead,recruit:x.recruit,hp:x.hp,mhp:x.mhp,mp:x.mp,mmp:x.mmp};const fails=[];out.allOk=out.party&&out.party.includes(3)&&out.recruit===out.lead&&out.hp===out.mhp&&out.mp===out.mmp;if(!out.allOk)fails.push('recruit-level');out.fails=fails;return JSON.stringify(out);})()"]

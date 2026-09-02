@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(23,95,116,2);T.$gameVariables.setValue(1,45);T.$gameMap.refreshEvents();T.$gamePlayer._prevX=95;T.$gamePlayer._prevY=116;T.$gamePlayer.setDirection(2);const sc=T.SceneManager.current();T.Input._down={ok:true};T.Input._prev={};sc.checkTriggers();return 'ready';})()"]

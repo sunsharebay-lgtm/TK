@@ -1,0 +1,1 @@
+["(()=>{const a=T.getActor(13);a._paramBonus={};const i=new T.Game_Interpreter();for(const pid of [5,4,6,7])i.commandChangeParam([0,13,pid,0,0,10]);window.__chapterEventApi={actor:a,chapter:T.chapterForStage(1440)};return 'ready';})()"]

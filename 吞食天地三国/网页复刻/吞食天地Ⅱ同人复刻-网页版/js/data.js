@@ -10,6 +10,28 @@ T.$dataItems = null; T.$dataWeapons = null; T.$dataArmors = null;
 T.$dataEnemies = null; T.$dataTroops = null; T.$dataStates = null;
 T.$dataAnimations = null; T.$dataTilesets = null; T.$dataCommonEvents = null;
 T.$dataSystem = null; T.$dataMapInfos = null; T.$dataMap = null;
+T.BATTLE_EXP_RATE = 1.25;
+T.SKILL_COST_RATE = 2 / 3;
+T.ENEMY_TACTIC_RATE_MIN = 0.10;
+/* 轻度下调敌方策略频率，保留智力差异，避免前期被连续计策压垮。 */
+T.ENEMY_TACTIC_RATE_MAX = 0.36;
+
+/* 可见武将的历史武力基准。原始职业表把所有武将攻击力压成 5，
+   这里只替换武将基准，不改动原始职业的兵力、智力和策略成长。 */
+T.ACTOR_MARTIAL_FORCE = Object.freeze({
+  2: 25, 3: 98, 4: 99, 5: 75, 6: 65, 7: 52, 8: 92, 9: 95, 10: 30,
+  11: 85, 12: 96, 13: 85, 14: 55, 15: 45, 16: 35, 17: 93, 18: 92,
+  19: 42, 20: 45, 21: 78, 22: 70, 23: 40, 24: 38, 25: 97, 26: 86,
+  27: 88, 28: 75, 29: 85, 30: 82, 31: 38, 32: 76, 33: 86, 34: 90,
+  35: 90, 36: 88, 37: 78, 38: 100, 41: 35, 42: 60, 43: 80, 44: 70,
+  45: 32, 46: 30, 49: 88, 50: 36, 51: 60, 52: 87, 53: 65, 54: 100,
+  55: 55, 56: 45, 57: 95,
+});
+
+T.skillCost = function (skill) {
+  const raw = Math.max(0, Number(skill && skill.mpCost) || 0);
+  return raw > 0 ? Math.max(1, Math.round(raw * T.SKILL_COST_RATE)) : 0;
+};
 
 async function jget(p) {
   const r = await fetch("assets/data/" + p);
@@ -81,6 +103,7 @@ class Game_Variables {
   value(id) { return this._data[id] || 0; }
   setValue(id, v) {
     this._data[id] = v;
+    if (id === 1 && T.updateChapterState) T.updateChapterState(v);
     if (T.$gameMap) T.$gameMap.refreshEvents();   // 变量变化后刷新事件页面
   }
 }
@@ -150,7 +173,13 @@ class Game_Message {
 }
 
 /* ---------------- 公式沙箱 ---------------- */
-T.getAttackPower = (a, b) => Math.max(0, Math.round(a.atk * 4 - b.def * 2));
+T.getAttackPower = (a, b) => {
+  const isActor = !!(a && typeof a.isActor === "function" && a.isActor());
+  const troop = Math.max(1, Number(a && a.hp) || Number(a && a.mhp) || 1);
+  /* 武将兵力越多，实际能投入攻击的部队越多；对数缩放避免高等级伤害失控。 */
+  const troopRate = isActor ? T.clamp(1 + Math.log10(troop / 200), 0.6, 3) : 1;
+  return Math.max(1, Math.round((Number(a && a.atk) || 0) * troopRate * 4 - (Number(b && b.def) || 0) * 2));
+};
 T.evalFormula = function (formula, a, b) {
   try {
     /* 数据中的公式常以分号结尾，去掉以免 return(...;) 语法错误 */
@@ -344,7 +373,7 @@ class Game_BattlerBase {
   canUse(item) {
     if (!item) return false;
     if (T.$dataSkills.includes(item)) {
-      if ((item.mpCost || 0) > this.mp) return false;
+      if (T.skillCost(item) > this.mp) return false;
       if (this.sealedSkillTypes().includes(item.stypeId)) return false;
       if (this.sealedSkills().includes(item.id)) return false;
       if (!this.addedSkillTypes().includes(item.stypeId) && !this.knowsSkill(item.id)) return false;
@@ -353,7 +382,7 @@ class Game_BattlerBase {
     if (T.$dataItems.includes(item)) return $gameParty.itemCount(item) > 0;
     return false;
   }
-  paySkillCost(skill) { this.mp -= skill.mpCost || 0; }
+  paySkillCost(skill) { this.mp -= T.skillCost(skill); }
 }
 
 /* ---------------- 中间层：战斗内行为 ---------------- */
@@ -470,6 +499,9 @@ class Game_Actor extends Game_Battler {
     return isFinite(v) ? Math.round(v) : (c * (lv - 1));
   }
   changeExp(exp, show) {
+    const oldLevel = this.level;
+    const oldMmp = this.mmp;
+    const oldMp = this.mp;
     this.exp = exp;
     while (this.level < this.maxLevel && this.exp >= this.expForLevel(this.level + 1)) {
       this.level++;
@@ -479,6 +511,7 @@ class Game_Actor extends Game_Battler {
     }
     while (this.level > 1 && this.exp < this.expForLevel(this.level)) this.level--;
     this.refresh();
+    if (this.level > oldLevel && oldMp >= oldMmp) this.mp = this.mmp;
   }
   newSkillsAt(level) {
     return (this.cls().learnings || []).filter(l => l.level === level).map(l => l.skillId);
@@ -489,8 +522,11 @@ class Game_Actor extends Game_Battler {
   changeLevel(level, show) {
     const target = T.clamp(Math.round(level) || 1, 1, this.maxLevel);
     const delta = target - this.level;
+    const oldMmp = this.mmp;
+    const oldMp = this.mp;
     this.level = target;
     this.refresh();
+    if (delta > 0 && oldMp >= oldMmp) this.mp = this.mmp;
     if (show !== false && delta > 0) {
       this._lastLevelUps = this._lastLevelUps || [];
       this._lastLevelUps.push({ level: this.level, learned: this.newSkillsAt(this.level) });
@@ -521,7 +557,10 @@ class Game_Actor extends Game_Battler {
     const row = p[i];
     if (!row) return 0;
     const idx = T.clamp(this.level, 1, row.length - 1);
-    return row[idx];
+    if (i === 2 && T.ACTOR_MARTIAL_FORCE[this.actorId] != null) return T.ACTOR_MARTIAL_FORCE[this.actorId];
+    const value = row[idx];
+    /* 原表谋点成长偏慢，补充随等级增长的容量；实际消耗另按 skillCost 折算。 */
+    return i === 1 ? value + Math.round(Math.max(0, this.level - 1) * 1.5) : value;
   }
   /* 装备加成：累加所有已装备物品的 params（MZ 中装备 params 直接加到属性） */
   equipParam(i) {
@@ -588,6 +627,7 @@ class Game_Enemy extends Game_Battler {
     this.gold = e.gold || 0; this.expValue = e.exp || 0;
     this.dropItems = e.dropItems || [];
     this.actions = e.actions || [];
+    this.itemStock = Object.assign({}, e.items || e.itemStock || {});
     this.hp = this.mhp; this.mp = this.mmp;
     this.noteTags = {};
     const m = /<SvBattler:\s*([^>]+)>/.exec(e.note || "");
@@ -600,6 +640,16 @@ class Game_Enemy extends Game_Battler {
     let ts = (this.data.traits || []).slice();
     for (const st of this.states()) ts = ts.concat(st.traits || []);
     return ts;
+  }
+  xparam(id) {
+    const value = super.xparam(id);
+    return id === 7 || id === 8 ? 0 : value;
+  }
+  itemCount(item) { return item ? (this.itemStock[item.id] || 0) : 0; }
+  consumeItem(item) {
+    if (!item || this.itemCount(item) <= 0) return false;
+    this.itemStock[item.id]--;
+    return true;
   }
   /* G2-R3: 敌方阵型倍率（读敌群阵型 $gameTroop.setFormation 设置的 T.FORMATIONS 项，1.0=不变；
      战斗期 $gameTroop 由 Scene_Battle 绑定，战场外为 null → 1.0） */
@@ -648,7 +698,7 @@ class Game_Party {
   maxGold() { return 99999999; }
   /* G3-R1: 客栈价格（数据脚本 $gameParty.innPrice(rate)，rate=城镇档位 1/2/3/5）。
      公式为推定值（基础4金/档，待原版实机比对），与部分客栈硬编码 var6=4 一致 */
-  innPrice(rate) { return Math.max(1, Math.round(rate || 0)) * 4; }
+  innPrice(rate) { return Math.max(4, Math.min(40, Math.round(rate || 1) * 4)); }
   /* G3-R1: 收服敌将（颜良/文丑等投诚系统；数据脚本 addSurrenderedEnemy/hasSurrenderedEnemy） */
   addSurrenderedEnemy(id) { this._surrendered = this._surrendered || []; if (!this._surrendered.includes(id)) this._surrendered.push(id); return true; }
   hasSurrenderedEnemy(id) { return (this._surrendered || []).includes(id); }
@@ -670,9 +720,9 @@ class Game_Party {
     if (a) a._chengHao = [];
     return a;
   }
-  items() { return Object.keys(this._items).map(id => T.$dataItems[+id]); }
-  weapons() { return Object.keys(this._weapons).map(id => T.$dataWeapons[+id]); }
-  armors() { return Object.keys(this._armors).map(id => T.$dataArmors[+id]); }
+  items() { return Object.keys(this._items).filter(id => this._items[id] > 0).map(id => T.$dataItems[+id]); }
+  weapons() { return Object.keys(this._weapons).filter(id => this._weapons[id] > 0).map(id => T.$dataWeapons[+id]); }
+  armors() { return Object.keys(this._armors).filter(id => this._armors[id] > 0).map(id => T.$dataArmors[+id]); }
   allItems() { return [...this.items(), ...this.weapons(), ...this.armors()].filter(Boolean); }
   itemCount(item) {
     if (!item) return 0;
@@ -680,7 +730,7 @@ class Game_Party {
                : T.$dataWeapons.includes(item) ? this._weapons : this._armors;
     return cont[item.id] || 0;
   }
-  maxItemCount(item) { return T.$dataItems.includes(item) ? 99 : 1; }
+  maxItemCount(item) { return 99; }
   /* G3-R7: 仓库（插件 BrotherJie_MenuBase/CallActorStorage：背包 ⇄ 仓库双向存取，随存档持久化） */
   storageCount(item) { return item ? ((this._storage || {})[item.id] || 0) : 0; }
   storageGain(item, n) {
@@ -706,7 +756,9 @@ class Game_Party {
     if (!item) return;
     const cont = T.$dataItems.includes(item) ? this._items
                : T.$dataWeapons.includes(item) ? this._weapons : this._armors;
-    cont[item.id] = T.clamp((cont[item.id] || 0) + n, 0, this.maxItemCount(item));
+    const next = T.clamp((cont[item.id] || 0) + n, 0, this.maxItemCount(item));
+    if (next > 0) cont[item.id] = next;
+    else delete cont[item.id];
     if (n > 0) this._lastItem = item;
   }
   loseItem(item, n) { this.gainItem(item, -n); }
@@ -715,7 +767,19 @@ class Game_Party {
   /* 成员 */
   allMembers() { return this._actors.map(id => T.getActor(id)); }
   battleMembers() { return this.allMembers().slice(0, T.MAX_BATTLE_MEMBERS); }
-  addActor(id) { if (!this._actors.includes(id)) this._actors.push(id); }
+  addActor(id) {
+    if (this._actors.includes(id)) return;
+    const existing = this.allMembers();
+    const averageLevel = existing.length
+      ? Math.max(1, Math.round(existing.reduce((sum, actor) => sum + actor.level, 0) / existing.length))
+      : 1;
+    const actor = T.getActor(id);
+    if (actor && existing.length && actor.level !== averageLevel) {
+      actor.changeLevel(averageLevel, false);
+      actor.recoverAll();
+    }
+    this._actors.push(id);
+  }
   removeActor(id) { this._actors = this._actors.filter(x => x !== id); }
   storageRemoveActor(id) { this.removeActor(id); }
   storageAddActor(id) { this.addActor(id); }
@@ -757,108 +821,216 @@ T.resetGameState = function () {
     { name: "掎角阵",  atk: 1.0,  def: 1.40, mat: 1.30, mdf: 1.30, agi: 1.0  },
     { name: "八卦阵",  atk: 1.0,  def: 1.80, mat: 1.40, mdf: 1.60, agi: 0.80 },
   ];
-T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
+  T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
+  /* 标准载具状态：0小船、1大船、2飞行船；地图事件负责触发，实际位置独立保存。 */
+  T.$gameVehicles = {
+    0: { mapId: 0, x: 0, y: 0 },
+    1: { mapId: 0, x: 0, y: 0 },
+    2: { mapId: 0, x: 0, y: 0 },
+  };
+
+/* 主线阶段索引：原始地图用变量1推进剧情，网页端将它映射成可读章节状态。 */
+T.CHAPTERS = [
+  { id: 1, start: 5, name: "灭袁术", goal: "徐州、寿春与袁术最终战" },
+  { id: 2, start: 80, name: "河北鏖战与千里走单骑", goal: "袁绍、颜良文丑、五关与古城聚义" },
+  { id: 3, start: 260, name: "荆州新野与三顾茅庐", goal: "刘表、新野、孔明、博望坡与长坂坡" },
+  { id: 4, start: 470, name: "赤壁之战与平定荆州", goal: "赤壁、南郡、四郡与黄忠" },
+  { id: 5, start: 830, name: "西蜀入川", goal: "成都、巴关、建宁、绵竹与雒城" },
+  { id: 6, start: 1165, name: "汉中争夺与姜维归汉", goal: "汉中、天水、姜维、街亭与陈仓" },
+  { id: 7, start: 1440, name: "北伐灭曹魏", goal: "鲁城、五丈原、石阵、长安与洛阳" },
+  { id: 8, start: 1605, name: "荆州终局与伐吴", goal: "荆州告急、樊城与柴桑终战" },
+  { id: 9, start: 1655, name: "二周目特别篇：秦皇陵", goal: "秦皇陵、葛玄试炼与跨时代决战" },
+];
+T.chapterForStage = function (stage) {
+  let current = T.CHAPTERS[0];
+  for (const chapter of T.CHAPTERS) if (stage >= chapter.start) current = chapter;
+  return current;
+};
+T.updateChapterState = function (stage) {
+  const system = T.$gameSystem;
+  if (!system) return;
+  const chapter = T.chapterForStage(Number(stage) || 0);
+  system.currentChapter = chapter.id;
+  system.currentChapterName = chapter.name;
+  system.chapterGoal = chapter.goal;
+  system.chapterHistory = system.chapterHistory || {};
+  for (const item of T.CHAPTERS) if (chapter.id > item.id) system.chapterHistory[item.id] = true;
+};
 
 /* G3-R9: 军物品合成——配方注册与界面入口（役店 BrotherJie_ItemSynthesis）
    配方为 JSON 字符串数组："[材料..., 产物...]"；材料 0-53，产物恒 54-63；
    界面打开时取最近一次 AddRecipe 注册的配方（役店事件顺序：AddRecipe→CallItemSynthesis）。 */
 T._synthRecipes = [];
 T.registerSynthRecipe = function (recipeStr) {
-  if (!recipeStr) return;
-  let ids = null;
-  try { ids = JSON.parse(String(recipeStr)); } catch (e) { /* 非 JSON 字符串数组 */ }
-  if (!Array.isArray(ids) || !ids.length) {
-    /* 兼容 655 续行 "recipe = [...]" 形式 */
-    const m = String(recipeStr).match(/\[([^\[\]]*)\]/);
-    if (m) { try { ids = JSON.parse("[" + m[1] + "]"); } catch (e2) { return; } }
-  }
-  if (!Array.isArray(ids)) return;
-  const mats = [], prods = [];
-  for (const raw of ids) {
-    const id = Number(raw);
-    if (!Number.isFinite(id) || id < 0) continue;
-    (id >= 54 ? prods : mats).push(T.$dataItems[id]);
-  }
-  const matsOk = mats.filter(Boolean);
-  /* 产物 54-63 中空名者为数据占位（无名物品），实体产物仅保留有名者 */
-  const prodsOk = prods.filter(p => p && p.name);
-  if (!matsOk.length && !prodsOk.length) return;
-  T._synthRecipes.push({ mats: matsOk, prods: prodsOk });
-  if (T._synthRecipes.length > 8) T._synthRecipes.shift();
+  void recipeStr;
 };
-T.openSynthesis = function () { if (T.Scene_Synthesis) T.SceneManager.push(new T.Scene_Synthesis()); };
 
-/* G5: 地图侧公共事件迷你执行器（菜单道具 effect 44 链路：护身烟/强身烟等）
-   支持 0/101-102/111/117/121/122/124/125-128/136/249/355-357/401-405/411-413/505；选择默认取第一项，战斗类不在地图侧执行。 */
+/* G5: 菜单道具调用公共事件时，按 MV/MZ 事件参数同步执行。
+   这些公共事件承载郑玄的信、胡班家书、炸药、锦囊、张松的信等主线道具，
+   不能只收集对白；变量、条件、消耗、入队和分支都必须改变真实游戏状态。 */
 T.runMapCommonEvent = function (ceId) {
   const ce = T.$dataCommonEvents[ceId];
   if (!ce) return [];
   const msgs = [];
-  const stack = [{ list: ce.list || [], i: 0, skipping: false }];
+  const stack = [{ list: ce.list || [], i: 0, branches: {} }];
+  const actorOf = id => T.getActor(id);
+  const characterOf = id => {
+    if (id === -1) return T.$gamePlayer;
+    const eventId = T.currentInterpreter && T.currentInterpreter.eventId;
+    return T.$gameMap && T.$gameMap.event(id || eventId || 0);
+  };
+  const gameData = args => {
+    const [type, arg1, arg2] = args;
+    if (type === 0) return T.$gameParty.itemCount(T.$dataItems[arg1]);
+    if (type === 1) return T.$gameParty.itemCount(T.$dataWeapons[arg1]);
+    if (type === 2) return T.$gameParty.itemCount(T.$dataArmors[arg1]);
+    if (type === 3) { const a = actorOf(arg1); return a ? (arg2 === 0 ? a.level : arg2 === 1 ? a.exp : a.hp) : 0; }
+    if (type === 5) { const ch = characterOf(arg1); return ch ? (arg2 === 0 ? ch.x : arg2 === 1 ? ch.y : ch.direction()) : 0; }
+    if (type === 6) return arg1 === 0 ? T.$gameParty.gold() : arg1 === 1 ? T.$gameParty.steps() : 0;
+    if (type === 7) return T.$gameMap ? T.$gameMap.mapId : 0;
+    return 0;
+  };
+  const operand = (mode, params, base) => {
+    if (mode === 0) return params[base];
+    if (mode === 1) return T.$gameVariables.value(params[base]);
+    if (mode === 2) return T.randBetween(Math.min(params[base], params[base + 1]), Math.max(params[base], params[base + 1]));
+    if (mode === 3) return gameData(params.slice(base));
+    if (mode === 4) {
+      try { return Math.trunc(new Function(`with(T){return (${params[base]});}`)()); } catch (e) { return 0; }
+    }
+    return params[base];
+  };
+  const setVariables = p => {
+    const [start, end, op, mode] = p;
+    for (let id = start; id <= end; id++) {
+      const value = operand(mode, p, 4);
+      const old = T.$gameVariables.value(id);
+      const next = op === 0 ? value : op === 1 ? old + value : op === 2 ? old - value :
+        op === 3 ? old * value : op === 4 ? (value ? Math.trunc(old / value) : 0) : value;
+      T.$gameVariables.setValue(id, next);
+    }
+  };
+  const condition = p => {
+    switch (p[0]) {
+      case 0: return T.$gameSwitches.value(p[1]) === (p[2] === 0);
+      case 1: {
+        const left = T.$gameVariables.value(p[1]);
+        const right = p[2] === 0 ? p[3] : T.$gameVariables.value(p[3]);
+        return p[4] === 0 ? left === right : p[4] === 1 ? left >= right : p[4] === 2 ? left <= right :
+          p[4] === 3 ? left > right : p[4] === 4 ? left < right : left !== right;
+      }
+      case 2: return T.$gameSelfSwitches.value(`${T.$gameMap && T.$gameMap.mapId},${T.currentInterpreter && T.currentInterpreter.eventId},${p[1]}`);
+      case 3: return !!(T.$gameTimer && T.$gameTimer._working);
+      case 4: {
+        const a = actorOf(p[1]); if (!a) return false;
+        return p[2] === 0 ? T.$gameParty._actors.includes(p[1]) : p[2] === 1 ? a.nickname === p[3] :
+          p[2] === 2 ? a.skills().some(s => s.id === p[3]) : p[2] === 3 ? Object.values(a._equips).includes(p[3]) :
+          p[2] === 4 ? a.isStateAffected(p[3]) : false;
+      }
+      case 6: { const ch = characterOf(p[1]); return !!ch && (p[2] === 0 ? ch.x === p[3] : ch.direction() === p[2]); }
+      case 7: return p[2] === 0 ? T.$gameParty.gold() >= p[1] : T.$gameParty.gold() <= p[1];
+      case 8: return T.$gameParty.hasItem(T.$dataItems[p[1]]);
+      case 9: return T.$gameParty.itemCount(T.$dataWeapons[p[1]]) > 0;
+      case 10: return T.$gameParty.itemCount(T.$dataArmors[p[1]]) > 0;
+      case 11: return T.Input.pressed(p[1]);
+      case 12: try { return !!new Function(`with(T){return (${p[1]});}`)(); } catch (e) { return false; }
+      case 13: return true;
+      default: return false;
+    }
+  };
+  const skipConditional = (fr, indent, toElse) => {
+    while (fr.i < fr.list.length) {
+      const next = fr.list[fr.i++];
+      if (!next) return;
+      if (next.indent < indent) return;
+      if (next.indent !== indent) continue;
+      if (toElse && next.code === 411) return;
+      if (next.code === 0 || next.code === 412 || next.code === 413) return;
+    }
+  };
+  const skipChoice = (fr, indent) => {
+    while (fr.i < fr.list.length) {
+      const next = fr.list[fr.i++];
+      if (!next) return;
+      if (next.indent < indent) return;
+      if (next.indent === indent && [402, 403, 404].includes(next.code)) { fr.i--; return; }
+    }
+  };
+  const systemMessage = text => {
+    if (text != null && String(text).trim()) msgs.push(String(text));
+  };
+  T.TnUser = T.TnUser || { realName: "玩家" };
+  const oldSystemMessage = T["发送系统信息"];
+  T["发送系统信息"] = systemMessage;
   outer: while (stack.length) {
     const fr = stack[stack.length - 1];
-    const list = fr.list;
-    while (fr.i < list.length) {
-      const c = list[fr.i++];
-      if (!c) continue;
-      if (fr.skipping) { if (c.code === 411 || c.code === 412) fr.skipping = false; continue; }
-      const p = c.parameters || [];
-      switch (c.code) {
-        case 0: stack.pop(); continue outer;
-        case 111: {
-          const script = p[0] === 12 ? String(p[1] || "") : null;
-          let ok = true;
-          if (script) { try { ok = !!new Function("with(T){return (" + script + ");}").call(T.scriptContext || {}); } catch (e) { ok = false; } }
-          else if (p[0] === 3 || p[0] === 0) ok = T.$gameSwitches.value(p[1]) === !!p[2];
-          if (!ok) fr.skipping = true;
-          break;
-        }
-        case 117: { const s = T.$dataCommonEvents[p[0]]; if (s) stack.push({ list: s.list || [], i: 0, skipping: false }); break; }
-        case 121: T.$gameSwitches.setValue(p[0], p[1] !== 0); break;
-        case 122: T.$gameVariables.setValue(p[0], p[1]); break;
-        case 124: break;                    // 计时器：地图侧由主循环推进，此处忽略
-        case 125: T.$gameParty.gainGold(p[1]); break;
-        case 126: if (T.$dataItems[p[1]]) T.$gameParty.gainItem(T.$dataItems[p[1]], p[2]); break;
-        case 127: if (T.$dataWeapons[p[1]]) T.$gameParty.gainItem(T.$dataWeapons[p[1]], p[2]); break;
-        case 128: if (T.$dataArmors[p[1]]) T.$gameParty.gainItem(T.$dataArmors[p[1]], p[2]); break;
-        case 136: T.$gameSwitches.setValue(38, (p[0] || 0) === 0); break;
-        case 249: T.AudioManager.playSe({ name: p[0], volume: p[1] != null ? p[1] : 90, pitch: p[2] != null ? p[2] : 100 }); break;
-        case 355: {
-          /* G3-R1: 多行脚本——655 为续行，收集齐全再执行（此前逐行执行导致 forEach/if 块首行
-             语法错误被吞，CE5 客栈治愈等脚本全部失效） */
-          let script = String(p[0] || "");
-          while (fr.i < list.length) {
-            const nx = list[fr.i];
-            if (nx && nx.code === 655) { script += "\n" + String((nx.parameters || [])[0] || ""); fr.i++; }
-            else break;
-          }
-          try { new Function("with(T){" + script + "}").call(T.scriptContext || {}); }
-          catch (e) { console.warn("map-common-script:", script.slice(0, 80), e.message); }
-          break;
-        }
-        case 655: break;   // 已被 355 收集；游离 655 忽略
-        case 357: {
-          /* G3-R7: 插件命令（仓库入口）+ G3-R9: 军物品合成（役店配方/合成界面） */
-          const pp = c.parameters || [];
-          if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0) {
-            if (pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
-            else if (pp[1] === "AddRecipe" && T.registerSynthRecipe) T.registerSynthRecipe(pp[3] && pp[3].recipe);
-            else if (pp[1] === "CallItemSynthesis" && T.openSynthesis) T.openSynthesis();
-          }
-          break;
-        }
-        case 101: case 401: case 405: { const t = String((c.code === 101 ? p[4] : p[0]) || ""); if (t) msgs.push(t); break; }
-        case 102: break;                    // 选择：默认第一项（402 跟随执行）
-        case 402: case 403: case 404: break;
-        case 301: case 302: case 313: case 314: case 317: case 318: case 319: case 320: case 331: case 337: case 340: case 601: case 602: case 603: case 604: break;
-        case 505: break;
-        case 411: fr.skipping = false; break;
-        case 412: break;
-        case 413: break;
+    if (fr.i >= fr.list.length) { stack.pop(); continue; }
+    const c = fr.list[fr.i++];
+    if (!c) continue;
+    const p = c.parameters || [];
+    switch (c.code) {
+      /* 分支内部的缩进 code 0 是空命令，只有列表末尾的 code 0 才结束当前公共事件。 */
+      case 0: if (c.indent === 0 && fr.i >= fr.list.length) stack.pop(); break;
+      case 101: break;
+      case 401: case 405: { const text = String(p[0] || ""); if (text) msgs.push(text); break; }
+      case 111: {
+        const ok = condition(p); fr.branches[c.indent] = { taken: ok };
+        if (!ok) skipConditional(fr, c.indent, true);
+        break;
       }
+      case 411: {
+        const branch = fr.branches[c.indent];
+        if (branch && branch.taken) skipConditional(fr, c.indent, false);
+        break;
+      }
+      case 412: case 413: delete fr.branches[c.indent]; break;
+      case 102: fr.branches[c.indent] = { choice: 0 }; break;
+      case 402: {
+        const branch = fr.branches[c.indent];
+        if (!branch || branch.choice !== p[0]) skipChoice(fr, c.indent);
+        break;
+      }
+      case 403: break;
+      case 404: delete fr.branches[c.indent]; break;
+      case 117: { const child = T.$dataCommonEvents[p[0]]; if (child) stack.push({ list: child.list || [], i: 0, branches: {} }); break; }
+      case 121: for (let id = p[0]; id <= p[1]; id++) T.$gameSwitches.setValue(id, p[2] === 0); break;
+      case 122: setVariables(p); break;
+      case 123: {
+        const key = `${T.$gameMap && T.$gameMap.mapId},${T.currentInterpreter && T.currentInterpreter.eventId},${p[0]}`;
+        T.$gameSelfSwitches.setValue(key, p[1] === 0); break;
+      }
+      case 125: { const value = operand(p[1], p, 2); p[0] === 0 ? T.$gameParty.gainGold(value) : T.$gameParty.loseGold(value); break; }
+      case 126: case 127: case 128: {
+        const item = c.code === 126 ? T.$dataItems[p[0]] : c.code === 127 ? T.$dataWeapons[p[0]] : T.$dataArmors[p[0]];
+        const value = operand(p[2], p, 3);
+        if (item) p[1] === 0 ? T.$gameParty.gainItem(item, value) : T.$gameParty.loseItem(item, value);
+        break;
+      }
+      case 129: p[1] === 0 ? T.$gameParty.addActor(p[0]) : T.$gameParty.removeActor(p[0]); break;
+      case 130: {
+        const actors = p[0] === 0 ? [T.$gameParty.allMembers()[p[1]]] : T.$gameParty.allMembers();
+        for (const actor of actors) if (actor) actor.recoverAll();
+        break;
+      }
+      case 136: T.$gameSwitches.setValue(38, (p[0] || 0) === 0); break;
+      case 201: case 211: case 212: case 216: case 217: case 221: case 222: case 223: case 224: case 225: case 230: case 231: case 235: case 240: case 241: case 245: case 246: case 249: case 250: case 283: case 301: case 302: case 313: case 317: case 318: case 319: case 320: case 331: case 337: case 340: case 357: case 505: case 601: case 602: case 603: case 604: break;
+      case 314: {
+        if (p[0] === 0) { const actor = actorOf(p[1]); if (actor) actor.recoverAll(); }
+        else for (const actor of T.$gameParty.allMembers()) actor.recoverAll();
+        break;
+      }
+      case 355: {
+        let script = String(p[0] || "");
+        while (fr.i < fr.list.length && fr.list[fr.i] && fr.list[fr.i].code === 655) script += "\n" + String(fr.list[fr.i++].parameters?.[0] || "");
+        try { new Function(`with(T){${script}}`)(); } catch (e) { console.warn("map-common-script:", script.slice(0, 80), e.message); }
+        break;
+      }
+      case 655: break;
+      default: break;
     }
-    if (fr.i >= list.length && stack.length) stack.pop();
   }
+  if (oldSystemMessage) T["发送系统信息"] = oldSystemMessage;
+  else delete T["发送系统信息"];
   return msgs;
 };
 
@@ -875,10 +1047,14 @@ T.runMapCommonEvent = function (ceId) {
   T.$gameTroop = null;   // 战斗时创建
   T.$gameMap = null;     // 地图场景创建
   T.$gamePlayer = null;
+  T.LastBattle = null;
+  /* 网页版跳过原作登录插件；原始事件用开关55表示登录已完成。 */
+  T.$gameSwitches._data[55] = true;
+  if (T.updateChapterState) T.updateChapterState(0);
 };
 T.resetGameState();
 
-/* ---------------- 存档 ---------------- */
+/* ---------------- 存档与试玩快照 ---------------- */
 function serializeActors(ids) {
   return ids.map(id => {
     const a = T.getActor(id);
@@ -889,15 +1065,18 @@ function serializeActors(ids) {
              paramBonus: a._paramBonus };
   });
 }
-T.saveGame = async function (slot) {
-  T.$gameSystem.framesOnSave = T.GameMain ? T.GameMain.frameCount : 0;
-  const snap = {
+T.captureGameSnapshot = function () {
+  const pictures = {};
+  for (const [id, p] of Object.entries(T.$gameScreen.pictures || {})) {
+    pictures[id] = { name: p.name, x: p.x, y: p.y, opacity: p.opacity, scale: p.scale };
+  }
+  return {
     version: 2,
-    system: T.$gameSystem,
-    switches: T.$gameSwitches._data,
-    variables: T.$gameVariables._data,
-    selfSwitches: T.$gameSelfSwitches._data,
-    screen: { pictures: T.$gameScreen.pictures },
+    system: JSON.parse(JSON.stringify(T.$gameSystem || {})),
+    switches: (T.$gameSwitches._data || []).slice(),
+    variables: (T.$gameVariables._data || []).slice(),
+    selfSwitches: { ...(T.$gameSelfSwitches._data || {}) },
+    screen: { pictures },
     party: {
       gold: T.$gameParty._gold, items: T.$gameParty._items,
       weapons: T.$gameParty._weapons, armors: T.$gameParty._armors,
@@ -909,43 +1088,56 @@ T.saveGame = async function (slot) {
       pvpLevel: T.$gameParty._pvpLevel,
       pvpCount: T.$gameParty._pvpCount,
       storage: T.$gameParty._storage,
+      steps: T.$gameParty._steps || 0,
     },
+    vehicles: JSON.parse(JSON.stringify(T.$gameVehicles || {})),
     actorSnapshots: serializeActors(T.$gameParty._actors),
     mapId: T.$gameMap ? T.$gameMap.mapId : 1,
-    player: T.$gamePlayer ? { x: T.$gamePlayer.x, y: T.$gamePlayer.y, dir: T.$gamePlayer.direction() } : null,
-    savedAt: Date.now(),
+    player: T.$gamePlayer ? {
+      x: T.$gamePlayer.x, y: T.$gamePlayer.y, dir: T.$gamePlayer.direction(),
+      vehicleType: T.$gamePlayer._vehicleType, vehicleEventId: T.$gamePlayer._vehicleEventId || 0,
+    } : null,
+    encounterProgress: T.$gameMap ? T.$gameMap.encounterProgress || 0 : 0,
   };
-  localStorage.setItem("tndt_save_" + slot, JSON.stringify(snap));
-  T.$gameSystem.saveCount++;
 };
-T.hasSaveFile = slot => !!localStorage.getItem("tndt_save_" + slot);
-T.saveInfo = function (slot) {
-  try { return JSON.parse(localStorage.getItem("tndt_save_" + slot)); } catch (e) { return null; }
-};
-T.loadGame = async function (slot) {
-  const raw = localStorage.getItem("tndt_save_" + slot);
-  if (!raw) return false;
-  let s;
-  try { s = JSON.parse(raw); } catch (e) { console.warn("坏档:", slot, e); return false; }
+T.applyGameSnapshot = async function (s) {
+  if (!s || !s.party) return false;
   T.ActorRegistry = {};
-  T.$gameSystem = s.system;
+  T.$gameSystem = Object.assign({ saveCount: 0, framesOnSave: 0, bgmOnSave: null, battleCount: 0, winCount: 0 }, s.system || {});
   T.$gameSwitches._data = s.switches || [];
+  /* 兼容旧存档：网页版没有登录页，恢复时也必须保持原始事件可推进。 */
+  T.$gameSwitches._data[55] = true;
   T.$gameVariables._data = s.variables || [];
+  if (T.updateChapterState) T.updateChapterState(T.$gameVariables.value(1));
   T.$gameSelfSwitches._data = s.selfSwitches || {};
-  T.$gameScreen.pictures = (s.screen && s.screen.pictures) || {};
-  T.$gameParty._gold = s.party.gold;
-  T.$gameParty._items = s.party.items || {};
-  T.$gameParty._weapons = s.party.weapons || {};
-  T.$gameParty._armors = s.party.armors || {};
-  T.$gameParty._actors = s.party.actors || [];
+  T.$gameScreen.pictures = {};
+  for (const [id, p] of Object.entries((s.screen && s.screen.pictures) || {})) {
+    T.$gameScreen.pictures[id] = { name: p.name, x: p.x, y: p.y, opacity: p.opacity, scale: p.scale, img: null };
+    if (p.name) T.ImageManager.picture(p.name).then(img => {
+      const current = T.$gameScreen.pictures[id];
+      if (current) current.img = img;
+    });
+  }
+  const party = s.party || {};
+  T.$gameParty._gold = Number(party.gold) || 0;
+  T.$gameParty._items = party.items || {};
+  T.$gameParty._weapons = party.weapons || {};
+  T.$gameParty._armors = party.armors || {};
+  T.$gameParty._actors = Array.isArray(party.actors) ? party.actors.slice() : [];
   T.$gameParty._lastItem = null;
-  /* G3-R2: 恢复 c718918 新字段（v1 旧档缺失 → 默认值） */
-  T.$gameParty._formation = (s.party.formation != null) ? s.party.formation : -1;
-  T.$gameParty._surrendered = s.party.surrendered || [];
-  T.$gameParty._winPoint = s.party.winPoint || 0;
-  T.$gameParty._pvpLevel = s.party.pvpLevel || 0;
-  T.$gameParty._pvpCount = s.party.pvpCount || 0;
-  T.$gameParty._storage = s.party.storage || {};   // G3-R7: 仓库
+  /* G3-R2: 恢复新增字段（旧档缺失时使用兼容默认值） */
+  T.$gameParty._formation = (party.formation != null) ? party.formation : -1;
+  T.$gameParty._surrendered = party.surrendered || [];
+  T.$gameParty._winPoint = party.winPoint || 0;
+  T.$gameParty._pvpLevel = party.pvpLevel || 0;
+  T.$gameParty._pvpCount = party.pvpCount || 0;
+  T.$gameParty._storage = party.storage || {};
+  T.$gameParty._steps = Number(party.steps) || 0;
+  T.$gameVehicles = Object.assign({
+    0: { mapId: 0, x: 0, y: 0 },
+    1: { mapId: 0, x: 0, y: 0 },
+    2: { mapId: 0, x: 0, y: 0 },
+  }, s.vehicles || {});
   for (const snap of (s.actorSnapshots || [])) {
     const a = T.getActor(snap.id);
     a.level = snap.level; a.exp = snap.exp || a.expForLevel(snap.level);
@@ -954,12 +1146,38 @@ T.loadGame = async function (slot) {
     a._chengHao = snap.chengHao || [];
     a._paramBonus = snap.paramBonus || {};
     a.refresh();
-    a.hp = snap.hp; a.mp = snap.mp;
+    a.hp = snap.hp == null ? a.mhp : snap.hp;
+    a.mp = snap.mp == null ? a.mmp : snap.mp;
   }
   if (T.SceneManager) {
-    await T.SceneManager.gotoMap(s.mapId, s.player ? s.player.x : 1, s.player ? s.player.y : 1, s.player ? s.player.dir : 2);
+    await T.SceneManager.gotoMap(s.mapId || 1, s.player ? s.player.x : 1, s.player ? s.player.y : 1, s.player ? s.player.dir : 2);
+    if (T.$gamePlayer) {
+      T.$gamePlayer._vehicleType = s.player && s.player.vehicleType != null ? s.player.vehicleType : null;
+      T.$gamePlayer._vehicleEventId = s.player && s.player.vehicleEventId || 0;
+    }
+    if (T.$gameMap) T.$gameMap.encounterProgress = Number(s.encounterProgress) || 0;
   }
   return true;
+};
+T.saveGame = async function (slot) {
+  T.$gameSystem.framesOnSave = T.GameMain ? T.GameMain.frameCount : 0;
+  const snap = T.captureGameSnapshot();
+  snap.savedAt = Date.now();
+  const prefix = T.Preview && T.Preview.enabled ? "tndt_debug_save_" : "tndt_save_";
+  localStorage.setItem(prefix + slot, JSON.stringify(snap));
+  T.$gameSystem.saveCount++;
+};
+T.savePrefix = () => T.Preview && T.Preview.enabled ? "tndt_debug_save_" : "tndt_save_";
+T.hasSaveFile = slot => !!localStorage.getItem(T.savePrefix() + slot);
+T.saveInfo = function (slot) {
+  try { return JSON.parse(localStorage.getItem(T.savePrefix() + slot)); } catch (e) { return null; }
+};
+T.loadGame = async function (slot) {
+  const raw = localStorage.getItem(T.savePrefix() + slot);
+  if (!raw) return false;
+  let s;
+  try { s = JSON.parse(raw); } catch (e) { console.warn("坏档:", slot, e); return false; }
+  return T.applyGameSnapshot(s);
 };
 
 /* ---------------- 全局别名：供事件脚本 eval 与引擎内部使用 ---------------- */

@@ -1,0 +1,1 @@
+["(async()=>{await new Promise(r=>setTimeout(r,1400));const out={map:T.$gameMap&&T.$gameMap.mapId,var1:T.$gameVariables.value(1),x:T.$gamePlayer&&T.$gamePlayer.x,y:T.$gamePlayer&&T.$gamePlayer.y};const fails=[];out.allOk=out.map===27&&out.var1>=45;if(!out.allOk)fails.push('xuzhou-return');out.fails=fails;return JSON.stringify(out);})()"]

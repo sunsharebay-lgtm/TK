@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(23,114,141,2);localStorage.removeItem('tndt_save_0');localStorage.removeItem('tndt_save_1');const sc=new T.Scene_Save();sc.win.index=0;T.SceneManager.push(sc);window.__saveSlot={sc,gold0:T.$gameParty.gold()};return 'ready';})()"]

@@ -70,6 +70,7 @@ class Game_Character extends Game_CharacterBase {
       this._prevX = this.x; this._prevY = this.y;   // 记录移动前位置（触碰触发判定用）
       this.x += dx; this.y += dy;
       this._moving = true;
+      if (this === T.$gamePlayer && this.isInVehicle && this.isInVehicle()) this.syncVehicleLocation();
       this.increaseSteps();
       return true;
     }
@@ -80,7 +81,11 @@ class Game_Character extends Game_CharacterBase {
     const nx = x + dx, ny = y + dy;
     if (!T.$gameMap.isValid(nx, ny)) return false;
     if (this._through) return true;
-    if (!T.$gameMap.isPassable(nx, ny, d)) return false;
+    const vehicleEvent = T.$gamePlayer && this === T.$gamePlayer && T.$gameMap.vehicleEventAt(nx, ny);
+    const inVehicle = T.$gamePlayer && this === T.$gamePlayer && T.$gamePlayer.isInVehicle && T.$gamePlayer.isInVehicle();
+    if (inVehicle) {
+      if (!T.$gameMap.isVehiclePassable(nx, ny, T.$gamePlayer._vehicleType)) return false;
+    } else if (!vehicleEvent && !T.$gameMap.isPassable(nx, ny, d)) return false;
     if (!this.isMapPassableFor(nx, ny)) return false;
     return !T.$gameMap.collidesWithCharacter(this, nx, ny);
   }
@@ -168,15 +173,81 @@ class Game_Map {
     const m = T.$dataMap;
     this.width = m.width; this.height = m.height;
     this.data = m.data;
-    this.encounterList = m.encounterList || [];
-    this.encounterStep = m.encounterStep || 30;
     this.note = m.note || "";
+    this.encounterList = (m.encounterList || []).slice();
+    if (!this.encounterList.length && /<TroopVariables:\s*\d+>/i.test(this.note)) {
+      const level = T.$gameParty ? T.$gameParty.highestLevel() : 1;
+      const troopIds = level <= 3 ? [3, 4, 5] : level <= 7 ? [6, 7, 11] : [11, 12, 13, 15];
+      this.encounterList = troopIds.filter(id => T.$dataTroops[id]).map(troopId => ({ troopId, weight: 1, regionSet: [] }));
+    }
+    this.encounterStep = m.encounterStep || 30;
     this.parallaxName = m.parallaxName || "";
     this.battleback1Name = m.battleback1Name || "";
     this.battleback2Name = m.battleback2Name || "";
     this.events = (m.events || []).filter(Boolean).map(ed => new Game_Event(this.mapId, ed));
+    this.installChapter1VillageEvents();
     this.scrollX = 0; this.scrollY = 0;
     this.encounterProgress = 0;
+  }
+  isWorldMap() { return [23, 24, 25].includes(this.mapId); }
+  /* 大地图海水使用 A1 图块；不能用方向通行位判断，否则山地也会被误认成可航行。 */
+  isWaterTile(x, y) {
+    if (!this.isValid(x, y)) return false;
+    for (let layer = 3; layer >= 0; layer--) {
+      const id = this.tileId(x, y, layer);
+      if (id >= TILE_A1 && id < TILE_A2) return true;
+    }
+    return false;
+  }
+  activeEncounterList() {
+    const player = T.$gamePlayer;
+    if (player && player.isInVehicle && player.isInVehicle() && this.isWorldMap()) {
+      const level = T.$gameParty ? T.$gameParty.highestLevel() : 1;
+      /* 海上按等级切换海贼敌群，绝不沿用陆地的黄巾贼/山贼/黄金贼表。 */
+      const ids = level <= 20 ? [8, 9, 10] : [46, 47, 48];
+      return ids.filter(id => T.$dataTroops[id]).map(troopId => ({ troopId, weight: 1, regionSet: [] }));
+    }
+    return this.encounterList;
+  }
+  findNearestLand(x, y, radius = 8) {
+    for (let d = 0; d <= radius; d++) {
+      for (let dy = -d; dy <= d; dy++) {
+        const dx = d - Math.abs(dy);
+        for (const ox of dx === 0 ? [0] : [-dx, dx]) {
+          const nx = x + ox, ny = y + dy;
+          if (!this.isValid(nx, ny) || this.isWaterTile(nx, ny) || !this.isPassable(nx, ny, 2)) continue;
+          const blocked = this.events.some(ev => ev && !ev._erased && ev.page && ev.priorityType() === 1 && ev.pos(nx, ny));
+          if (!blocked) return { x: nx, y: ny };
+        }
+      }
+    }
+    return null;
+  }
+  /* 郑家村原数据只有出入口，补上与郑玄剧情相连的村民提示，避免空村导致主线断线。 */
+  installChapter1VillageEvents() {
+    if (this.mapId !== 29 || this.events.some(e => e.eventData && e.eventData._tndtVillageGuide)) return;
+    const make = (id, x, y, name, lines) => new Game_Event(this.mapId, {
+      id, name, x, y, _tndtVillageGuide: true,
+      pages: [{
+        conditions: { actorId: 1, actorValid: false, itemId: 1, itemValid: false,
+          selfSwitchCh: "A", selfSwitchValid: false, switch1Id: 1, switch1Valid: false,
+          switch2Id: 1, switch2Valid: false, variableId: 1, variableValid: false, variableValue: 0 },
+        directionFix: false, image: { tileId: 0, characterName: "$NPC_41", direction: 2, pattern: 0, characterIndex: 0 },
+        list: [{ code: 101, indent: 0, parameters: ["", 0, 0, 2, name] },
+          ...lines.map(text => ({ code: 401, indent: 0, parameters: [text] })),
+          { code: 0, indent: 0, parameters: [] }],
+        moveFrequency: 3, moveRoute: { list: [{ code: 0, parameters: [] }], repeat: true, skippable: false, wait: false },
+        moveSpeed: 3, moveType: 0, priorityType: 1, stepAnime: false, through: false, trigger: 0, walkAnime: true,
+      }],
+    });
+    this.events.push(make(1001, 10, 12, "郑家村民", [
+      "这里是郑家村，村人都避乱去了。",
+      "村北的宅院住着郑玄先生，日后若要投奔袁绍，可以请他修书。",
+    ]));
+    this.events.push(make(1002, 12, 12, "村中老人", [
+      "郑玄先生不在村口，他住在北面的宅院里。",
+      "进宅院后与先生见面，才能取得推荐袁绍的书信。",
+    ]));
   }
   tileId(x, y, layer) {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return 0;
@@ -222,10 +293,24 @@ class Game_Map {
     const ev = this.events.find(e => e.pos(x, y));
     return ev ? ev.eventId : 0;
   }
+  isVehicleEvent(ev) {
+    const name = ev && ev.imageInfo ? ev.imageInfo().name : "";
+    return /\$(chuan|boat|ship|feiji|airship)/i.test(name || "");
+  }
+  vehicleEventAt(x, y) {
+    return this.events.find(e => !e._erased && e.page && this.isVehicleEvent(e) && e.pos(x, y)) || null;
+  }
+  vehiclePassageFlag(type) { return type === 2 ? 0x08 : type === 1 ? 0x04 : 0x02; }
+  isVehiclePassable(x, y, type = 0) {
+    if (!this.isValid(x, y)) return false;
+    if (type === 2) return true;
+    return this.isWaterTile(x, y);
+  }
   event(id) { return this.events.find(e => e.eventId === id) || null; }
   collidesWithCharacter(self, x, y) {
     for (const ev of this.events) {
       if (ev === self || ev._erased || !ev.page || !ev.pos(x, y)) continue;
+      if (self === T.$gamePlayer && this.isVehicleEvent(ev)) continue;
       if (ev.priorityType() >= 1 && !ev._through) return true;
     }
     if (self !== T.$gamePlayer && T.$gamePlayer &&
@@ -238,11 +323,19 @@ class Game_Map {
     for (const a of T.$gameParty.battleMembers()) {
       if (a && a.onMapStep) a.onMapStep();
     }
+    const vehicle = this.vehicleEventAt(T.$gamePlayer.x, T.$gamePlayer.y);
+    if (vehicle && vehicle.page.trigger === 1 && !T.$gamePlayer.isInVehicle()) vehicle.start();
+    const scene = T.SceneManager && T.SceneManager.current();
+    const touchEvent = T.$gamePlayer && this.events.some(e => e.page && e.page.trigger === 1 && e.pos(T.$gamePlayer.x, T.$gamePlayer.y));
+    if (scene && typeof scene.checkEncounter === "function" && !touchEvent && !T.BattleScene && !T.PendingBattle && !this.interpreter.isRunning()) {
+      scene.checkEncounter();
+    }
   }
   encounterCandidates() {
-    if (!this.encounterList.length) return [];
+    const source = this.activeEncounterList();
+    if (!source.length) return [];
     if (T.$gameParty.encounterNone()) return [];
-    let list = this.encounterList.filter(e =>
+    let list = source.filter(e =>
       !(e.regionSet && e.regionSet.length) || e.regionSet.includes(this.regionId(T.$gamePlayer.x, T.$gamePlayer.y)));
     if (T.$gameParty.encounterHalf()) list = list.filter(() => Math.random() < 0.5);
     return list;
@@ -277,11 +370,24 @@ class Game_Event extends Game_Character {
     const img = this.page ? this.page.image : { characterName: "", characterIndex: 0 };
     return { name: img.characterName, index: img.characterIndex };
   }
+  isChest() {
+    const name = (this.page && this.page.image && this.page.image.characterName) ||
+      (this.eventData.pages && this.eventData.pages[0] && this.eventData.pages[0].image && this.eventData.pages[0].image.characterName) || "";
+    return name === "$baoxiang" || name === "$baoxianghong";
+  }
+  isOpenedChest() {
+    return this.isChest() && T.$gameSelfSwitches.value(`${this.mapId},${this.eventId},A`);
+  }
   meetConditions(page) {
+    if (this.mapId === 23 && (this.eventId === 6 || this.eventId === 7) && T.$gameVariables.value(1) < 40) return false;
     const c = page.conditions;
     if (c.switch1Valid && !T.$gameSwitches.value(c.switch1Id)) return false;
     if (c.switch2Valid && !T.$gameSwitches.value(c.switch2Id)) return false;
-    if (c.variableValid && T.$gameVariables.value(c.variableId) < (c.variableValue || 0)) return false;
+    /* 第一章收尾停在 45 时也允许先去郑玄居询问；若没有地图，事件会按原始分支提示先取地图。 */
+    const zhengXuanIntro = this.mapId === 170 && this.eventId === 3 &&
+      c.variableValid && c.variableId === 1 && (c.variableValue || 0) === 65 &&
+      T.$gameVariables.value(1) >= 45;
+    if (c.variableValid && !zhengXuanIntro && T.$gameVariables.value(c.variableId) < (c.variableValue || 0)) return false;
     if (c.selfSwitchValid) {
       const key = `${this.mapId},${this.eventId},${c.selfSwitchCh}`;
       if (!T.$gameSelfSwitches.value(key)) return false;
@@ -334,7 +440,22 @@ class Game_Event extends Game_Character {
   }
   start() { this.starting = true; }
   clearStartingFlag() { this.starting = false; }
-  list() { return this.page ? this.page.list : []; }
+  list() {
+    const list = this.page ? this.page.list : [];
+    if (T.$dataMap && T.$dataMap.displayName === "训练场") {
+      const prompt = list.find(c => c && c.code === 401 && /此处训练需要/.test(String(c.parameters && c.parameters[0] || "")));
+      const match = prompt && /升到\s*(\d+)级/.exec(String(prompt.parameters[0]));
+      if (match && T.$gameParty.highestLevel() >= Number(match[1])) {
+        return [
+          { code: 101, indent: 0, parameters: ["", 0, 0, 2, "训练场老板"] },
+          { code: 401, indent: 0, parameters: ["对不起，您的队伍等级已经很高了，"] },
+          { code: 401, indent: 0, parameters: ["请到其他训练场去吧！"] },
+          { code: 0, indent: 0, parameters: [] },
+        ];
+      }
+    }
+    return list;
+  }
 }
 
 /* ---------------- 玩家 ---------------- */
@@ -344,6 +465,41 @@ class Game_Player extends Game_Character {
     this._moveSpeed = 4;
     this._followersVisible = true;
     this._transparent = false;
+    this._vehicleType = null;
+    this._vehicleEventId = 0;
+  }
+  isInVehicle() { return this._vehicleType != null; }
+  syncVehicleLocation() {
+    if (!this.isInVehicle() || !T.$gameMap || !T.$gameVehicles) return;
+    const state = T.$gameVehicles[this._vehicleType];
+    if (state) Object.assign(state, { mapId: T.$gameMap.mapId, x: this.x, y: this.y });
+  }
+  getOnVehicle(type, event) {
+    if (!event || this.isInVehicle()) return false;
+    this._vehicleType = type;
+    this._vehicleEventId = event.eventId || 0;
+    this._realX = this.x; this._realY = this.y;
+    this.syncVehicleLocation();
+    return true;
+  }
+  getOffVehicle() {
+    if (!this.isInVehicle()) return false;
+    const type = this._vehicleType;
+    if (type !== 2) {
+      const land = T.$gameMap && T.$gameMap.findNearestLand(this.x, this.y, 8);
+      if (!land) return false;
+      this.x = land.x; this.y = land.y;
+      this._realX = this.x; this._realY = this.y;
+      this._prevX = this.x; this._prevY = this.y;
+    }
+    this._vehicleType = null;
+    this._vehicleEventId = 0;
+    const scene = T.SceneManager && T.SceneManager.current();
+    if (scene && scene._trail) {
+      scene._trail = [{ x: this.x, y: this.y, d: this.direction() }];
+      scene._lastTrailKey = "";
+    }
+    return type;
   }
   imageInfo() {
     const lead = ($gameParty.battleMembers()[0] || $gameParty.allMembers()[0]);
@@ -354,6 +510,7 @@ class Game_Player extends Game_Character {
     // 玩家不可走进优先级1(与角色同层)且非贯通的事件格；0(低于)/2(高于)可踩；无激活页事件不挡路
     for (const ev of T.$gameMap.events) {
       if (ev._erased || !ev.page || !ev.pos(nx, ny)) continue;
+      if (T.$gameMap.isVehicleEvent(ev)) continue;
       if (ev.priorityType() === 1) return false;
     }
     return true;
@@ -440,19 +597,15 @@ class Game_Interpreter {
     this.list = null;
     if (this.onFinish) { const f = this.onFinish; this.onFinish = null; f(); }
   }
-  skipBranch() {
+  skipBranch(mode = "false") {
     const targetIndent = this.currentIndent;
-    let depth = 0;
     while (this.index < this.list.length) {
       const cmd = this.list[this.index++];
       if (!cmd) return;
-      if (cmd.indent === targetIndent) {
-        if (cmd.code === 0 || cmd.code === 412 || cmd.code === 413) {
-          if (depth === 0) return;
-          depth--;
-        }
-        if (cmd.code === 111) depth++;
-      }
+      if (cmd.indent < targetIndent) return;
+      if (cmd.indent !== targetIndent) continue;
+      if (cmd.code === 411 && mode === "false") return;
+      if (cmd.code === 0 || cmd.code === 412 || cmd.code === 413) return;
     }
   }
   jumpToLoopEnd() {
@@ -492,6 +645,15 @@ class Game_Interpreter {
     $gameParty.gainItem(item, n);
     if (T.$gameMessage.texts.length === 0) {
       T.$gameMessage.add(`获得〔${item.name}〕！`);
+      T.AudioManager.playSe({ name: "GainItem", volume: 80 });
+    }
+  }
+  gainGoldWithFeedback(n) {
+    if (!(n > 0)) return;
+    $gameParty.gainGold(n);
+    if (T.$gameMessage.texts.length === 0) {
+      const unit = T.$dataSystem.currencyUnit || "两";
+      T.$gameMessage.add(`获得了金钱 ${T.fmt(n)}${unit}！`);
       T.AudioManager.playSe({ name: "GainItem", volume: 80 });
     }
   }
@@ -557,12 +719,12 @@ class Game_Interpreter {
       /* ---- 流程 ---- */
       case 111: {
         const result = this.commandConditional(p);
-        if (!result) this.skipBranch();
+        if (!result) this.skipBranch("false");
         return true;
       }
       case 411: { // Else
         const st = this.branches[cmd.indent];
-        if (st && st.taken) { this.skipBranch(); return true; }
+        if (st && st.taken) { this.skipBranch("true"); return true; }
         return true;
       }
       case 412: case 413: return true;           // 分支/循环结束
@@ -606,7 +768,7 @@ class Game_Interpreter {
       /* ---- 持有物 ---- */
       case 125: {
         const v = this.valueOperand(p[1], p, 2);
-        p[0] === 0 ? $gameParty.gainGold(v) : $gameParty.loseGold(v);
+        p[0] === 0 ? this.gainGoldWithFeedback(v) : $gameParty.loseGold(v);
         return true;
       }
       case 126: {
@@ -655,7 +817,7 @@ class Game_Interpreter {
         }
         return false;
       }
-      case 202: return this.commandSetEventLocation(p);
+      case 202: return this.commandSetVehicleLocation(p);
       case 204: { // G3-R3: 事件位置变更扩展（TNW 数据 [eventId,x,y,...]，与 202 同语义宽化；推定参数位）
         const ch = this.character(p[0]);
         if (ch && p[1] != null && p[2] != null) { ch.x = p[1]; ch.y = p[2]; }
@@ -667,15 +829,17 @@ class Game_Interpreter {
         if (ch && p[1] && p[1].wait) { this._routeWaitChar = ch; this.waitMode = "route"; return false; }
         return true;
       }
-      case 206: { // 位置信息
-        const gm = T.$gameMap;
-        const px = p[1], py = p[2];
-        let val = 0;
-        if (p[0] === 0) val = gm.terrainTag(px, py);
-        else if (p[0] === 1) val = gm.regionId(px, py);
-        else if (p[0] === 2) val = gm.eventIdAt(px, py);
-        else if (p[0] === 3) val = gm.tileId(px, py, 0);
-        T.$gameVariables.setValue(p[3], val);
+      case 206: { // 上下交通工具
+        const player = T.$gamePlayer;
+        if (!player) return true;
+        if (player.isInVehicle()) player.getOffVehicle();
+        else {
+          const ev = T.$gameMap.vehicleEventAt(player.x, player.y);
+          const type = ev && T.$gameMap._vehicleEventTypes?.[ev.eventId] != null
+            ? T.$gameMap._vehicleEventTypes[ev.eventId]
+            : ev && /\$(feiji|airship)/i.test(ev.imageInfo().name || "") ? 2 : 0;
+          if (ev) player.getOnVehicle(type, ev);
+        }
         return true;
       }
       /* ---- 画面效果 ---- */
@@ -708,6 +872,15 @@ class Game_Interpreter {
         const troopId = p[0] === 0 ? p[1] : T.$gameVariables.value(p[1]);
         this.processBattle(troopId, !!p[2], !!p[3]);
         return false;                            // 战斗期间挂起
+      }
+      case 354: {
+        /* 标准命令是返回标题；开场数据也使用此编号做登录插件占位，不能误切标题。 */
+        if (this.mapId === 253 && this.eventId === 14 && T.SceneManager && T.SceneManager.gotoTitle) {
+          T.$gameSystem.chapter1Complete = true;
+          T.$gameSystem.firstPlaythroughComplete = true;
+          T.SceneManager.gotoTitle();
+        }
+        return true;
       }
       case 601: if (this._battleResult === "win") return true; return "skip";
       case 602: if (this._battleResult === "escape") return true; return "skip";
@@ -767,6 +940,11 @@ class Game_Interpreter {
           if (nx && nx.code === 655) { scr += "\n" + String((nx.parameters || [])[0] || ""); this.index++; }
           else break;
         }
+        /* 原作把奖励播报交给登录插件；网页版没有登录层，改为游戏内消息。 */
+        T.TnUser = T.TnUser || { realName: "玩家" };
+        T["发送系统信息"] = T["发送系统信息"] || (text => {
+          if (text != null && String(text).trim()) T.$gameMessage.add(String(text));
+        });
         try { new Function(`with(T){${scr}}`).call(T.scriptContext || {}); }
         catch (e) { console.warn("script:", scr.slice(0, 80), e.message); }
         return true;
@@ -776,8 +954,7 @@ class Game_Interpreter {
         const pp = p || [];
         if (typeof pp[0] === "string" && pp[0].indexOf("BrotherJie") === 0) {
           if (pp[1] === "CallActorStorage" && T.openStorage) T.openStorage();
-          else if (pp[1] === "AddRecipe" && T.registerSynthRecipe) T.registerSynthRecipe(pp[3] && pp[3].recipe);
-          else if (pp[1] === "CallItemSynthesis" && T.openSynthesis) T.openSynthesis();
+          else if (pp[1] === "AddRecipe" || pp[1] === "CallItemSynthesis") { /* 合成系统暂不开放 */ }
         }
         return true;
       }
@@ -837,9 +1014,10 @@ class Game_Interpreter {
         break;
       }
       case 7: result = p[2] === 0 ? $gameParty.gold() >= p[1] : $gameParty.gold() <= p[1]; break;
-      case 8: result = $gameParty.hasItem(T.$dataItems[p[1]]) === (p[2] === 0); break;
-      case 9: result = $gameParty.itemCount(T.$dataWeapons[p[1]]) > 0 === (p[2] === 0); break;
-      case 10: result = $gameParty.itemCount(T.$dataArmors[p[1]]) > 0 === (p[2] === 0); break;
+      /* MV 条件分支的物品/武器/防具格式只有 [类型,id]，没有“持有/没有”的第三参数。 */
+      case 8: result = $gameParty.hasItem(T.$dataItems[p[1]]); break;
+      case 9: result = $gameParty.itemCount(T.$dataWeapons[p[1]]) > 0; break;
+      case 10: result = $gameParty.itemCount(T.$dataArmors[p[1]]) > 0; break;
       case 11: result = T.Input.pressed(p[1]); break;
       case 12: try { result = !!new Function(`with(T){return (${p[1]});}`)(); } catch (e) { result = false; } break;
       case 13: result = true; break;
@@ -908,6 +1086,18 @@ class Game_Interpreter {
     ch._realX = ch.x; ch._realY = ch.y;
     return true;
   }
+  commandSetVehicleLocation(p) {
+    const type = Number(p[0]) || 0;
+    const mode = Number(p[1]) || 0;
+    const mapId = mode === 0 ? Number(p[2]) : T.$gameVariables.value(p[2]);
+    const x = mode === 0 ? Number(p[3]) : T.$gameVariables.value(p[3]);
+    const y = mode === 0 ? Number(p[4]) : T.$gameVariables.value(p[4]);
+    T.$gameVehicles = T.$gameVehicles || {};
+    T.$gameVehicles[type] = { mapId, x, y };
+    T.$gameMap._vehicleEventTypes = T.$gameMap._vehicleEventTypes || {};
+    if (this.eventId) T.$gameMap._vehicleEventTypes[this.eventId] = type;
+    return true;
+  }
   commandChangeHp(p) {
     const targets = p[0] === 0 ? [T.getActor(p[1])] : $gameParty.allMembers();
     const amount = this.valueOperand(p[3] === 0 ? 0 : 1, p, 4);
@@ -921,17 +1111,22 @@ class Game_Interpreter {
   }
   commandChangeParam(p) {
     const targets = p[0] === 0 ? [T.getActor(p[1])] : $gameParty.allMembers();
-    const amount = this.valueOperand(p[3] === 0 ? 0 : 1, p, 4);
+    /* MZ 参数为 [对象类型, 对象ID, 参数ID, 运算, 操作数类型, 数值]。 */
+    const amount = this.valueOperand(p[4] === 0 ? 0 : 1, p, 5);
     for (const a of targets) {
       if (!a) continue;
       // 通过临时特性实现参数增减
       a._paramBonus = a._paramBonus || {};
-      a._paramBonus[p[2]] = (a._paramBonus[p[2]] || 0) + (p[1] === 0 ? amount : -amount);
+      a._paramBonus[p[2]] = (a._paramBonus[p[2]] || 0) + (p[3] === 0 ? amount : -amount);
     }
     return true;
   }
   processBattle(troopId, canEscape, canLose) {
-    T.PendingBattle = { troopId, canEscape, canLose, interpreter: this };
+    T.PendingBattle = {
+      troopId, canEscape, canLose, interpreter: this,
+      sourceMapId: T.$gameMap ? T.$gameMap.mapId : 0,
+      sourceEventId: this.eventId || 0,
+    };
   }
 }
 

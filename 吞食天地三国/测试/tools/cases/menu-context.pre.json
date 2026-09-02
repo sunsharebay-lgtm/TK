@@ -1,0 +1,1 @@
+["(()=>{const gm=T.$gameParty;[2,3,4,5].forEach(id=>gm.addActor(id));gm.gainItem(T.$dataItems[21],1);gm.gainItem(T.$dataWeapons[1],1);T.SceneManager.push(new T.Scene_Menu());return 'menu-open';})()"]

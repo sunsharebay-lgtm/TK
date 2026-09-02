@@ -1,0 +1,1 @@
+["(()=>{const out={scene:T.SceneManager.current()?.constructor?.name};out.allOk=out.scene==='Scene_Title';out.fails=out.allOk?[]:['not-title'];return JSON.stringify(out);})()"]

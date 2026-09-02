@@ -1,0 +1,1 @@
+["(()=>{const lines=window.__trainingList||[];const out={lines,level:T.$gameParty.highestLevel()};out.highMessage=lines.some(x=>String(x).includes('队伍等级已经很高'));out.badTarget=lines.some(x=>String(x).includes('升到4级'));out.allOk=out.level===10&&out.highMessage&&!out.badTarget;out.fails=out.allOk?[]:['training-target-stale'];return JSON.stringify(out);})()"]

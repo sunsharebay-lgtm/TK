@@ -1,0 +1,1 @@
+["(()=>{const gm=T.$gameMap;if(!gm||gm.mapId!==23)return 'false:world';gm.encounterProgress=gm.encounterStep-1;T.PendingBattle=null;gm.onPlayerStep();return gm.encounterList.length&&T.PendingBattle?'ready':'false:no-encounter';})()"]

@@ -1,0 +1,1 @@
+["(()=>{if(!T.$gameMap||T.$gameMap.mapId!==23)return 'false:map';T.$gameParty._actors=[2,3,4];T.$gameParty._items={};T.$gameParty.gainItem(T.$dataItems[1],1);const a=T.getActor(3);a.hp=Math.max(1,a.mhp-120);T.SceneManager.stack=[new T.Scene_Item()];return 'ready';})()"]

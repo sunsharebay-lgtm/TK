@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(23,114,141,2);const sc=Object.create(T.Scene_Battle.prototype);sc.totalAssaultActive=false;const normal=sc.actionTiming();sc.totalAssaultActive=true;const total=sc.actionTiming();return JSON.stringify({normal,total});})()"]

@@ -1,0 +1,1 @@
+["(()=>{const p=T.$gamePlayer;T.$gameVariables.setValue(1,75);T.$gameSwitches.setValue(47,true);p.x=132;p.y=75;p._realX=132;p._realY=75;p._prevX=132;p._prevY=75;p._vehicleType=0;p._vehicleEventId=12;T.$gameVehicles[0]={mapId:23,x:132,y:75};T.$gameMap.encounterProgress=0;T.PendingBattle=null;T.BattleScene=null;T.$gameMap.refreshEvents();return 'ready';})()"]

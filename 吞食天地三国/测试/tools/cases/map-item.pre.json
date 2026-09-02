@@ -1,0 +1,1 @@
+["(()=>{if(!T.$gameMap||T.$gameMap.mapId!==23)return 'false:map';T.$gameParty._actors=[2,3];T.$gameParty._items={};T.$gameParty.gainItem(T.$dataItems[26],1);T.SceneManager.stack=[new T.Scene_Item()];return 'ready';})()"]

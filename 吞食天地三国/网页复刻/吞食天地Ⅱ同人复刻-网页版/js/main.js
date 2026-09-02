@@ -21,6 +21,9 @@ T.SceneManager = {
   },
   async transferPlayer(mapId, x, y, dir, fadeType) {
     if (this.busy) return;
+    if (T.$gameMap && [23, 24, 25].includes(T.$gameMap.mapId) && T.$gameSystem) {
+      T.$gameSystem.worldPosition = { mapId: T.$gameMap.mapId, x: T.$gamePlayer.x, y: T.$gamePlayer.y };
+    }
     this.busy = true;
     const s = T.$gameScreen;
     s.fadeColor = fadeType === 1 ? "#fff" : "#000";
@@ -187,6 +190,8 @@ class Scene_GameOver {
   }
 }
 T.SceneManager.gotoTitle = function () {
+  if (T.Input && T.Input.ignoreOkUntilRelease) T.Input.ignoreOkUntilRelease();
+  if (T.Preview) T.Preview.enabled = false;
   const t = new Scene_Title();
   this.stack = [t];
   t.create();
@@ -212,9 +217,17 @@ T.GameMain = {
       T.SceneManager.gotoTitle();
       this.started = true;
       this.loop();
-      /* 测试钩子：?autostart 自动开始新游戏；?goto=mapId,x,y 直接跳转 */
+      /* 测试钩子：?autostart 自动开始新游戏；?goto=mapId,x,y 直接跳转。
+         ?debug=1 打开章节试玩中心；?preview=node-id 直接恢复指定节点。 */
       const params = new URLSearchParams(location.search);
-      if (params.has("autostart")) {
+      if (params.has("debug") || params.has("preview")) {
+        T.Preview.enabled = true;
+        setTimeout(() => {
+          const id = params.get("preview");
+          if (id) T.Preview.launchById(id);
+          else T.Preview.open();
+        }, 600);
+      } else if (params.has("autostart") && !params.has("goto")) {
         setTimeout(() => { const t = T.SceneManager.current(); if (t instanceof Scene_Title) t.startNewGame(); }, 600);
       }
       if (params.has("goto")) {

@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(23,114,141,2);const gm=T.$gameParty;gm._actors=[2,3];gm._items={};const dead=T.getActor(3);dead.die();const item=T.$dataItems[17];gm.gainItem(item,1);const sc=new T.Scene_Item();T.SceneManager.push(sc);window.__revival={sc,item,dead};return 'ready';})()"]

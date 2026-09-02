@@ -1,1 +1,1 @@
-["(()=>{const gm=T.$gameParty;gm.gainGold(500);window.__t={price:T.$dataItems[21].price||0,gold0:gm.gold()};T.SceneManager.push(new T.Scene_Shop([[0,21]],false));return 'shop-open:'+window.__t.price;})()"]
+["(()=>{const gm=T.$gameParty;gm.gainGold(500);window.__t={price:T.$dataItems[21].price||0,gold0:gm.gold()};T.SceneManager.push(new T.Scene_Shop([[0,21],[1,1],[1,2]],false));return 'shop-open:'+window.__t.price;})()"]

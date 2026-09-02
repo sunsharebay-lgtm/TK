@@ -4,6 +4,10 @@
  * ============================================================ */
 "use strict";
 
+/* 普通行动给玩家留出看清攻击者、受击者和伤害结果的时间。总攻也复用同一节奏。 */
+const ACTION_APPROACH_FRAMES = 24;
+const ACTION_RETURN_FRAMES = 14;
+
 /* ---------------- 敌群 ---------------- */
 class Game_Troop {
   constructor(troopId) {
@@ -60,6 +64,8 @@ class Scene_Battle {
     this.partyMembers = $gameParty.battleMembers().filter(a => !a.isDead());
     for (const a of this.partyMembers) a.onBattleStart();
     for (const e of this.troop.aliveMembers()) e.onBattleStart();
+    this.partyBarRefHp = Math.max(1, ...this.partyMembers.map(a => a.hp));
+    this.enemyBarRefHp = Math.max(1, ...this.troop.members.map(e => e.hp));
     /* 敌人精灵图 */
     this.enemySprites = new Map();
     this.actorSprites = new Map();
@@ -234,17 +240,40 @@ class Scene_Battle {
   updateSkillType() {}
   beginSelectTargetEnemy() {
     this.selectMode = "target-enemy";
+    this._targetDead = false;
     const alive = this.troop.aliveMembers();
     this.targets = alive;
     this.targetIdx = 0;
     this.phase = "select-target";
   }
-  beginSelectTargetAlly(forItem) {
+  beginSelectTargetAlly(forItem, scope = 7) {
     this.selectMode = "target-ally";
-    this.targets = this.partyMembers;
+    this._targetDead = [9, 10].includes(scope);
+    this.targets = this._targetDead ? this.partyMembers.filter(a => a.isDead()) : this.partyMembers.filter(a => !a.isDead());
     this.targetIdx = 0;
     this._targetForItem = !!forItem;
     this.phase = "select-target";
+  }
+  isRecoveryAction(action) {
+    const item = action && (action.skill || action.item);
+    return !!item && ((item.damage && item.damage.type === 3) || (item.effects || []).some(e => e.code === 11));
+  }
+  isDamageAction(action) {
+    const item = action && (action.skill || action.item);
+    return !!item && !(this.isRecoveryAction(action)) &&
+      (item.damage && [1, 2].includes(item.damage.type));
+  }
+  toggleAllTargets() {
+    const action = this.currentActor && this.currentActor._pendingAction;
+    if (!action || !this.targets.length) return false;
+    const ally = this.selectMode === "target-ally";
+    const enemy = this.selectMode === "target-enemy";
+    if ((ally && !this.isRecoveryAction(action)) || (enemy && !this.isDamageAction(action))) return false;
+    action.targetAll = true;
+    action.targets = this.targets.slice();
+    this.targetIdx = 0;
+    T.AudioManager.playSe({ name: "Cursor", volume: 60 });
+    return true;
   }
   tryEscape() {
     const partyAgi = this.partyMembers.reduce((s, a) => s + (a.isDead() ? 0 : a.agi), 0);
@@ -295,11 +324,11 @@ class Scene_Battle {
     if (T.Input.triggered("ok")) {
       const s = this.skillList[this.skillWin.index];
       if (!s) return;
-      if (s.mpCost > this.currentActor.mp) { T.AudioManager.playSe({ name: "Buzzer", volume: 50 }); return; }
+      if (T.skillCost(s) > this.currentActor.mp) { T.AudioManager.playSe({ name: "Buzzer", volume: 50 }); return; }
       this.currentActor._pendingAction = { kind: "skill", skill: s };
       const scope = s.scope ?? s.damage?.scope;
-      if ([1, 2, 9].includes(scope)) this.beginSelectTargetEnemy();       // 单体敌人
-      else if ([7, 8, 11, 14].includes(scope)) this.beginSelectTargetAlly(); // 单体我方
+      if ([1, 2, 3, 4, 5, 6].includes(scope)) this.beginSelectTargetEnemy(); // 敌方目标
+      else if ([7, 9, 12, 14].includes(scope)) this.beginSelectTargetAlly(false, scope); // 我方单体/阵亡目标
       else this.confirmActorAction();                                      // 全体/自身
     }
   }
@@ -311,19 +340,32 @@ class Scene_Battle {
       if (!it || !$gameParty.hasItem(it)) return;
       this.currentActor._pendingAction = { kind: "item", item: it };
       const scope = it.scope ?? it.damage?.scope;
-      if ([7, 8, 11, 14].includes(scope)) this.beginSelectTargetAlly(true);
-      else if ([1, 2, 9].includes(scope)) this.beginSelectTargetEnemy();
+      if ([7, 9, 12, 14].includes(scope)) this.beginSelectTargetAlly(true, scope);
+      else if ([1, 2, 3, 4, 5, 6].includes(scope)) this.beginSelectTargetEnemy();
       else this.confirmActorAction();
     }
   }
   updateTarget() {
     const n = this.targets.length;
-    if (T.Input.repeated("up") || T.Input.repeated("left")) this.targetIdx = (this.targetIdx - 1 + n) % n;
-    if (T.Input.repeated("down") || T.Input.repeated("right")) this.targetIdx = (this.targetIdx + 1) % n;
+    if (!n) {
+      this.say(this._targetDead ? "没有可用的阵亡武将。" : "没有可用的目标。");
+      this.phase = "actor-cmd";
+      this._cmdsFor = null;
+      return;
+    }
+    const action = this.currentActor && this.currentActor._pendingAction;
+    if (!action?.targetAll && ((this.selectMode === "target-ally" && T.Input.triggered("left")) ||
+        (this.selectMode === "target-enemy" && T.Input.triggered("right"))) && this.toggleAllTargets()) return;
+    if (action?.targetAll && T.Input.triggered("cancel")) {
+      action.targetAll = false; action.targets = null; return;
+    }
+    if (!action?.targetAll && (T.Input.repeated("up") || T.Input.repeated("left"))) this.targetIdx = (this.targetIdx - 1 + n) % n;
+    if (!action?.targetAll && (T.Input.repeated("down") || T.Input.repeated("right"))) this.targetIdx = (this.targetIdx + 1) % n;
     if (T.Input.triggered("cancel")) { this.phase = "actor-cmd"; return; }
     if (T.Input.triggered("ok")) {
       const act = this.currentActor._pendingAction;
       act.target = this.targets[this.targetIdx];
+      if (act.targetAll) act.targets = this.targets.slice();
       this.confirmActorAction();
     }
   }
@@ -333,7 +375,10 @@ class Scene_Battle {
       a._pendingAction.kind === "skill" ? a._pendingAction.skill :
       a._pendingAction.kind === "item" ? a._pendingAction.item : null,
       -1);
-    if (a._actions[0]) a._actions[0].target = a._pendingAction.target;
+    if (a._actions[0]) {
+      a._actions[0].target = a._pendingAction.target;
+      a._actions[0].targets = a._pendingAction.targets || null;
+    }
     a._guarding = a._pendingAction.kind === "guard";
     this.nextActorOrResolve();
   }
@@ -378,11 +423,14 @@ class Scene_Battle {
     if (!seq) { this.phase = "resolve"; return; }
     seq.t++;
     const b = seq.user;
+    const timing = this.actionTiming();
+    const approachFrames = timing.approach;
+    const returnFrames = timing.return;
     if (this.actionVisual && this.actionVisual.hitT > 0) this.actionVisual.hitT--;
     if (!seq.applied) {
-      this._actionAdvance = Math.min(1, seq.t / 12);
+      this._actionAdvance = Math.min(1, seq.t / approachFrames);
       this._actionUser = b;
-      if (seq.t >= 12) {
+      if (seq.t >= approachFrames) {
         seq.applied = true; seq.t = 0;
         this.subject = b;
         if (b.isActor && b.isActor()) this.doActorAction(b);
@@ -390,12 +438,12 @@ class Scene_Battle {
         if (this.animQueue.length) { const fn = this.animQueue.shift(); fn(); }
         if (this.phase === "anim") this.phase = "action";
         if (this._EscapeGuard) { this._EscapeGuard = false; this.phase = "escaped"; this.phaseTimer = 45; return; }
-        if (this.actionVisual) this.actionVisual.hitT = 16;
-        this._actionFxLeft = 10;
+        if (this.actionVisual) this.actionVisual.hitT = this.totalAssaultActive ? 8 : 16;
+        this._actionFxLeft = this.totalAssaultActive ? 6 : 12;
       }
     } else {
-      this._actionAdvance = Math.max(0, 1 - seq.t / 7);
-      if (seq.t >= 7) {
+      this._actionAdvance = Math.max(0, 1 - seq.t / returnFrames);
+      if (seq.t >= returnFrames) {
         this.actionSeq = null;
         this._actionUser = null;
         this._actionAdvance = 0;
@@ -414,13 +462,17 @@ class Scene_Battle {
       this.actionVisual = { user: a, target: t, hitT: 0 };
       this.applyItem(a, T.$dataSkills[1], t);
     } else if (T.$dataSkills.includes(item)) {
-      const t = act.target && !act.target.isDead() ? act.target : this.defaultTargetFor(item);
+      const scope = item.scope ?? item.damage?.scope;
+      const targetOk = act.target && ([9, 10].includes(scope) ? act.target.isDead() : !act.target.isDead());
+      const t = targetOk ? act.target : this.defaultTargetFor(item, a);
       if (!t) return;
       this.actionVisual = { user: a, target: t, hitT: 0 };
       a.paySkillCost(item);
-      this.applyItem(a, item, t);
+      this.applyItem(a, item, act.targets && act.targets.length ? act.targets : t);
     } else if (T.$dataItems.includes(item)) {
-      const t = act.target && !act.target.isDead() ? act.target : a;
+      const scope = item.scope ?? item.damage?.scope;
+      const targetOk = act.target && ([9, 10].includes(scope) ? act.target.isDead() : !act.target.isDead());
+      const t = targetOk ? act.target : a;
       this.actionVisual = { user: a, target: t, hitT: 0 };
       $gameParty.consumeItem(item);
       this.applyItem(a, item, t);
@@ -430,26 +482,60 @@ class Scene_Battle {
     this.messageActor = null;
     const act = this.selectEnemyAction(e);
     if (!act) return;
-    const skill = T.$dataSkills[act.skillId];
-    if (!skill) {
+    const item = act.itemId ? T.$dataItems[act.itemId] : T.$dataSkills[act.skillId];
+    if (!item) {
       // 普通攻击
       const t = this.pickRandomAliveActor();
       if (t) { this.actionVisual = { user: e, target: t, hitT: 0 }; this.applyAttack(e, t); }
       return;
     }
-    const t = this.defaultTargetFor(skill);
+    const t = this.defaultTargetFor(item, e);
     if (!t) return;
+    if (act.itemId) e.consumeItem(item);
+    else e.mp -= T.skillCost(item);
     this.actionVisual = { user: e, target: t, hitT: 0 };
-    if (skill.mpCost) e.mp -= Math.min(e.mp, skill.mpCost);
-    this.applyItem(e, skill, t);
+    this.applyItem(e, item, t);
+    if (act.itemId) {
+      this.say(`${e.name} 剩余${item.name} ×${e.itemCount(item)}`);
+      if (e.itemCount(item) <= 0) this.say(`${e.name} 的${item.name}用完了！`);
+    } else if (item.mpCost || item.damage?.type === 4) {
+      this.say(`${e.name} 剩余谋点 ${e.mp}/${e.mmp}`);
+      if (e.mp <= 0) this.say(`${e.name} 的谋略点耗尽了！`);
+    }
   }
   selectEnemyAction(e) {
-    const acts = e.actions.filter(a => this.checkActionCondition(e, a));
-    if (!acts.length) return null;
+    const acts = e.actions.filter(a => this.checkActionCondition(e, a) && this.enemyActionUsable(e, a));
+    if (!acts.length) return { skillId: 1 };
+    const attacks = acts.filter(a => !a.itemId && a.skillId === 1);
+    const tactics = acts.filter(a => a.itemId || a.skillId !== 1);
+    if (attacks.length && tactics.length && Math.random() >= this.enemyTacticRate(e)) return this.weightedEnemyAction(attacks);
+    return this.weightedEnemyAction(tactics.length ? tactics : attacks);
+  }
+  weightedEnemyAction(acts) {
     const total = acts.reduce((s, a) => s + (a.rating || 5), 0);
     let roll = Math.random() * total;
     for (const a of acts) { roll -= a.rating || 5; if (roll < 0) return a; }
     return acts[acts.length - 1];
+  }
+  enemyActionUsable(e, action) {
+    if (action.itemId) return e.itemCount(T.$dataItems[action.itemId]) > 0;
+    const skill = T.$dataSkills[action.skillId];
+    if (!skill || skill.damage?.type === 4) return false;
+    return e.mp >= T.skillCost(skill);
+  }
+  enemyTacticRate(e) {
+    return T.clamp((T.ENEMY_TACTIC_RATE_MIN || 0.1) + e.mat / 600,
+      T.ENEMY_TACTIC_RATE_MIN || 0.1, T.ENEMY_TACTIC_RATE_MAX || 0.42);
+  }
+  enemyHealValue(user, item, target) {
+    if (item.id === 96 || item.name === "完复计") return Math.max(0, target.mhp - target.hp);
+    const baseBySkill = { 93: 100, 94: 200, 95: 400, 97: 800, 98: 1600 };
+    const base = baseBySkill[item.id] || 100;
+    return Math.min(Math.max(0, target.mhp - target.hp), Math.round(base * (1 + user.mat / 500)));
+  }
+  enemyDamageValue(user, item, target) {
+    const formula = String(item.damage && item.damage.formula || "").replace(/\ba\.mmp\b/g, "a.mat");
+    return T.evalFormula(formula, user, target);
   }
   checkActionCondition(e, a) {
     const hpRate = e.hp / e.mhp;
@@ -474,13 +560,19 @@ class Scene_Battle {
       default: return false;
     }
   }
-  defaultTargetFor(item) {
+  defaultTargetFor(item, user = this.subject) {
     const scope = item.scope ?? item.damage?.scope;
-    if ([7, 8, 11, 14].includes(scope)) {
+    const enemyUser = !!(user && user.isActor && !user.isActor());
+    if ([7, 8, 12, 13, 14].includes(scope)) {
+      if (enemyUser) return user.isDead() ? null : user;
       const alive = this.partyMembers.filter(a => !a.isDead());
       return alive.length ? alive[T.rand(alive.length)] : this.partyMembers[0];
     }
-    if ([1, 2, 9].includes(scope)) return this.pickRandomAliveEnemy();
+    if ([9, 10].includes(scope)) {
+      const dead = enemyUser ? this.troop.members.filter(e => e.isDead()) : this.partyMembers.filter(a => a.isDead());
+      return dead[T.rand(dead.length)] || null;
+    }
+    if ([1, 2, 3, 4, 5, 6].includes(scope)) return enemyUser ? this.pickRandomAliveActor() : this.pickRandomAliveEnemy();
     return this.subject;
   }
   pickRandomAliveEnemy() { const l = this.troop.aliveMembers(); return l[T.rand(l.length)] || null; }
@@ -491,9 +583,15 @@ class Scene_Battle {
   applyAttack(user, target) { this.applyItem(user, T.$dataSkills[1], target); }
 
   applyItem(user, item, target) {
-    const targets = this.expandTargets(item, target);
+    const explicitTargets = Array.isArray(target) ? target.filter(Boolean) : null;
+    const targets = explicitTargets || this.expandTargets(item, target, user);
     const dmg = item.damage || {};
-    for (const t of targets) this.applyToBattler(user, item, t);
+    const multi = !!explicitTargets && targets.length > 1;
+    const isRecovery = this.isRecoveryAction({ skill: item });
+    const isDamage = this.isDamageAction({ skill: item });
+    const totalFactor = multi ? (isRecovery ? 1.25 : isDamage ? 1.5 : 1) : 1;
+    const eachScale = totalFactor / Math.max(1, targets.length);
+    for (const t of targets) this.applyToBattler(user, item, t, multi ? eachScale : 1);
     for (const t of targets) this.pushResultPopup(t);
     /* 动画与日志 */
     this.enqueueAnim(() => {
@@ -508,29 +606,32 @@ class Scene_Battle {
   }
   pushResultPopup(t) {
     const r = t.result;
-    const pos = t.isActor ? this.actorPos(t) : this.enemyScreenPos(t);
+    const isActor = typeof t.isActor === "function" && t.isActor();
+    const pos = isActor ? this.actorPos(t) : this.enemyScreenPos(t);
+    const popupY = Math.max(42, pos.y - 10);
     if (r.hpDamage > 0) {
-      this.lastPopups.push({ x: pos.x + 16, y: pos.y - 10, text: `-${T.fmt(r.hpDamage)}`, t: 46, color: "#ff7070" });
+      this.lastPopups.push({ x: pos.x + 16, y: popupY, text: `-${T.fmt(r.hpDamage)}`, t: 46, color: "#ff7070" });
     } else if (r.evaded) {
-      this.lastPopups.push({ x: pos.x + 16, y: pos.y - 10, text: "闪避", t: 36, color: "#a0d0ff" });
+      this.lastPopups.push({ x: pos.x + 16, y: popupY, text: "闪避", t: 36, color: "#a0d0ff" });
     } else if (r.critical) {
-      this.lastPopups.push({ x: pos.x + 16, y: pos.y - 10, text: "会心！", t: 40, color: "#ffd24d" });
+      this.lastPopups.push({ x: pos.x + 16, y: popupY, text: "会心！", t: 40, color: "#ffd24d" });
     }
   }
-  expandTargets(item, target) {
+  expandTargets(item, target, user = this.subject) {
     const dmg = item.damage || {};
     const scope = dmg.scope ?? item.scope ?? 1;
     const effects = item.effects || [];
     const healScope = [11, 14].includes(scope);
-    if ([1, 7, 9].includes(scope)) return [target];
-    if (scope === 8) return this.partyMembers.filter(x => !x.isDead());   // 全体我方
-    if (scope === 2) return this.troop.aliveMembers();                    // 全体敌方
-    if (scope === 10) return [...this.partyMembers.filter(x => !x.isDead()), ...this.troop.aliveMembers()]; // 全体
+    const enemyUser = !!(user && user.isActor && !user.isActor());
+    if ([1, 7, 9].includes(scope)) return target ? [target] : [];
+    if (scope === 8) return (enemyUser ? this.troop.aliveMembers() : this.partyMembers.filter(x => !x.isDead()));
+    if (scope === 2) return (enemyUser ? this.partyMembers.filter(x => !x.isDead()) : this.troop.aliveMembers());
+    if (scope === 10) return enemyUser ? this.troop.members.filter(x => x.isDead()) : this.partyMembers.filter(x => x.isDead());
     if (healScope) return [target];
     if (effects.some(e => [21, 31].includes(e.code)) && [11, 14].includes(scope)) return [target];
     return [target];
   }
-  applyToBattler(user, item, target) {
+  applyToBattler(user, item, target, valueScale = 1) {
     const r = target.result;
     r.clear(); r.usedItem = item;
     const dmg = item.damage || {};
@@ -546,16 +647,23 @@ class Scene_Battle {
     if (dmg.missed === false) {}
     /* 伤害/恢复值 */
     if (dmg.type > 0) {
-      let v = T.evalFormula(dmg.formula, user, target);
+      let v = !(user.isActor && user.isActor()) && T.$dataSkills.includes(item)
+        ? (dmg.type === 3 ? this.enemyHealValue(user, item, target) : this.enemyDamageValue(user, item, target))
+        : T.evalFormula(dmg.formula, user, target);
       if (dmg.elementId != null && dmg.elementId > 0) v *= target.elementRate(dmg.elementId);
       if (dmg.critical && Math.random() < this.critChance(user, target)) {
         r.critical = true;
         v *= 3;
       }
-      const varr = (dmg.variance || 0) / 100;
-      v = Math.round(v * (1 - varr + Math.random() * varr * 2));
+      const fullEnemyHeal = !(user.isActor && user.isActor()) && dmg.type === 3 &&
+        (item.id === 96 || item.name === "完复计");
+      if (!fullEnemyHeal) {
+        const varr = (dmg.variance || 0) / 100;
+        v = Math.round(v * (1 - varr + Math.random() * varr * 2));
+      }
       /* G5: 伤害下限——物理/谋略伤害至少 1（原版公式 max(1, atk*4-def*2)），
          否则 Lv1 队伍打高防敌人 0 伤害死循环 */
+      v = Math.round(v * valueScale);
       v = (dmg.type === 1 || dmg.type === 2) ? Math.max(1, v) : Math.max(0, v);
       /* 防御减伤 */
       if (target._guarding) v = Math.floor(v / 2);
@@ -582,7 +690,7 @@ class Scene_Battle {
     }
     /* 附加效果 */
     for (const eff of item.effects || []) {
-      this.applyEffect(user, target, eff);
+      this.applyEffect(user, target, eff, item, valueScale);
     }
     if (target.hp <= 0) {
       target.die();
@@ -590,9 +698,20 @@ class Scene_Battle {
       T.AudioManager.playSe({ name: "Collapse4", volume: 80 });
     }
   }
-  applyEffect(user, target, eff) {
+  applyEffect(user, target, eff, item = null, valueScale = 1) {
     switch (eff.code) {
-      case 11: { const v = Math.max(0, Math.round(eff.value1 * target.mhp + eff.value2)); target.hp += v; this.say(`${target.name} 恢复了兵力`); break; }
+      case 11: {
+        const enemyItem = !(user.isActor && user.isActor()) && item && T.$dataItems.includes(item);
+        const missing = Math.max(0, target.mhp - target.hp);
+        const v = enemyItem
+          ? (eff.value1 >= 1 ? missing : Math.min(missing, Math.round((eff.value2 || 0) * (1 + user.mat / 500))))
+          : Math.max(0, Math.round(eff.value1 * target.mhp + eff.value2));
+        const scaled = Math.round(v * valueScale);
+        target.hp += scaled;
+        if (target.isDead() && target.hp > 0) target.revive();
+        this.say(`${target.name} 恢复了 ${T.fmt(scaled)} 兵力`);
+        break;
+      }
       case 12: { const v = eff.value1 * target.mmp + eff.value2; target.mp += v; break; }
       case 21: if (target.addState(eff.dataId)) this.say(`${target.name} 陷入了异常状态！`); break;
       case 22: target.removeState(eff.dataId); break;
@@ -766,14 +885,29 @@ class Scene_Battle {
     if (this.troop.isAllDead()) { this.processVictory(); return; }
     this.phase = "resolve";
   }
+  actionTiming() {
+    return {
+      approach: this.totalAssaultActive
+        ? Math.max(1, Math.round(ACTION_APPROACH_FRAMES / 2)) : ACTION_APPROACH_FRAMES,
+      return: this.totalAssaultActive
+        ? Math.max(1, Math.round(ACTION_RETURN_FRAMES / 2)) : ACTION_RETURN_FRAMES,
+    };
+  }
 
   processVictory() {
     T.AudioManager.stopBgm(0.6);
     T.AudioManager.playMe({ name: "Victory1", volume: 90 });
-    const exp = this.troop.expTotal();
+    const exp = Math.max(1, Math.round(this.troop.expTotal() * (T.BATTLE_EXP_RATE || 1)));
     const gold = this.troop.goldTotal();
     const drops = this.troop.makeDropItems();
+    this.chapter1Complete = this.req.sourceMapId === 31 && this.req.sourceEventId === 1 && this.req.troopId === 19;
+    if (this.chapter1Complete) {
+      T.$gameSystem.chapter1Complete = true;
+      /* 45 是原始事件数据中第一章灭袁术后的剧情节点，保证跳过战斗测试也能进入出口状态。 */
+      T.$gameVariables.setValue(1, Math.max(45, T.$gameVariables.value(1)));
+    }
     this.say(`胜利！`);
+    if (this.chapter1Complete) this.say("第一章「灭袁术」完成！山洞出口已开放。");
     this.say(`获得经验 ${exp}，金 ${gold}`);
     for (const d of drops) {
       $gameParty.gainItem(d, 1);
@@ -802,6 +936,15 @@ class Scene_Battle {
       // 战败但剧情允许：全员恢复至1并回城由事件处理，这里直接恢复
       for (const a of $gameParty.allMembers()) { if (a.isDead()) { a.hp = 1; a.revive(); } }
     }
+    T.LastBattle = {
+      result,
+      troopId: this.req.troopId,
+      turnCount: this.troop.turnCount,
+      logLines: this.logLines.slice(),
+      enemyCount: this.troop.members.length,
+      enemiesRemaining: this.troop.aliveMembers().length,
+      chapter1Complete: !!this.chapter1Complete,
+    };
     T.BattleScene = null;
     T.$gameTroop = null;   // G2-R2: 战斗结束解绑敌群引用
     if (this.interpreterRef) this.interpreterRef._battleResult = result;
@@ -827,7 +970,7 @@ class Scene_Battle {
       if (en.hidden || en.isDead()) continue;
       const pos = this.enemyScreenPos(en);
       const img = this.enemySprites.get(en);
-      const advX = this.enemyMoveX();
+      const advX = this.enemyMoveX(en);
       const knock = this.hurtKnock(en);
       const hit = !!(this.actionVisual && this.actionVisual.hitT > 0 && this.actionVisual.target === en);
       const attackDip = !!(this.actionVisual && this.actionVisual.user === en && this.actionVisual.hitT > 0) ? -3 : 0;
@@ -868,7 +1011,7 @@ class Scene_Battle {
       const pos = this.actorPos(a);
       const img = this.actorSprites.get(a);
       const dead = a.isDead();
-      const advX = this.actorMoveX();
+      const advX = this.actorMoveX(a);
       const knock = this.hurtKnock(a);
       const hit = !!(this.actionVisual && this.actionVisual.hitT > 0 && this.actionVisual.target === a);
       const attackDip = !!(this.actionVisual && this.actionVisual.user === a && this.actionVisual.hitT > 0) ? -3 : 0;
@@ -928,7 +1071,7 @@ class Scene_Battle {
       for (let i = 0; i < this.skillList.length; i++) {
         const s = this.skillList[i];
         this.skillWin.drawText(ctx, s.name, this.skillWin.innerX + 10, ly);
-        this.skillWin.drawText(ctx, `${s.mpCost}`, this.skillWin.innerX + 420, ly, 80, "right");
+        this.skillWin.drawText(ctx, `${T.skillCost(s)}`, this.skillWin.innerX + 420, ly, 80, "right");
         ly += ih;
       }
       this.skillWin.drawCursorBox(ctx);
@@ -944,6 +1087,17 @@ class Scene_Battle {
         ly += ih;
       }
       this.itemWin.drawCursorBox(ctx);
+    }
+    if (this.phase === "select-target" && this.currentActor?._pendingAction?.targetAll) {
+      const ally = this.selectMode === "target-ally";
+      ctx.save();
+      ctx.font = T.fontStr(20, true);
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(246, 266, 324, 34);
+      ctx.fillStyle = ally ? "#a0ffb0" : "#ffb0b0";
+      ctx.fillText(ally ? "我方全体 · 总恢复量 ×1.25" : "敌方全体 · 总伤害量 ×1.5", T.SCREEN_W / 2, 273);
+      ctx.restore();
     }
     /* 战斗文字：放在下方中央，不再与指令窗叠在一起 */
     if (this.logLines.length && !["select-skill", "select-item", "enemy-info"].includes(this.phase)) {
@@ -973,7 +1127,6 @@ class Scene_Battle {
   }
   drawPartyStatus(ctx) {
     ctx.save();
-    const refHp = Math.max(1, ...this.partyMembers.map(a => a.hp));
     for (let i = 0; i < this.partyMembers.length; i++) {
       const a = this.partyMembers[i];
       const y = 58 + i * 58;
@@ -991,7 +1144,7 @@ class Scene_Battle {
         ctx.textBaseline = "middle";
         ctx.fillText((a.name || "?").charAt(0), 25, y + 18);
       }
-      const nx = isCurrent || isActing ? 58 : 52;
+      const nx = 58;
       if (isActing) {
         ctx.font = T.fontStr(16, true);
         ctx.fillStyle = "#ffd24d";
@@ -1009,7 +1162,7 @@ class Scene_Battle {
       ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.fillRect(bx - 1, y + 38, bw + 2, 12);
       ctx.fillStyle = a.hp / a.mhp > 0.5 ? "#40c060" : a.hp / a.mhp > 0.25 ? "#f0a040" : "#f06060";
-      const fillW = Math.max(0, Math.min(1, a.hp / refHp)) * bw;
+      const fillW = this.partyBarRate(a) * bw;
       ctx.fillRect(bx, y + 39, fillW, 10);
       if (isCurrent && !isActing) {
         ctx.fillStyle = "#ffd24d";
@@ -1020,7 +1173,6 @@ class Scene_Battle {
   }
   drawEnemyStatus(ctx) {
     ctx.save();
-    const refHp = Math.max(1, ...this.troop.members.map(e => e.hp));
     for (let i = 0; i < this.troop.members.length; i++) {
       const en = this.troop.members[i];
       const y = 58 + i * 56;
@@ -1035,21 +1187,33 @@ class Scene_Battle {
       ctx.font = T.numFontStr(16);
       ctx.fillStyle = dead ? "#ff4040" : "#ffe0e0";
       ctx.fillText(T.fmt(en.hp), x, y + 24);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#b8d5ff";
+      ctx.fillText(`谋${T.fmt(en.mp)}/${T.fmt(en.mmp)}`, x + bw, y + 24);
+      ctx.textAlign = "left";
       ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.fillRect(x - 1, y + 38, bw + 2, 12);
       ctx.fillStyle = dead ? "#ff4040" : "#4080ff";
-      const fillW = Math.max(0, Math.min(1, en.hp / refHp)) * bw;
+      const fillW = this.enemyBarRate(en) * bw;
       ctx.fillRect(x + bw - fillW, y + 39, fillW, 10);
     }
     ctx.restore();
   }
-  actorMoveX() {
+  actorMoveX(actor) {
+    if (this.totalAssaultActive && actor && !actor.isDead()) return 18;
     const adv = this._actionAdvance || 0;
-    return (this._actionUser && this._actionUser.isActor && this._actionUser.isActor()) ? 26 * adv : 0;
+    return this._actionUser === actor && actor && actor.isActor && actor.isActor() ? 26 * adv : 0;
   }
-  enemyMoveX() {
+  enemyMoveX(enemy) {
+    if (this.totalAssaultActive && enemy && !enemy.isDead()) return -18;
     const adv = this._actionAdvance || 0;
-    return (this._actionUser && !(this._actionUser.isActor && this._actionUser.isActor())) ? -26 * adv : 0;
+    return this._actionUser === enemy && enemy && !(enemy.isActor && enemy.isActor()) ? -26 * adv : 0;
+  }
+  partyBarRate(actor) {
+    return Math.max(0, Math.min(1, actor.hp / (this.partyBarRefHp || 1)));
+  }
+  enemyBarRate(enemy) {
+    return Math.max(0, Math.min(1, enemy.hp / (this.enemyBarRefHp || 1)));
   }
   hurtKnock(target) {
     if (!this.actionVisual || this.actionVisual.hitT <= 0 || this.actionVisual.target !== target) return 0;

@@ -1,0 +1,1 @@
+["(()=>{const x=window.__equipUnique||{};const out={count:x.count,first:x.first,second:x.second,owner:x.owner};out.allOk=out.count===0&&out.first===true&&out.second===false&&out.owner===x.armorId;out.fails=out.allOk?[]:['duplicate-equipment'];return JSON.stringify(out);})()"]

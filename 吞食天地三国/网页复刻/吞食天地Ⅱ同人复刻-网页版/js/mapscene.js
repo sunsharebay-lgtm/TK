@@ -221,15 +221,53 @@ class Sprite_Character {
   }
   draw(ctx, camX, camY) {
     const c = this.chr;
-    if (c._transparent || c._erased) return;
-    const r = this.frameRect();
-    if (!r) return;
+    if (c._transparent || c._erased || (c.isVisible && !c.isVisible())) return;
     const px = Math.round(c._realX * 32 - camX);
     const py = Math.round(c._realY * 32 - camY);
+    if (c.isOpenedChest && c.isOpenedChest()) { this.drawOpenedChest(ctx, px, py); return; }
+    const r = this.frameRect();
+    if (!r) return;
     const dh = r.fh;
     ctx.drawImage(this.img, r.sx, r.sy, r.fw, r.fh,
       px + (32 - r.fw) / 2, py + 32 - r.fh, r.fw, dh);
   }
+  drawOpenedChest(ctx, px, py) {
+    const x = px + 3, y = py + 8;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(x + 1, y + 17, 26, 7);
+    ctx.fillStyle = "#6b2c16";
+    ctx.fillRect(x + 2, y + 11, 25, 11);
+    ctx.fillStyle = "#d8892b";
+    ctx.fillRect(x + 4, y + 13, 21, 7);
+    ctx.fillStyle = "#f4c05d";
+    ctx.fillRect(x + 6, y + 14, 17, 2);
+    ctx.fillStyle = "#5b2418";
+    ctx.fillRect(x + 5, y + 3, 20, 7);
+    ctx.fillStyle = "#c56b25";
+    ctx.fillRect(x + 7, y + 4, 16, 4);
+    ctx.fillStyle = "#f4c05d";
+    ctx.fillRect(x + 9, y + 5, 12, 2);
+    ctx.fillStyle = "#fff0a0";
+    ctx.fillRect(x + 12, y + 11, 5, 3);
+    ctx.restore();
+  }
+}
+
+class MapVehicle {
+  constructor(type) { this.type = type; this._direction = 2; this._pattern = 1; this._transparent = false; this._erased = false; }
+  get state() { return T.$gameVehicles && T.$gameVehicles[this.type]; }
+  get _realX() { return this.state ? this.state.x : 0; }
+  get _realY() { return this.state ? this.state.y : 0; }
+  isVisible() { return !!(this.state && this.state.mapId === T.$gameMap?.mapId && this.state.mapId > 0); }
+  imageInfo() {
+    const s = T.$dataSystem || {};
+    const v = this.type === 2 ? s.airship : this.type === 1 ? s.ship : s.boat;
+    return { name: v?.characterName || "$chuan", index: v?.characterIndex || 0 };
+  }
+  direction() { return this._direction; }
+  pattern() { return this._pattern; }
+  isMoving() { return false; }
 }
 
 /* ---------------- 地图场景 ---------------- */
@@ -250,6 +288,7 @@ class Scene_Map {
     for (const ev of T.$gameMap.events) this.sprites.set(ev.eventId, new Sprite_Character(ev));
     this.playerSprite = new Sprite_Character(T.$gamePlayer);
     this.followerSprites = [];
+    this.vehicleSprites = [0, 1, 2].map(type => new Sprite_Character(new MapVehicle(type)));
     this._trail = [];
     this._lastTrailKey = "";
     this.messageWindow = new Window_Message();
@@ -290,6 +329,14 @@ class Scene_Map {
     }
 
     /* 菜单呼出 */
+    if (T.Preview && T.Preview.enabled && T.Input.triggered("previewSave")) {
+      T.Preview.saveLive();
+      return;
+    }
+    if (T.Preview && T.Preview.enabled && T.Input.triggered("previewMenu")) {
+      T.Preview.open();
+      return;
+    }
     if (!interp.isRunning() && !this.messageWindow.isOpen() &&
         T.Input.triggered("cancel") && !T.SceneManager.busy) {
       T.AudioManager.playSe({ name: "Ok", volume: 60 });
@@ -361,23 +408,62 @@ class Scene_Map {
       }
     }
 
-    /* 遭遇 */
-    if (!interp.isRunning() && !T.$gamePlayer.isMoving() &&
-        T.$gameParty.steps() !== this._lastStepCheck) {
-      this._lastStepCheck = T.$gameParty.steps();
-      this.checkEncounter();
-    }
-
     this.updateFollowers();
     /* 同步精灵图像 */
     for (const sp of this.sprites.values()) sp.syncImage();
+    for (const sp of this.vehicleSprites || []) sp.syncImage();
     this.syncPlayerSprite();
+    this.showChapterGuide();
+  }
+  showChapterGuide() {
+    const mapId = T.$gameMap.mapId;
+    const stage = T.$gameVariables.value(1);
+    const chapter = T.chapterForStage ? T.chapterForStage(stage) : null;
+    let text = "";
+    if (mapId === 23 && stage === 30) text = "纪灵已败。下一步请向东北前进，面向袁术按确认键，不必寻找渡船。";
+    else if (mapId === 23 && stage === 35) text = "袁术已退入寿春。请进入寿春城，再到城内民居打听军情。";
+    else if (mapId === 23 && stage === 40) text = "袁胤已败。请前往寿春山洞深处，消灭袁术残军。";
+    else if (mapId === 23 && stage >= 45 && stage < 50) text = "袁术已败。请沿西南方向返回徐州，在城中复命，第一章就此收尾。";
+    else if (mapId === 28 && stage === 35) text = "寿春城已攻下。请进入西侧民居，取得进入山洞的线索。";
+    else if (mapId === 31 && stage < 40) text = "这里是寿春山洞，还不是最后战场。请从洞口返回大地图，先推进寿春城的军情。";
+    else if (mapId === 31 && stage === 40) text = "寿春山洞中没有渡船。请先在中段找到高升，再前往洞窟北端。";
+    else if (mapId === 31 && stage >= 45) text = "袁术已败，第一章完成。请向上方出口离开山洞，回到大地图后沿西南方向前往徐州复命。";
+    else if (mapId === 29 && stage >= 45 && stage < 65) text = "袁术已败。郑家村北面的宅院通往郑玄居，取得书信后才能投奔袁绍。";
+    else if (mapId === 29 && stage >= 65 && stage < 70) text = "郑家村北面的宅院就是郑玄居。请进去请先生为袁绍修书。";
+    else if (mapId === 23 && stage >= 80 && stage < 260) text = "第二章「河北鏖战与千里走单骑」：向北进入冀州城，按袁绍军令推进颜良、文丑和关羽五关路线。";
+    else if (mapId === 25 && stage >= 260 && stage < 470) text = "第三章「荆州新野与三顾茅庐」：先入荆州听取刘表军令，再推进水镜居、孔明局、博望坡和长坂坡。";
+    else if (mapId === 25 && stage >= 470 && stage < 830) text = "第四章「赤壁之战与平定荆州」：准备火药和秘法书，完成赤壁后再攻略南郡与荆州诸郡。";
+    else if (mapId === 25 && stage >= 830 && stage < 1165) text = "第五章「西蜀入川」：从新野出兵，沿成都、巴关、建宁、越隽和绵竹路线推进。";
+    else if (mapId === 25 && stage >= 1165 && stage < 1440) text = "第六章「汉中争夺与姜维归汉」：先守汉中，再依军令前往南安、天水、街亭和陈仓。";
+    else if (mapId === 25 && stage >= 1440 && stage < 1605) text = "第七章「北伐灭曹魏」：从鲁城向渭水关、五丈原和长安推进，石阵可用九转丹破局。";
+    else if (mapId === 23 && stage >= 1605 && stage < 1655) text = "第八章「荆州终局与伐吴」：从洛阳水路返回荆州，按军令完成樊城与柴桑终战。";
+    else if (mapId === 24 && stage >= 1655) text = "二周目特别篇「秦皇陵」：准备好队伍和补给，进入秦皇陵挑战葛玄、曹操、袁绍与秦始皇。";
+    else if (mapId === 159 && stage >= 30 && stage < 45) text = "曹操暂时没有新的军令。请出城前往大地图，继续追击袁术。";
+    if (!text && chapter && chapter.id >= 2) text = `当前主线：${chapter.name}。请查看城中人物和大地图入口，按对话推进。`;
+    if (!text || !T.$gameSystem || T.$gameMessage.texts.length || this.messageWindow.isOpen()) return;
+    T.$gameSystem.chapterGuides = T.$gameSystem.chapterGuides || {};
+    const key = `${mapId}:${stage}`;
+    if (T.$gameSystem.chapterGuides[key]) return;
+    T.$gameSystem.chapterGuides[key] = true;
+    /* 章节提示不是原始对话行，可能超过单行宽度；按中文字符拆行，避免文字跑出消息框。 */
+    const guideLines = [];
+    let line = "";
+    for (const ch of Array.from(text)) {
+      if (line.length >= 25 && /[，。；：、]/.test(ch)) {
+        guideLines.push(line + ch); line = "";
+      } else if (line.length >= 25) {
+        guideLines.push(line); line = ch;
+      } else line += ch;
+    }
+    if (line) guideLines.push(line);
+    T.$gameMessage.add(guideLines.join("\n"));
   }
   updateFollowers() {
     const members = T.$gameParty.battleMembers();
     const count = Math.min(Math.max(0, members.length - 1), 2);
     if (!count) return;
     const p = T.$gamePlayer;
+    if (p.isInVehicle && p.isInVehicle()) return;
     const key = Math.round(p.x) + ',' + Math.round(p.y);
     if (key !== this._lastTrailKey) {
       this._trail.unshift({ x: Math.round(p.x), y: Math.round(p.y), d: p.direction() });
@@ -420,6 +506,13 @@ class Scene_Map {
     const p = T.$gamePlayer;
     const abBtn = T.Input.triggered("ok");
     const [fx, fy] = DIRV[p.direction()];
+    /* 第一章灭袁术后，西南返回门即使站位偏一格也能触发，避免回城入口被地图事件页挡住。 */
+    if (abBtn && !p.isMoving() && T.$gameMap.mapId === 23 && T.$gameVariables.value(1) >= 45) {
+      const gate = T.$gameMap.event(4);
+      if (gate && gate.page && Math.abs(gate.x - p.x) + Math.abs(gate.y - p.y) <= 1) {
+        gate.start(); return;
+      }
+    }
     /* 玩家触碰触发：仅当玩家刚移动进入该格（传送/初始化不算移动），
        不要求完全停住——快速连续移动经过事件格时也应触发 */
     const justMoved = p._prevX !== undefined && (p._prevX !== p.x || p._prevY !== p.y);
@@ -437,6 +530,8 @@ class Scene_Map {
         if (!ev.pos(tx, ty)) continue;
         const trig = ev.page.trigger;
         if (trig === 0 && abBtn && !p.isMoving()) { ev.start(); return; }
+        if (trig === 1 && abBtn && !p.isMoving() && ev.list().some(c => c && c.code === 301)) { ev.start(); return; }
+        if (trig === 1 && abBtn && !p.isMoving() && ev.list().some(c => c && (c.code === 201 || c.code === 202 || c.code === 206))) { ev.start(); return; }
         if (trig === 1 && p.pos(tx, ty)) { ev.start(); return; }
       }
     }
@@ -457,9 +552,12 @@ class Scene_Map {
   checkEncounter() {
     const gm = T.$gameMap;
     if (!gm.encounterList.length) return;
+    if (T.PendingBattle || T.BattleScene || gm.interpreter.isRunning()) return;
+    /* 剧情移动路线不是玩家自由航行，不能在渡船过场中插入战斗。 */
+    if (T.$gamePlayer && T.$gamePlayer._routeExecutor) return;
     if (T.$gameSwitches.value(38)) return;   // G5: 护身烟/烟遁计/强身烟 禁止遇敌（136/公共事件链路）
     const stepsAvg = gm.encounterStep || 30;
-    gm.encounterProgress += 1 + T.rand(Math.round(stepsAvg / 2));
+    gm.encounterProgress += 1;
     if (gm.encounterProgress >= stepsAvg) {
       const cands = gm.encounterCandidates();
       if (!cands.length) return;              // 无候选时保留进度，稍后再试
@@ -484,7 +582,9 @@ class Scene_Map {
     this.tilemap.drawLayer(ctx, 0, cam.x, cam.y);
     this.tilemap.drawLayer(ctx, 1, cam.x, cam.y);
     const cam2 = this.camPos();
-    for (const sp of this.followerSprites || []) { if (sp) sp.draw(ctx, cam2.x, cam2.y); }
+    if (!$gamePlayer.isInVehicle()) {
+      for (const sp of this.followerSprites || []) { if (sp) sp.draw(ctx, cam2.x, cam2.y); }
+    }
     /* 低于角色层（priorityType 0）的事件：先画，作为地面装饰 */
     const below = [...this.sprites.entries()]
       .filter(([id]) => { const ev = T.$gameMap.event(id); return ev && !ev._erased && ev.priorityType() === 0; })
@@ -492,11 +592,12 @@ class Scene_Map {
     for (const sp of below) sp.draw(ctx, cam.x, cam.y);
     /* layer2 通常是桥面/地面装饰，应画在角色下方，避免桥覆盖队伍 */
     this.tilemap.drawLayer(ctx, 2, cam.x, cam.y);
+    for (const sp of this.vehicleSprites || []) sp.draw(ctx, cam.x, cam.y);
     /* 精灵按 y 排序绘制 */
     const list = [...this.sprites.entries()]
       .filter(([id]) => { const ev = T.$gameMap.event(id); return ev && !ev._erased && ev.priorityType() === 1; })
       .map(([id, sp]) => ({ ev: T.$gameMap.event(id), sp }));
-    if (!$gamePlayer._transparent) list.push({ ev: T.$gamePlayer, sp: this.playerSprite });
+    if (!$gamePlayer._transparent && !$gamePlayer.isInVehicle()) list.push({ ev: T.$gamePlayer, sp: this.playerSprite });
     list.sort((a, b) => a.ev._realY - b.ev._realY);
     for (const it of list) it.sp.draw(ctx, cam.x, cam.y);
     this.tilemap.drawLayer(ctx, 3, cam.x, cam.y);
@@ -573,5 +674,86 @@ class Scene_Map {
   }
 }
 
+class Scene_WorldMap {
+  constructor() {
+    this.ready = false;
+    this.map = null;
+    this.overview = null;
+    this.mapName = "";
+    this.create();
+  }
+  async create() {
+    try {
+      const currentId = T.$gameMap && [23, 24, 25].includes(T.$gameMap.mapId) ? T.$gameMap.mapId : 0;
+      const saved = T.$gameSystem && T.$gameSystem.worldPosition;
+      const mapId = currentId || (saved && [23, 24, 25].includes(saved.mapId) ? saved.mapId : 23);
+      const map = currentId === mapId && T.$dataMap ? T.$dataMap :
+        await (await fetch("assets/data/map" + String(mapId).padStart(3, "0") + ".json")).json();
+      const tileset = T.$dataTilesets[map.tilesetId];
+      const renderer = new TilemapRenderer();
+      await renderer.load(tileset);
+      this.map = map;
+      this.mapId = mapId;
+      this.mapName = T.$dataMapInfos && T.$dataMapInfos[mapId] ? T.$dataMapInfos[mapId].name : "大地图";
+      const maxW = T.SCREEN_W - 48, maxH = T.SCREEN_H - 118;
+      this.scale = Math.min(maxW / (map.width * 32), maxH / (map.height * 32));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.ceil(map.width * 32 * this.scale));
+      canvas.height = Math.max(1, Math.ceil(map.height * 32 * this.scale));
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#07101b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.save(); ctx.scale(this.scale, this.scale);
+      for (let layer = 0; layer < 4; layer++) {
+        for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
+          const id = map.data[(layer * map.height + y) * map.width + x] || 0;
+          if (id) renderer.drawTile(ctx, id, x * 32, y * 32);
+        }
+      }
+      ctx.restore();
+      this.overview = canvas;
+      this.ready = true;
+    } catch (e) { console.warn("world map fail", e); this.ready = true; }
+  }
+  position() {
+    if (T.$gameMap && T.$gameMap.mapId === this.mapId) return { x: T.$gamePlayer.x, y: T.$gamePlayer.y };
+    const p = T.$gameSystem && T.$gameSystem.worldPosition;
+    return p && p.mapId === this.mapId ? { x: p.x, y: p.y } : null;
+  }
+  update() {
+    if (T.Input.triggered("cancel") || T.Input.triggered("ok")) T.SceneManager.popScene();
+  }
+  draw(ctx) {
+    ctx.fillStyle = "#060a12"; ctx.fillRect(0, 0, T.SCREEN_W, T.SCREEN_H);
+    ctx.font = T.fontStr(28, true); ctx.fillStyle = "#ffd24d"; ctx.textBaseline = "top";
+    ctx.fillText("世界地图", 24, 16);
+    ctx.font = T.fontStr(20); ctx.fillStyle = "#fff";
+    ctx.fillText(this.mapName, 180, 21);
+    ctx.font = T.fontStr(16); ctx.fillStyle = "#aebdd5";
+    ctx.fillText("当前位置", T.SCREEN_W - 150, 25);
+    const frameX = 18, frameY = 62, frameW = T.SCREEN_W - 36, frameH = T.SCREEN_H - 108;
+    ctx.fillStyle = "#142238"; ctx.fillRect(frameX, frameY, frameW, frameH);
+    ctx.strokeStyle = "#88a7cf"; ctx.lineWidth = 2; ctx.strokeRect(frameX, frameY, frameW, frameH);
+    if (!this.ready) {
+      ctx.font = T.fontStr(22); ctx.fillStyle = "#fff"; ctx.fillText("正在绘制地图…", 330, 290);
+    } else if (this.overview) {
+      const x = frameX + (frameW - this.overview.width) / 2;
+      const y = frameY + (frameH - this.overview.height) / 2;
+      ctx.drawImage(this.overview, x, y);
+      const p = this.position();
+      if (p) {
+        const mx = x + p.x * 32 * this.scale + 16 * this.scale;
+        const my = y + p.y * 32 * this.scale + 16 * this.scale;
+        const pulse = 5 + Math.sin(Date.now() / 140) * 2;
+        ctx.save(); ctx.fillStyle = "#ff4d4d"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(mx, my, pulse, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#fff"; ctx.font = T.fontStr(16, true); ctx.fillText("你在这里", mx + 10, my - 9); ctx.restore();
+      }
+    }
+    ctx.font = T.fontStr(16); ctx.fillStyle = "#9fb0c9";
+    ctx.fillText("确认键 / Esc 返回物品", 24, T.SCREEN_H - 28);
+  }
+}
+
 /* 类导出 */
-Object.assign(T, { Scene_Map, TilemapRenderer, Sprite_Character });
+Object.assign(T, { Scene_Map, Scene_WorldMap, TilemapRenderer, Sprite_Character });

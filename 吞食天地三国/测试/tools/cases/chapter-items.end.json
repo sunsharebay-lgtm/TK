@@ -1,0 +1,1 @@
+["(()=>{const rows=window.__chapterItems||[],out={count:rows.length,rows:rows.map(r=>({ce:r.ce,after:r.after,expected:r.expected,remaining:r.items,actors:r.actors,msgs:r.msgs.length}))},fails=[];for(const r of rows){if(r.after!==r.expected||r.items.some(n=>n!==0))fails.push('ce'+r.ce);};out.allOk=rows.length===9&&fails.length===0;out.fails=fails;return JSON.stringify(out);})()"]

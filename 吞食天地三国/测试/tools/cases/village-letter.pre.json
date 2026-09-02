@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(29,12,18,2);T.$gameVariables.setValue(1,65);T.$gameMap.refreshEvents();return 'ready';})()"]

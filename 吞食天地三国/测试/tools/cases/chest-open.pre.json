@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(30,27,9,2);const ev=T.$gameMap.event(8);T.$gameSelfSwitches.setValue('30,8,A',true);T.$gameMap.refreshEvents();return ev&&ev.isOpenedChest()?'ready':'false:closed';})()"]

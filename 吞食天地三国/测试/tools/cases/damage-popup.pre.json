@@ -1,0 +1,1 @@
+["(async()=>{if(!T.BattleScene&&T.$gameMap){T.PendingBattle={troopId:16,canEscape:true,canLose:true,interpreter:T.$gameMap.interpreter};}for(let i=0;i<40&&!T.BattleScene;i++)await new Promise(r=>setTimeout(r,100));return T.BattleScene?'ready':'false:no-battle';})()"]

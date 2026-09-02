@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>吞食天地Ⅱ同人复刻 - 网页版</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden;
+    font-family:"PingFang SC","Microsoft Yahei",sans-serif;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  canvas{image-rendering:pixelated;background:#000;touch-action:none;}
+  #boot{position:fixed;inset:0;color:#eee;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-size:15px;line-height:2;text-align:center;z-index:9;}
+  #boot button{font-size:16px;padding:8px 26px;margin-top:14px;cursor:pointer;}
+  #pad{position:fixed;left:0;right:0;bottom:0;display:none;justify-content:space-between;
+    padding:12px 18px;box-sizing:border-box;z-index:8;user-select:none;-webkit-user-select:none;}
+  .pbtn{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.25);color:#fff;font-size:20px;display:flex;
+    align-items:center;justify-content:center;}
+  #dpad{position:relative;width:150px;height:150px;}
+  #dpad .pbtn{position:absolute;width:48px;height:48px;font-size:16px;}
+  #abtns{display:flex;gap:10px;align-items:flex-end;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="816" height="624"></canvas></div>
+<div id="boot">正在准备游戏数据…<br><span id="bootmsg"></span></div>
+<div id="pad">
+  <div id="dpad">
+    <div class="pbtn" data-k="up"    style="left:51px;top:0;">▲</div>
+    <div class="pbtn" data-k="left"  style="left:0;top:51px;">◀</div>
+    <div class="pbtn" data-k="right" style="left:102px;top:51px;">▶</div>
+    <div class="pbtn" data-k="down"  style="left:51px;top:102px;">▼</div>
+  </div>
+  <div id="abtns">
+    <div class="pbtn" data-k="cancel">B</div>
+    <div class="pbtn" data-k="ok">A</div>
+  </div>
+</div>
+<script src="js/core.js?v=20260829-r17"></script>
+<script src="js/data.js?v=20260829-r17"></script>
+<script src="js/interp.js?v=20260829-r17"></script>
+<script src="js/windows.js?v=20260829-r17"></script>
+<script src="js/mapscene.js?v=20260829-r17"></script>
+<script src="js/menus.js?v=20260829-r17"></script>
+<script src="js/battle.js?v=20260829-r17"></script>
+<script src="js/main.js?v=20260829-r17"></script>
+</body>
+</html>

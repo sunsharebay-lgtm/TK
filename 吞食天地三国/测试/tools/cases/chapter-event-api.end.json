@@ -1,0 +1,1 @@
+["(()=>{const x=window.__chapterEventApi||{},a=x.actor,out={bonus:a&&a._paramBonus,chapter:x.chapter&&x.chapter.name},fails=[];out.allOk=!!(a&&[5,4,6,7].every(id=>a._paramBonus[id]===10)&&out.chapter==='北伐灭曹魏');if(!out.allOk)fails.push('chapter-event-api');out.fails=fails;return JSON.stringify(out);})()"]

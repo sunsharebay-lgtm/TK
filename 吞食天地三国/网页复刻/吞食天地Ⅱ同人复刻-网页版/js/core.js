@@ -18,13 +18,16 @@ T.fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 /* ---------------- 输入 ---------------- */
 T.Input = {
   _down: {}, _prev: {}, _repTimer: {}, _repWaited: {},
+  _ignoreOkUntilRelease: false,
   KEYMAP: {
     ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down",
     ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right",
     Enter: "ok", Space: "ok", KeyZ: "ok", KeyJ: "ok",
     Escape: "cancel", KeyX: "cancel", KeyK: "cancel",
     ShiftLeft: "shift", ShiftRight: "shift",
-    PageUp: "pageup", KeyQ: "pageup", PageDown: "pagedown", KeyE: "pagedown",
+    KeyU: "pageup", KeyI: "pagedown",
+    KeyQ: "shopSell", KeyE: "shopBuy",
+    F6: "previewSave", F8: "previewMenu",
   },
   init(canvas) {
     window.addEventListener("keydown", e => {
@@ -49,6 +52,7 @@ T.Input = {
   },
   update() {
     this._prev = Object.assign({}, this._down);
+    if (this._ignoreOkUntilRelease && !this._down.ok) this._ignoreOkUntilRelease = false;
     /* autointro: 每N帧触发一次OK（仅在地图场景时生效，避免在标题画面误触） */
     if (T._autoIntroFrames) {
       const _sc = T.SceneManager.current();
@@ -71,7 +75,11 @@ T.Input = {
     }
   },
   pressed(k) { return !!this._down[k]; },
-  triggered(k) { return !!this._down[k] && !this._prev[k]; },
+  triggered(k) {
+    if (k === "ok" && this._ignoreOkUntilRelease) return false;
+    return !!this._down[k] && !this._prev[k];
+  },
+  ignoreOkUntilRelease() { this._ignoreOkUntilRelease = true; },
   repeated(k) {
     if (this.triggered(k)) { this._repTimer[k] = 0; this._repWaited[k] = false; return true; }
     if (this.pressed(k)) {
@@ -209,8 +217,13 @@ T.AudioManager = {
     if (!obj || !obj.name || this._bgmName === obj.name && this._bgmHandle) return;
     this.stopBgm(0.4);
     const buf = await this.buffer("bgm", obj.name);
-    this._bgmName = obj && obj.name;
-    if (buf) this._bgmHandle = this._play(buf, { ...obj, loop: true });
+    if (!buf && obj.name !== "Battle_04") {
+      return this.playBgm({ ...obj, name: "Battle_04" });
+    }
+    if (buf) {
+      this._bgmName = obj.name;
+      this._bgmHandle = this._play(buf, { ...obj, loop: true });
+    }
   },
   stopBgm(fade = 1) { this._stop(this._bgmHandle, fade); this._bgmHandle = null; this._bgmName = null; },
   saveBgm() { this._savedBgm = this._bgmName; },

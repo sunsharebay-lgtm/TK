@@ -1,0 +1,1 @@
+["(()=>{T.$gameVariables.setValue(1,70);T.$gameSwitches.setValue(47,true);T.$gameMap.refreshEvents();T.$gamePlayer.x=132;T.$gamePlayer.y=75;T.$gamePlayer._realX=132;T.$gamePlayer._realY=75;T.$gamePlayer.setDirection(2);T.$gameMap.event(12).start();return 'ready';})()"]

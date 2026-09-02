@@ -1,0 +1,1 @@
+["(async()=>{const gm=T.$gameParty;gm._actors=[2];gm.gainItem(T.$dataItems[26],1);T.$gameVariables.setValue(1,45);await T.SceneManager.gotoMap(170,15,9,8);T.$gameMessage.clear();const sc=T.SceneManager.current();T.Input._down={ok:true};T.Input._prev={};sc.checkTriggers();return T.$gameMap.event(3)&&T.$gameMap.event(3).starting?'ready':'false:not-started';})()"]

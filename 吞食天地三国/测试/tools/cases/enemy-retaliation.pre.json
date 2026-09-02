@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(23,114,141,2);if(!T.BattleScene&&!T.PendingBattle)T.PendingBattle={troopId:11,canEscape:true,canLose:true,interpreter:T.$gameMap.interpreter};return 'ready';})()"]

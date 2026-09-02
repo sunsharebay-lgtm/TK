@@ -1,0 +1,1 @@
+["(async()=>{await T.SceneManager.gotoMap(23,114,141,2);const gm=T.$gameParty;gm._actors=[2];const lead=T.getActor(2);lead.changeLevel(20,false);lead.recoverAll();gm.addActor(3);const recruit=T.getActor(3);window.__recruitLevel={party:gm._actors.slice(),lead:lead.level,recruit:recruit.level,hp:recruit.hp,mhp:recruit.mhp,mp:recruit.mp,mmp:recruit.mmp};return 'ready';})()"]
