@@ -23,14 +23,6 @@
       "title": "iStoreOS安装OpenClash",
       "summary": "在 iStoreOS 中安装 OpenClash，实现无感科学上网的官方入口和版本链接",
       "detailUrl": "./资源/iStoreOS安装OpenClash/"
-    },
-    {
-      "number": "04",
-      "id": "codex-claude-code-chinese-tool",
-      "date": "2026-09-03",
-      "title": "汉化 Codex 和 Claude Code 工具",
-      "summary": "一键帮助汉化 Codex 和 Claude Code，下载后双击运行，压缩包内附教程",
-      "detailUrl": "./资源/汉化Codex和ClaudeCode工具/"
     }
   ]
 }

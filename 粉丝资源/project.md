@@ -4,7 +4,7 @@
 
 创意空间子项目，独立维护视频粉丝资源：网址、模板、口令与长资料页。
 
-## 交付规格（v0.3.0）
+## 交付规格（v0.4.0）
 
 - `resources.json` 为唯一资源数据源，条目包含固定两位 `number`、`id`、`date`、`title`、`summary`、`detailUrl`。
 - `index.html` 为独立资源列表入口，动态读取 `resources.json`。
@@ -16,20 +16,23 @@
 - 2026-08-28 从创意空间首页拆出，数据与资料页归属本项目；首页只做展示联动。
 - 详情页地址保持相对于本项目的 `./资源/...`，首页读取时拼接 `../粉丝资源/` 前缀。
 - 2026-09-01 新增 iStoreOS 安装 OpenClash 资源，详情页收录 OpenClash 指定版本发布页与 iStoreOS 官方入口。
+- 2026-09-03 新增汉化 Codex 和 Claude Code 工具资源，详情页收录夸克网盘链接、分享口令和使用说明。
 
-## QA 结果（v0.3.0）
+## QA 结果（v0.4.0）
 
 - 数据结构校验通过：固定编号、详情页、复制按钮。
 - 新增自动剪辑视频技能包详情页，包含夸克网盘链接、分享口令和下载后交给 Codex 读取的说明。
 - 新增 iStoreOS 安装 OpenClash 详情页，包含两个官方 GitHub 入口与安装流程提示。
 - OpenClash v0.47.156 和 iStoreOS 官方 GitHub 入口 HTTP 校验通过。
+- 新增汉化 Codex 和 Claude Code 工具详情页，包含夸克网盘入口、分享口令和双击运行提示。
 - 独立入口页与首页联动待浏览器复核；新增文件 SHA-256 待补充；
 
 ## 源文件 SHA-256
 
 - `index.html`：`bf791276e3dba84ce5fe64208adff945fae8f4d49ffb1a66c223b7d7b54f09f2`
-- `resources.json`：`6bed7c3b41c171eeb5119876830e984d1e0fa65bd57614223b93023736deaff1`
+- `resources.json`：`816a677fbd5aa94b8490270738188242ff299dbcd0ed8a4155a14688e86d972c`
 - `测试/resources_test.js`：`c4f80db2a0b1b5570a3cc1dc5889e57b6aef354a1126262c716fb1976c65fbfe`
 - `资源/giffgaff保命资料/index.html`：`cf1f798b8dc25317560475443d8178f991c9c9876f65f3f1f6b5b1a53707a649`
 - `资源/自动剪辑视频技能包/index.html`：`3988669de3c052d55fa89fb8042a2cf6de9e03dab154183b39f91129c4a9bac5`
 - `资源/iStoreOS安装OpenClash/index.html`：`a9044667ce9e03e3403d06a5bde9a9d7e6569d713fc6dea215c51e31c0b459e5`
+- `资源/汉化Codex和ClaudeCode工具/index.html`：`156fcf94c08d0ecef338e2f42f9a03c2d6258d8ef91b5fd63b7bfe494bf71d6a`
