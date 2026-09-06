@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b12">
+  <meta name="description" content="名人智囊团 Hermes Bot 安装包：夸克网盘下载入口、分享口令和安装说明。">
+  <title>名人智囊团 Hermes 安装包 · 创意空间</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b12;
+      --panel: rgba(14, 23, 36, .86);
+      --panel-strong: #111d2d;
+      --ink: #edf4ff;
+      --muted: #8da0b9;
+      --line: rgba(139, 169, 208, .2);
+      --cyan: #43e8ff;
+      --amber: #ffb347;
+      --green: #5ce08a;
+      font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; background: var(--bg); }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 560px at 78% -8%, rgba(37, 109, 145, .26), transparent 68%),
+        radial-gradient(760px 520px at 12% 110%, rgba(200, 130, 60, .14), transparent 70%),
+        linear-gradient(155deg, #0a111c 0%, var(--bg) 55%, #090d16 100%);
+    }
+
+    .shell { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 20px 0 34px; }
+
+    .topbar, .footer, .section-heading, .package-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: #061018;
+      background: var(--cyan);
+      clip-path: polygon(0 0, 100% 0, 100% 76%, 76% 100%, 0 100%);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .system-status, .eyebrow, .label, .step-index {
+      color: var(--amber);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .system-status { color: var(--muted); }
+
+    .hero { padding: clamp(28px, 6vw, 54px) 0 30px; }
+    .eyebrow { margin: 0 0 12px; }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(34px, 7vw, 58px);
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .hero-copy, .step p, .package-note, .note, li {
+      color: var(--muted);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      line-height: 1.75;
+    }
+
+    .hero-copy { max-width: 700px; margin: 14px 0 0; font-size: 14px; }
+    .section { margin-top: 24px; }
+    .section-heading { margin-bottom: 14px; }
+
+    h2 { margin: 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
+    .section-heading p { margin: 0; color: var(--muted); font-size: 10px; }
+
+    .steps, .links, .package-grid { display: grid; gap: 12px; }
+    .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .links, .package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .step, .link-card, .package, .note {
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .step, .link-card, .package { padding: 16px; }
+    .step-index, .label { display: block; margin-bottom: 10px; }
+    .step h3 { margin: 0 0 8px; font-size: 17px; }
+    .step p, .package-note, .note { margin: 0; font-size: 13px; }
+
+    .link-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .link-card a { color: var(--cyan); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+    .link-card a:hover, .link-card a:focus-visible { color: var(--ink); }
+
+    .copy-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+    code, .copy-value {
+      display: block;
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      background: rgba(4, 9, 16, .72);
+      color: var(--green);
+      font: inherit;
+      overflow-wrap: anywhere;
+    }
+
+    .copy-value { flex: 1; }
+
+    button {
+      flex: 0 0 auto;
+      padding: 10px 12px;
+      border: 1px solid rgba(67, 232, 255, .48);
+      color: var(--cyan);
+      background: rgba(67, 232, 255, .08);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover, button:focus-visible { background: rgba(67, 232, 255, .18); }
+
+    .package { margin-top: 12px; }
+    .package-head { align-items: baseline; }
+    .package-head h3 { margin: 0; font-size: 17px; }
+    .package-head span { color: var(--cyan); font-size: 11px; }
+    ul { margin: 12px 0 0; padding-left: 20px; }
+    li + li { margin-top: 6px; }
+
+    .note { margin-top: 12px; padding: 14px 16px; border-color: rgba(255, 179, 71, .28); }
+    .note strong { color: var(--amber); }
+
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .footer a { color: var(--cyan); }
+
+    @media (max-width: 700px) {
+      .steps, .links, .package-grid { grid-template-columns: 1fr; }
+      .topbar, .footer, .section-heading, .package-head { align-items: flex-start; flex-direction: column; }
+      .copy-row { align-items: stretch; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../">
+        <span class="brand-mark">CS</span>
+        <span>创意空间 / 粉丝资源</span>
+      </a>
+      <span class="system-status">RESOURCE 05 / HERMES BOT PACK</span>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Hermes · Portable Council</p>
+      <h1>名人智囊团<br>Hermes 安装包</h1>
+      <p class="hero-copy">下载后，在你自己的 Hermes 上一键生成 8 个独立角色：7 位专业顾问，以及 1 位负责路由和综合意见的智囊团主持人。</p>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>Download</h2>
+        <p>QUARK CLOUD / ZIP PACKAGE</p>
+      </div>
+      <div class="links">
+        <article class="link-card">
+          <span class="label">夸克网盘</span>
+          <a href="https://pan.quark.cn/s/777e2f8575dc" target="_blank" rel="noreferrer">https://pan.quark.cn/s/777e2f8575dc</a>
+        </article>
+        <article class="link-card">
+          <span class="label">分享口令</span>
+          <div class="copy-row">
+            <code class="copy-value" id="share-code">70ab3ahxn6</code>
+            <button class="copy-btn" type="button" data-copy-target="share-code">复制</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>Install flow</h2>
+        <p>THREE STEPS TO START</p>
+      </div>
+      <div class="steps">
+        <article class="step">
+          <span class="step-index">01 / Prepare</span>
+          <h3>先安装 Hermes</h3>
+          <p>确认接收者自己的设备已经安装 Hermes，并能运行 <code>hermes --version</code> 与 <code>hermes profile list</code>。</p>
+        </article>
+        <article class="step">
+          <span class="step-index">02 / Install</span>
+          <h3>运行安装脚本</h3>
+          <p>下载并解压安装包，在安装包目录执行 <code>bash install.sh</code>。脚本会创建或更新 8 个 Profile。</p>
+        </article>
+        <article class="step">
+          <span class="step-index">03 / Use</span>
+          <h3>打开 Bots 面板</h3>
+          <p>安装完成后打开 Hermes Desktop 的 Bots 面板；如果 Desktop 正在运行，请重启后读取新的并发设置。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>Package notes</h2>
+        <p>READ BEFORE RUNNING</p>
+      </div>
+      <div class="package-grid">
+        <article class="package">
+          <div class="package-head">
+            <h3>安装包包含</h3>
+            <span>8 BOTS</span>
+          </div>
+          <ul>
+            <li>7 位专业顾问：季琦、马斯克、张一鸣、罗振宇、巴菲特芒格、卡帕西、战略方法论老师。</li>
+            <li>1 位中性主持人：智囊团主持人，负责选择专家、组织审议并综合结论。</li>
+            <li>角色源文件、运行时人格文件、清单和安装脚本均已放在压缩包内。</li>
+          </ul>
+        </article>
+        <article class="package">
+          <div class="package-head">
+            <h3>安全边界</h3>
+            <span>LOCAL ONLY</span>
+          </div>
+          <ul>
+            <li>安装包不包含 API Key、会话、记忆、state.db 或原拥有者的个人配置。</li>
+            <li>脚本从接收者当前默认 Profile 克隆模型、凭据池和基础技能，不上传凭据。</li>
+            <li>不会启动 Gateway，也不会创建外部消息平台连接；请只在自己的设备上运行。</li>
+          </ul>
+        </article>
+      </div>
+      <p class="note"><strong>覆盖提醒：</strong>如果某个 Profile 已经存在，默认只更新显示名和描述，不覆盖已有的 <code>SOUL.md</code>。确认要使用安装包版本覆盖时，再执行 <code>bash install.sh --force</code>。</p>
+    </section>
+
+    <footer class="footer">
+      <span>粉丝资源 / 05 / 2026-09-06</span>
+      <a href="../../">返回资源列表</a>
+    </footer>
+  </main>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const target = document.getElementById(button.dataset.copyTarget);
+        if (!target) return;
+        try {
+          await navigator.clipboard.writeText(target.textContent.trim());
+          const original = button.textContent;
+          button.textContent = '已复制';
+          setTimeout(() => { button.textContent = original; }, 1600);
+        } catch {
+          window.getSelection().selectAllChildren(target);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
