@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
 <meta name="theme-color" content="#0a0e17">
 <link rel="icon" href="data:,">
-<link rel="preload" href="assets/blender/tank-sprites-v2.png" as="image" type="image/png">
-<title>钢铁防线 · 坦克大战 v1.6.11</title>
+<link rel="preload" href="assets/blender/tank-sprites-v1.png" as="image" type="image/png">
+<title>钢铁防线 · 坦克大战 v1.7.0</title>
 <style>
 /* ============================================================
    钢铁防线 — 现代化坦克大战
@@ -490,7 +490,7 @@ kbd{
   <div class="tbtn" id="tPause">暂停</div>
 </div>
 
-<div id="footer">钢铁防线 v1.6.11 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
+<div id="footer">钢铁防线 v1.7.0 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
 
 <output id="diagnostics" hidden></output>
 
@@ -1466,8 +1466,8 @@ const TANK_SKINS = {
 
 // Blender 离线渲染的 2.5D 图集：加载失败时仍使用下方的程序化像素精灵。
 // 图集顺序必须与 Blender 脚本中的 SKINS 保持一致。
-const BLENDER_TANK_SHEET = "assets/blender/tank-sprites-v2.png";
-const BLENDER_TANK_TILE = 128;
+const BLENDER_TANK_SHEET = "assets/blender/tank-sprites-v1.png";
+const BLENDER_TANK_TILE = 96;
 const BLENDER_TANK_KEYS = ["p1","p2","basic","fast","power","armor4","armor3","armor2","armor1"];
 
 /* 绘制一辆朝上的坦克 (32x32) */
@@ -1593,17 +1593,19 @@ function loadBlenderTankSprites(){
   const img = new Image();
   img.decoding = "async";
   img.onload = ()=>{
-    if(img.naturalWidth !== BLENDER_TANK_TILE*8 || img.naturalHeight !== BLENDER_TANK_TILE*BLENDER_TANK_KEYS.length) return;
+    if(img.naturalWidth < BLENDER_TANK_TILE*8 || img.naturalHeight < BLENDER_TANK_TILE*BLENDER_TANK_KEYS.length) return;
     const rendered = {};
     for(let row=0; row<BLENDER_TANK_KEYS.length; row++){
       const frames = [];
       for(let tread=0; tread<2; tread++){
         const dirs = [];
         for(let dir=0; dir<4; dir++){
-          const {c,x} = mkCanvas(BLENDER_TANK_TILE,BLENDER_TANK_TILE);
-          // 保留原始分辨率，最终绘制时才映射到 32px 逻辑尺寸。
+          const {c,x} = mkCanvas(TS,TS);
+          // Blender 图集从 96px 采样到逻辑 32px，保留装甲边缘的柔和层次。
+          x.imageSmoothingEnabled = true;
           const col = tread*4 + dir;
-          x.drawImage(img, col*BLENDER_TANK_TILE, row*BLENDER_TANK_TILE, BLENDER_TANK_TILE, BLENDER_TANK_TILE, 0,0,BLENDER_TANK_TILE,BLENDER_TANK_TILE);
+          x.drawImage(img, col*BLENDER_TANK_TILE, row*BLENDER_TANK_TILE, BLENDER_TANK_TILE, BLENDER_TANK_TILE, 0,0,TS,TS);
+          x.imageSmoothingEnabled = false;
           dirs.push(c);
         }
         frames.push(dirs);
@@ -1613,15 +1615,6 @@ function loadBlenderTankSprites(){
     Object.assign(SPR.tanks, rendered);
   };
   img.src = BLENDER_TANK_SHEET;
-}
-
-function drawTankSprite(x, img, px, py){
-  if(!img) return;
-  x.save();
-  x.imageSmoothingEnabled = img.width > TS;
-  if(x.imageSmoothingEnabled) x.imageSmoothingQuality = "high";
-  x.drawImage(img, px, py, TS, TS);
-  x.restore();
 }
 
 /* ============================================================
@@ -3313,13 +3306,13 @@ class Tank {
     x.globalAlpha = 0.28; x.fillStyle = "#000";
     x.beginPath(); x.ellipse(this.cx, this.y+TS-2, 13, 5, 0, 0, TAU); x.fill();
     x.restore();
-    drawTankSprite(x, img, px, py);
+    if(img) x.drawImage(img, px, py);
     // 受击白闪
     if(this.hitFlash > 0 && img){
       x.save();
       x.globalCompositeOperation = "lighter";
       x.globalAlpha = clamp(this.hitFlash/0.14, 0, 1)*0.85;
-      drawTankSprite(x, img, px, py);
+      x.drawImage(img, px, py);
       x.restore();
     }
     // 闪红（带道具）
@@ -5977,7 +5970,7 @@ function renderTitleBG(x){
     if(t.x < -TS) t.x = FS; if(t.x > FS) t.x = -TS;
     if(t.y < -TS) t.y = FS; if(t.y > FS) t.y = -TS;
     const set = SPR.tanks[t.skin];
-    if(set) drawTankSprite(x, set[t.tread][t.dir], Math.round(t.x), Math.round(t.y));
+    if(set) x.drawImage(set[t.tread][t.dir], Math.round(t.x), Math.round(t.y));
   }
   x.globalAlpha = 1;
   x.restore();

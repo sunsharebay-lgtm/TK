@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>坦克图集逐帧验收</title>
+<style>
+body{margin:24px;background:#10151b;color:#e2e8ee;font:14px system-ui;letter-spacing:0}
+h1{font-size:22px}p{line-height:1.7}#frames{overflow:auto}canvas{display:block}
+iframe{position:absolute;width:576px;height:448px;left:-2000px;visibility:hidden}
+pre{white-space:pre-wrap}button{padding:8px 16px;font:inherit}
+</style>
+<h1>坦克图集逐帧验收</h1>
+<p>实际游戏素材与 Tank.render 路径；每行一种皮肤，前四格为履带帧 0，后四格为履带帧 1，方向均为上、右、下、左。</p>
+<button id="rerun">重新检查</button>
+<pre id="result">等待游戏图集加载……</pre>
+<div id="frames"></div>
+<iframe id="game" src="../tank-battle.html" title="待测游戏"></iframe>
+<script>
+const result = document.getElementById('result');
+const frame = document.getElementById('game');
+let api;
+const check = (condition, message) => { if(!condition) throw new Error(message); };
+function run(){
+  try{
+    const board = document.createElement('canvas');
+    board.width = 760; board.height = 9*88+32;
+    const bx = board.getContext('2d');
+    bx.fillStyle = '#10151b'; bx.fillRect(0,0,board.width,board.height);
+    bx.font = '14px system-ui';
+    const labels = ['玩家1','玩家2','普通','高速','火力','重甲4','重甲3','重甲2','重甲1'];
+    let count = 0;
+    Object.entries(api.SPR.tanks).forEach(([key, frames], row)=>{
+      bx.fillStyle = '#dce7ee'; bx.fillText(labels[row], 10, row*88+72);
+      frames.forEach((dirs, tread)=>dirs.forEach((img, dir)=>{
+        check(img.width===128 && img.height===128, `${key}: loaded native-resolution sprite`);
+        const canvas = document.createElement('canvas');
+        canvas.width=64; canvas.height=64;
+        const x = canvas.getContext('2d');
+        x.scale(2,2);
+        api.drawTankSprite(x,img,0,0);
+        const data = x.getImageData(0,0,64,64).data;
+        check(data[(32*64+32)*4+3]>200, `${key}/${tread}/${dir}: center filled`);
+        let nonempty=0;
+        for(let y=0;y<64;y++)for(let p=0;p<64;p++){
+          const alpha=data[(y*64+p)*4+3];
+          if(alpha>128)nonempty++;
+          if(p===0||p===63||y===0||y===63)check(alpha<10,`${key}/${tread}/${dir}: transparent border`);
+        }
+        check(nonempty>1300, `${key}/${tread}/${dir}: full tank occupies enough pixels`);
+        const tank = new api.Tank({time:0},0,0,dir);
+        tank.skinKey=()=>key; tank.tread=tread;
+        for(const flash of [0,0.1]){
+          tank.hitFlash=flash;
+          let calls=0;
+          const nativeDraw=x.drawImage.bind(x);
+          x.drawImage=(...args)=>{
+            check(args[0]===img && args.length===5 && args[3]===32 && args[4]===32, `${key}: render/hitFlash source and size`);
+            calls++; nativeDraw(...args);
+          };
+          x.clearRect(0,0,32,32);
+          tank.render(x);
+          check(calls===(flash ? 2:1),`${key}: normal/flash render calls`);
+          x.drawImage=nativeDraw;
+        }
+        tank.hitFlash=0; x.clearRect(0,0,32,32); tank.render(x);
+        const col=tread*4+dir;
+        bx.drawImage(canvas,100+col*80,32+row*88);
+        count++;
+      }));
+    });
+    document.getElementById('frames').replaceChildren(board);
+    result.textContent=`PASS: ${count} 帧，128px 原素材；2倍画布实际像素中心/边距/覆盖率；普通及受击绘制共 ${count*2} 组通过。`;
+    result.dataset.status='pass';
+  }catch(error){result.textContent='FAIL: '+error.message;result.dataset.status='fail';}
+}
+frame.addEventListener('load',()=>{
+  const deadline=Date.now()+10000;
+  const poll=()=>{
+    try{
+      api=frame.contentWindow.eval('({SPR, Tank, drawTankSprite})');
+      if(api.SPR.tanks.p1?.[0]?.[0]?.width===128){run();return;}
+      if(Date.now()>deadline)throw new Error('图集加载超时，仍为回退素材');
+      setTimeout(poll,50);
+    }catch(error){result.textContent='FAIL: '+error.message;result.dataset.status='fail';}
+  };
+  poll();
+});
+document.getElementById('rerun').onclick=run;
+</script>
+</html>
