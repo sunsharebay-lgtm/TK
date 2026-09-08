@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070b12">
-  <meta name="description" content="名人智囊团 Hermes Bot 安装包：夸克网盘下载入口、分享口令和安装说明。">
-  <title>名人智囊团 Hermes 安装包 · 创意空间</title>
+  <meta name="description" content="名人智囊团 Hermes 最终版：夸克网盘永久分享链接、安装说明和包内内容。">
+  <title>名人智囊团 Hermes 最终版 · 创意空间</title>
   <style>
     :root {
       color-scheme: dark;
       --bg: #070b12;
-      --panel: rgba(14, 23, 36, .86);
+      --panel: rgba(14, 23, 36, .88);
       --panel-strong: #111d2d;
       --ink: #edf4ff;
       --muted: #8da0b9;
@@ -22,9 +22,7 @@
     }
 
     * { box-sizing: border-box; }
-
     html { min-height: 100%; background: var(--bg); }
-
     body {
       min-height: 100vh;
       margin: 0;
@@ -35,134 +33,83 @@
         linear-gradient(155deg, #0a111c 0%, var(--bg) 55%, #090d16 100%);
     }
 
-    .shell { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 20px 0 34px; }
-
-    .topbar, .footer, .section-heading, .package-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
+    .shell { width: min(940px, calc(100% - 32px)); margin: 0 auto; padding: 20px 0 36px; }
+    .topbar, .footer, .section-heading, .package-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .topbar { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
 
     .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--ink);
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 700;
+      display: inline-flex; align-items: center; gap: 10px;
+      color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 700;
     }
-
     .brand-mark {
-      display: grid;
-      width: 28px;
-      height: 28px;
-      place-items: center;
-      color: #061018;
-      background: var(--cyan);
+      display: grid; width: 28px; height: 28px; place-items: center;
+      color: #061018; background: var(--cyan);
       clip-path: polygon(0 0, 100% 0, 100% 76%, 76% 100%, 0 100%);
-      font-size: 11px;
-      font-weight: 900;
+      font-size: 11px; font-weight: 900;
     }
 
     .system-status, .eyebrow, .label, .step-index {
-      color: var(--amber);
-      font-size: 10px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
+      color: var(--amber); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
     }
-
     .system-status { color: var(--muted); }
 
-    .hero { padding: clamp(28px, 6vw, 54px) 0 30px; }
+    .hero { padding: clamp(28px, 6vw, 56px) 0 28px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(240px, .7fr); gap: 24px; align-items: end; }
     .eyebrow { margin: 0 0 12px; }
-
-    h1 {
-      max-width: 760px;
-      margin: 0;
-      font-size: clamp(34px, 7vw, 58px);
-      font-weight: 900;
-      line-height: 1.05;
-    }
-
+    h1 { margin: 0; font-size: clamp(36px, 7vw, 60px); line-height: 1.02; font-weight: 900; }
     .hero-copy, .step p, .package-note, .note, li {
-      color: var(--muted);
-      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-      line-height: 1.75;
+      color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; line-height: 1.75;
     }
+    .hero-copy { max-width: 720px; margin: 14px 0 0; font-size: 14px; }
 
-    .hero-copy { max-width: 700px; margin: 14px 0 0; font-size: 14px; }
+    .readout, .card, .note { border: 1px solid var(--line); background: var(--panel); }
+    .readout { padding: 18px 20px; }
+    .readout-label { color: var(--muted); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
+    .readout-title { display: block; margin: 8px 0 8px; color: var(--cyan); font-size: 19px; font-weight: 800; line-height: 1.3; }
+    .readout-note { color: var(--ink); font-size: 12px; line-height: 1.6; }
+
     .section { margin-top: 24px; }
     .section-heading { margin-bottom: 14px; }
-
     h2 { margin: 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
     .section-heading p { margin: 0; color: var(--muted); font-size: 10px; }
 
-    .steps, .links, .package-grid { display: grid; gap: 12px; }
-    .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .links, .package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .links, .grid { display: grid; gap: 12px; }
+    .links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-    .step, .link-card, .package, .note {
-      border: 1px solid var(--line);
-      background: var(--panel);
+    .card { padding: 16px; }
+    .card:hover { background: var(--panel-strong); }
+    .card h3 { margin: 0 0 8px; font-size: 17px; }
+    .card p { margin: 0; }
+
+    .copy-row { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+    .copy-value {
+      display: block; flex: 1; min-width: 0; padding: 10px 12px;
+      border: 1px solid var(--line); background: rgba(4, 9, 16, .72);
+      color: var(--green); overflow-wrap: anywhere; font: inherit;
     }
-
-    .step, .link-card, .package { padding: 16px; }
-    .step-index, .label { display: block; margin-bottom: 10px; }
-    .step h3 { margin: 0 0 8px; font-size: 17px; }
-    .step p, .package-note, .note { margin: 0; font-size: 13px; }
-
-    .link-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-    .link-card a { color: var(--cyan); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
-    .link-card a:hover, .link-card a:focus-visible { color: var(--ink); }
-
-    .copy-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-
-    code, .copy-value {
-      display: block;
-      min-width: 0;
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      background: rgba(4, 9, 16, .72);
-      color: var(--green);
-      font: inherit;
-      overflow-wrap: anywhere;
+    button.copy-btn {
+      flex: 0 0 auto; padding: 10px 12px; border: 1px solid rgba(67, 232, 255, .5);
+      background: rgba(67, 232, 255, .08); color: var(--cyan); font: inherit; cursor: pointer;
     }
-
-    .copy-value { flex: 1; }
-
-    button {
-      flex: 0 0 auto;
-      padding: 10px 12px;
-      border: 1px solid rgba(67, 232, 255, .48);
-      color: var(--cyan);
-      background: rgba(67, 232, 255, .08);
-      font: inherit;
-      cursor: pointer;
-    }
-
-    button:hover, button:focus-visible { background: rgba(67, 232, 255, .18); }
+    button.copy-btn:hover, button.copy-btn:focus-visible { background: rgba(67, 232, 255, .18); }
 
     .package { margin-top: 12px; }
-    .package-head { align-items: baseline; }
     .package-head h3 { margin: 0; font-size: 17px; }
     .package-head span { color: var(--cyan); font-size: 11px; }
     ul { margin: 12px 0 0; padding-left: 20px; }
     li + li { margin-top: 6px; }
 
-    .note { margin-top: 12px; padding: 14px 16px; border-color: rgba(255, 179, 71, .28); }
+    .note { margin-top: 12px; padding: 14px 16px; }
     .note strong { color: var(--amber); }
+    code { padding: 2px 5px; border: 1px solid rgba(139, 169, 208, .18); background: rgba(4, 9, 16, .55); color: var(--green); }
 
     .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
     .footer a { color: var(--cyan); }
 
-    @media (max-width: 700px) {
-      .steps, .links, .package-grid { grid-template-columns: 1fr; }
+    @media (max-width: 760px) {
+      .hero, .links, .grid { grid-template-columns: 1fr; }
       .topbar, .footer, .section-heading, .package-head { align-items: flex-start; flex-direction: column; }
-      .copy-row { align-items: stretch; flex-direction: column; }
+      .copy-row { flex-direction: column; }
     }
   </style>
 </head>
@@ -173,93 +120,100 @@
         <span class="brand-mark">CS</span>
         <span>创意空间 / 粉丝资源</span>
       </a>
-      <span class="system-status">RESOURCE 05 / HERMES BOT PACK</span>
+      <span class="system-status">RESOURCE 05 / FINAL VERSION</span>
     </header>
 
     <section class="hero">
-      <p class="eyebrow">Hermes · Portable Council</p>
-      <h1>名人智囊团<br>Hermes 安装包</h1>
-      <p class="hero-copy">下载后，在你自己的 Hermes 上一键生成 8 个独立角色：7 位专业顾问，以及 1 位负责路由和综合意见的智囊团主持人。</p>
+      <div>
+        <p class="eyebrow">Hermes · Council Pack</p>
+        <h1>名人智囊团<br>Hermes 最终版</h1>
+        <p class="hero-copy">这一版不是简单安装包，而是把公开资料蒸馏成可运行的 8 位决策顾问：7 位方法论顾问 + 1 位中性主持人。它已经作为粉丝资源的 05 号条目替换旧版。</p>
+      </div>
+      <aside class="readout">
+        <span class="readout-label">Permanent Share</span>
+        <span class="readout-title">夸克网盘永久链接</span>
+        <div class="copy-row">
+          <code class="copy-value" id="share-link">https://pan.quark.cn/s/efef3dff3ab4</code>
+          <button class="copy-btn" type="button" data-copy-target="share-link">复制链接</button>
+        </div>
+        <p class="readout-note">上传位置：夸克网盘 / <strong>项目</strong>。文件名：<code>名人智囊团_Hermes_Bot_最终版.tar.gz</code>。分享类型：永久公开。</p>
+      </aside>
     </section>
 
     <section class="section">
       <div class="section-heading">
-        <h2>Download</h2>
-        <p>QUARK CLOUD / ZIP PACKAGE</p>
+        <h2>Update focus</h2>
+        <p>WHAT CHANGED FROM THE OLD VERSION</p>
       </div>
       <div class="links">
-        <article class="link-card">
-          <span class="label">夸克网盘</span>
-          <a href="https://pan.quark.cn/s/777e2f8575dc" target="_blank" rel="noreferrer">https://pan.quark.cn/s/777e2f8575dc</a>
+        <article class="card">
+          <span class="label">01 / Content</span>
+          <h3>从安装包说明升级为完整蒸馏包</h3>
+          <p>新版加入 <code>METHOD.md</code>、研究档案、技能包和自包含引擎源码，定位从“可安装”升级成“可分发的最终版”。</p>
         </article>
-        <article class="link-card">
-          <span class="label">分享口令</span>
-          <div class="copy-row">
-            <code class="copy-value" id="share-code">70ab3ahxn6</code>
-            <button class="copy-btn" type="button" data-copy-target="share-code">复制</button>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-heading">
-        <h2>Install flow</h2>
-        <p>THREE STEPS TO START</p>
-      </div>
-      <div class="steps">
-        <article class="step">
-          <span class="step-index">01 / Prepare</span>
-          <h3>先安装 Hermes</h3>
-          <p>确认接收者自己的设备已经安装 Hermes，并能运行 <code>hermes --version</code> 与 <code>hermes profile list</code>。</p>
-        </article>
-        <article class="step">
-          <span class="step-index">02 / Install</span>
-          <h3>运行安装脚本</h3>
-          <p>下载并解压安装包，在安装包目录执行 <code>bash install.sh</code>。脚本会创建或更新 8 个 Profile。</p>
-        </article>
-        <article class="step">
-          <span class="step-index">03 / Use</span>
-          <h3>打开 Bots 面板</h3>
-          <p>安装完成后打开 Hermes Desktop 的 Bots 面板；如果 Desktop 正在运行，请重启后读取新的并发设置。</p>
+        <article class="card">
+          <span class="label">02 / Safety</span>
+          <h3>保留边界，不带走私密数据</h3>
+          <p>包内不包含 API Key、token、密码、会话、数据库、记忆或个人配置；安装脚本只克隆接收者自己的 Hermes 基础配置。</p>
         </article>
       </div>
     </section>
 
     <section class="section">
       <div class="section-heading">
-        <h2>Package notes</h2>
-        <p>READ BEFORE RUNNING</p>
+        <h2>Package contents</h2>
+        <p>WHAT THE ZIP ACTUALLY CONTAINS</p>
       </div>
-      <div class="package-grid">
-        <article class="package">
+      <div class="grid">
+        <article class="card package">
           <div class="package-head">
-            <h3>安装包包含</h3>
-            <span>8 BOTS</span>
+            <h3>核心结构</h3>
+            <span>8 PROFILES</span>
           </div>
           <ul>
-            <li>7 位专业顾问：季琦、马斯克、张一鸣、罗振宇、巴菲特芒格、卡帕西、战略方法论老师。</li>
-            <li>1 位中性主持人：智囊团主持人，负责选择专家、组织审议并综合结论。</li>
-            <li>角色源文件、运行时人格文件、清单和安装脚本均已放在压缩包内。</li>
+            <li><code>souls/</code>：8 个 Hermes 运行人格。</li>
+            <li><code>skills/</code>：7 份可复用的 Perspective Skill。</li>
+            <li><code>research/</code>：每个角色的六维研究档案。</li>
+            <li><code>engine-source/</code>：自包含的新版多顾问引擎。</li>
           </ul>
         </article>
-        <article class="package">
+        <article class="card package">
           <div class="package-head">
-            <h3>安全边界</h3>
-            <span>LOCAL ONLY</span>
+            <h3>安装与维护</h3>
+            <span>READY TO RUN</span>
           </div>
           <ul>
-            <li>安装包不包含 API Key、会话、记忆、state.db 或原拥有者的个人配置。</li>
-            <li>脚本从接收者当前默认 Profile 克隆模型、凭据池和基础技能，不上传凭据。</li>
-            <li>不会启动 Gateway，也不会创建外部消息平台连接；请只在自己的设备上运行。</li>
+            <li><code>README.md</code>：安装包说明与使用建议。</li>
+            <li><code>METHOD.md</code>：蒸馏方法、来源规则、质量门槛和更新流程。</li>
+            <li><code>manifest.json</code>：版本与安全清单。</li>
+            <li><code>install.sh</code>：创建 Profile、写入人格与技能、调整并发后端的安装器。</li>
           </ul>
         </article>
       </div>
-      <p class="note"><strong>覆盖提醒：</strong>如果某个 Profile 已经存在，默认只更新显示名和描述，不覆盖已有的 <code>SOUL.md</code>。确认要使用安装包版本覆盖时，再执行 <code>bash install.sh --force</code>。</p>
+      <p class="note"><strong>安装提示：</strong>先确认你自己的 Hermes 已安装并完成基础模型配置，再在包目录执行 <code>bash install.sh</code>。需要覆盖包内人格和 Skill 主文件时，再加 <code>--force</code>。</p>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>Use case</h2>
+        <p>HOW TO TALK TO IT</p>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <span class="label">03 / Direct use</span>
+          <h3>打开 Hermes Desktop 的 Bots 面板</h3>
+          <p>安装后可看到中文名角色，直接挑单个专家提问；跨领域问题则交给主持人做路由和综合。</p>
+        </article>
+        <article class="card">
+          <span class="label">04 / Multi-expert</span>
+          <h3>让多个专家一起会诊</h3>
+          <p>这版把专家视角、研究档案和使用边界都写全了，更适合给粉丝直接拿去跑自己的 Hermes，而不是只看个示例。</p>
+        </article>
+      </div>
     </section>
 
     <footer class="footer">
-      <span>粉丝资源 / 05 / 2026-09-06</span>
+      <span>粉丝资源 / 05 / 2026-09-08</span>
       <a href="../../">返回资源列表</a>
     </footer>
   </main>
@@ -275,7 +229,11 @@
           button.textContent = '已复制';
           setTimeout(() => { button.textContent = original; }, 1600);
         } catch {
-          window.getSelection().selectAllChildren(target);
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          selection.removeAllRanges();
+          selection.addRange(range);
         }
       });
     });
