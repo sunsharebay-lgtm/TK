@@ -99,10 +99,10 @@
 ### 5.6 粉丝资源 `粉丝资源/`
 
 - 数据源：`resources.json`，手动维护；每条使用固定两位 `number`，必须提供 `detailUrl`。
-- 长资料独立页：`资源/<资料名>/`；当前资源为 `资源/giffgaff保命资料/`。
+- 长资料独立页：`资源/<资料名>/`；Mac 软件库使用 `资源/Mac软件资源库/software-resources.json` 与 `资源/Mac软件资源库/index.html` 独立维护 71 个软件条目。
 - 独立入口：`index.html`；首页读取本项目的 `resources.json` 做展示联动。
-- 测试：`测试/resources_test.js`。
-- 运行：`node 粉丝资源/测试/resources_test.js`
+- 测试：`测试/resources_test.js`、`测试/software_resources_test.js`。
+- 运行：`node 粉丝资源/测试/resources_test.js && node 粉丝资源/测试/software_resources_test.js`
 - 发布里程碑标签 `content/fan-resources/vX.Y.Z`。
 
 ## 6. 架构与联动

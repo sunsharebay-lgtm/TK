@@ -39,14 +39,6 @@
       "title": "名人智囊团 Hermes 安装包（最终版）",
       "summary": "最终版 Hermes Bot 安装包，下载后在自己的 Hermes 上一键生成 8 个顾问与主持人 Bot，压缩包内附完整方法与说明",
       "detailUrl": "./资源/名人智囊团Hermes安装包/"
-    },
-    {
-      "number": "06",
-      "id": "mac-software-resource-library",
-      "date": "2026-09-09",
-      "title": "Mac 软件资源库",
-      "summary": "71 个 Mac 软件的分类目录：每个软件对应一个按用途整理的夸克文件，并提供官方入口、版本、架构与 Homebrew 命令",
-      "detailUrl": "./资源/Mac软件资源库/"
     }
   ]
 }
