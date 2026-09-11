@@ -72,6 +72,7 @@ for (const entryPath of [
   '吞食天地三国/',
   '超级玛丽/',
   '墨水屏小站/',
+  'Mac软件资源库/',
   '粉丝资源/',
 ]) {
   await fetchText(entryPath);

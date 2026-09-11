@@ -37,6 +37,7 @@
 ├── 吞食天地三国/              # 创意：三国 RPG 网页复刻
 ├── 超级玛丽/                  # 创意：超级玛丽
 ├── 墨水屏小站/                # 创意：墨水屏小站（Kindle 墨水屏信息屏）
+├── Mac软件资源库/              # 创意：Mac 软件资源库（独立平级资源库）
 └── 粉丝资源/                  # 创意：粉丝资源（视频资料/详情页）
 ```
 
@@ -59,10 +60,10 @@
 - 主文件：`index.html`（真实首页 / 游戏中心）。
 - 版本目录：`game-catalog.json`、`game-catalog.template.json`、`scripts/generate-game-catalog.cjs`。
 - 粉丝资源展示：首页读取 `../粉丝资源/resources.json`（数据与详情页由粉丝资源项目维护），资源卡详情链接拼接 `../粉丝资源/` 前缀。
-- 测试：`测试/game_center_test.js`、`测试/version_catalog_test.js`；资源数据校验在 `粉丝资源/测试/resources_test.js`。
+- 测试：`测试/game_center_test.js`、`测试/version_catalog_test.js`；资源数据校验在 `粉丝资源/测试/resources_test.js`，Mac 软件资源库专项校验在 `Mac软件资源库/测试/software_resources_test.js`。
 - 工作机制：首页从 `game-catalog.json` 动态渲染游戏卡片；版本号由各项目 Git 标签自动生成，卡片数量 = 目录条目数。
 - 改首页只改这里；新增创意要上线，往 `game-catalog.template.json` 的 `games` 数组加一条（含 `id`、`title`、`url`、`tagNamespace`、fallback 版本等）。
-- 运行测试：`node 创意空间首页/测试/game_center_test.js && node 创意空间首页/测试/version_catalog_test.js && node 粉丝资源/测试/resources_test.js`
+- 运行测试：`node 创意空间首页/测试/game_center_test.js && node 创意空间首页/测试/version_catalog_test.js && node 粉丝资源/测试/resources_test.js && node Mac软件资源库/测试/software_resources_test.js`
 - 重新生成目录：`node 创意空间首页/scripts/generate-game-catalog.cjs`
 
 ### 5.2 坦克大战 `坦克大战/`
@@ -96,22 +97,29 @@
 - 运行：`node 墨水屏小站/测试/smoke_test.js`
 - 入口：`墨水屏小站/index.html`；发布标签 `game/idle-screen/vX.Y.Z`。
 
-### 5.6 粉丝资源 `粉丝资源/`
+### 5.6 Mac 软件资源库 `Mac软件资源库/`
+
+- 独立平级项目：2026-09-10 从 `粉丝资源/资源/Mac软件资源库/` 迁出；首页通过 `RESOURCE 005` 卡片直达 `../Mac软件资源库/`。
+- 数据源：`software-resources.json`，当前 71 个软件、11 个用途分类；页面入口为 `index.html`。
+- 测试：`测试/software_resources_test.js`；运行：`node Mac软件资源库/测试/software_resources_test.js`。
+- 发布标签 `resource/mac-software-library/vX.Y.Z`。
+
+### 5.7 粉丝资源 `粉丝资源/`
 
 - 数据源：`resources.json`，手动维护；每条使用固定两位 `number`，必须提供 `detailUrl`。
-- 长资料独立页：`资源/<资料名>/`；Mac 软件库使用 `资源/Mac软件资源库/software-resources.json` 与 `资源/Mac软件资源库/index.html` 独立维护 71 个软件条目。
+- 长资料独立页：`资源/<资料名>/`；当前保留五条粉丝资源，Mac 软件资源库已迁出，不得重新放入此目录。
 - 独立入口：`index.html`；首页读取本项目的 `resources.json` 做展示联动。
-- 测试：`测试/resources_test.js`、`测试/software_resources_test.js`。
-- 运行：`node 粉丝资源/测试/resources_test.js && node 粉丝资源/测试/software_resources_test.js`
+- 测试：`测试/resources_test.js`。
+- 运行：`node 粉丝资源/测试/resources_test.js`
 - 发布里程碑标签 `content/fan-resources/vX.Y.Z`。
 
 ## 6. 架构与联动
 
 - GitHub Pages 从仓库根目录发布整站。
 - 根 `index.html` → 自动跳 `创意空间首页/`。
-- 首页卡片：版本号从 `game-catalog.json` 读；`game-catalog.json` 由生成脚本从 Git 标签生成（`game/<id>/vX.Y.Z`）。
+- 首页卡片：版本号从 `game-catalog.json` 读；`game-catalog.json` 由生成脚本从 Git 标签生成（`game/<id>/vX.Y.Z` 或 `resource/<id>/vX.Y.Z`）。
 - 部署工作流 `.github/workflows/pages.yml`：只响应 `main` 推送和手动触发；生成目录、写入部署版本标记，并在 Pages 部署后执行线上验收。
-- 标签规范：坦克大战 `game/tank-battle/vX.Y.Z`；三国 RPG `game/three-kingdoms/vX.Y.Z`；超级玛丽 `game/super-mario/vX.Y.Z`；墨水屏小站 `game/idle-screen/vX.Y.Z`；创意空间首页 `site/home/vX.Y.Z`；粉丝资源 `content/fan-resources/vX.Y.Z`。标签只记录版本，部署统一由 `main` 触发。不要创建全局旧式标签。
+- 标签规范：坦克大战 `game/tank-battle/vX.Y.Z`；三国 RPG `game/three-kingdoms/vX.Y.Z`；超级玛丽 `game/super-mario/vX.Y.Z`；墨水屏小站 `game/idle-screen/vX.Y.Z`；创意空间首页 `site/home/vX.Y.Z`；Mac 软件资源库 `resource/mac-software-library/vX.Y.Z`；粉丝资源 `content/fan-resources/vX.Y.Z`。标签只记录版本，部署统一由 `main` 触发。不要创建全局旧式标签。
 - 定时汇报：`创意空间周报`（每周一 09:00）读取各子项目并更新 `docs/项目状态.md`；`总项目月报`（每月 1 日 09:00）汇总 `/Users/sun/Desktop/AI` 下所有项目。配置在 `~/.codex/automations/`。
 
 ## 6.5 Codex 平级项目注册清单
@@ -123,6 +131,7 @@
 - 创意空间·三国：`/Users/sun/Desktop/AI/创意空间/吞食天地三国`
 - 创意空间·超级玛丽：`/Users/sun/Desktop/AI/创意空间/超级玛丽`
 - 创意空间·墨水屏小站：`/Users/sun/Desktop/AI/创意空间/墨水屏小站`
+- 创意空间·Mac 软件资源库：`/Users/sun/Desktop/AI/创意空间/Mac软件资源库`
 - 创意空间·粉丝资源：`/Users/sun/Desktop/AI/创意空间/粉丝资源`
 
 每个子项目只在自己的文件夹开会话；总协调、跨项目建议和首页联动在创意空间任务里做；总项目（集团）位于 `/Users/sun/Desktop/AI`。

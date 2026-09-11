@@ -11,6 +11,7 @@ assert.match(portal, /href=["']\.\.\/坦克大战\/tank-battle\.html["']/, '首�
 assert.match(portal, /href=["']\.\.\/吞食天地三国\/["']/, '首页应链接到上级目录吞食天地三国创意');
 assert.match(portal, /href=["']\.\.\/超级玛丽\/["']/, '首页应链接到上级目录超级玛丽创意');
 assert.match(portal, /href=["']\.\.\/墨水屏小站\/["']/, '首页应链接到站内墨水屏小站创意');
+assert.match(portal, /href=["']\.\.\/Mac软件资源库\/["']/, '首页应链接到站内 Mac 软件资源库创意');
 assert.match(portal, /href=["']\.\.\/粉丝资源\/["']/, '首页应链接到站内粉丝资源创意');
 assert.match(portal, /class=["']board-nav["']/, '首页应提供板块导航');
 assert.match(portal, /aria-current=["']page["']/, '首页导航应标记当前板块');
@@ -20,10 +21,13 @@ assert.match(portal, /data-game-version=["']three-kingdoms["']>v0\.2\.0 开发�
 assert.match(portal, /data-game-version=["']super-mario["']/, '超级玛丽游戏卡应绑定版本标识');
 assert.match(portal, /data-game-version=["']super-mario["']>v0\.1\.0 开发版<\/span>/, '超级玛丽游戏卡应显示开发版 fallback');
 assert.match(portal, /data-game-version=["']idle-screen["']/, '墨水屏小站游戏卡应绑定版本标识');
+assert.match(portal, /RESOURCE 005/, 'Mac 软件资源库应作为第五张独立资源库卡片展示');
+assert.match(portal, /data-game-version=["']mac-software-resource-library["']/, 'Mac 软件资源库卡应绑定独立版本标识');
 assert.match(portal, /fetch\(['"]\.\/game-catalog\.json['"],\s*\{\s*cache:\s*['"]no-store['"]\s*\}\)/, '首页应从游戏目录动态读取版本');
 assert.match(portal, /setCount\(games\.length\)/, '首页应把游戏数量与目录中的创意数量联动');
 assert.match(portal, /grid\.replaceChildren/, '首页应从目录动态渲染游戏卡片');
 assert.ok(fs.existsSync(path.join(root, '..', '坦克大战', 'tank-battle.html')), '坦克大战新入口文件必须存在');
+assert.ok(fs.existsSync(path.join(root, '..', 'Mac软件资源库', 'index.html')), 'Mac 软件资源库独立入口文件必须存在');
 assert.match(read('../坦克大战/tank-battle.html'), /钢铁防线.*坦克大战/, '坦克大战新入口应保留游戏页面');
 assert.match(portal, /赞助商：llapi\.org/, '首页应显示赞助商名称');
 assert.match(portal, /博主自用推荐！好的灵感需要低价稳定的 Token 支持，API 中转服务选它就对了。/, '首页应显示博主自用赞助推荐文案');

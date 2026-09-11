@@ -7,6 +7,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 const data = JSON.parse(read('resources.json'));
 assert.ok(Array.isArray(data.resources), 'resources.json 必须包含 resources 数组');
+assert.ok(!data.resources.some((item) => item && item.id === 'mac-software-resource-library'), 'Mac 软件资源库已升格为平级项目，不得留在粉丝资源目录');
 
 for (const item of data.resources) {
   assert.ok(item && typeof item === 'object', '资源条目必须是对象');

@@ -11,7 +11,8 @@
 - **吞食天地三国** [`吞食天地三国/`](吞食天地三国/)：基于原版数据复刻的完整三国 RPG（网页复刻），553 张地图、60+ 武将、侧视战斗与完整剧情事件；当前推进中 `v0.2.0`。
 - **超级玛丽** [`超级玛丽/`](超级玛丽/)：原创素材的经典横版跳跃游戏实验，分片源码 + 构建脚本。
 - **墨水屏小站** [`墨水屏小站/`](墨水屏小站/)：把闲置 Kindle 墨水屏变成信息屏（时钟、天气、番茄钟、阅读清单），兼容老 WebKit，当前 `v0.4.0`。
-- **粉丝资源** [`粉丝资源/`](粉丝资源/)：独立维护视频资源数据与长资料页（网址、模板、口令），首页只做展示联动。
+- **Mac 软件资源库** [`Mac软件资源库/`](Mac软件资源库/)：与坦克大战等项目并列的独立资源库，维护 71 个 Mac 软件的官方入口、Homebrew 命令与对应夸克资料文件。
+- **粉丝资源** [`粉丝资源/`](粉丝资源/)：独立维护 5 条视频资源与长资料页（网址、模板、口令），首页只做展示联动；不再收纳 Mac 软件资源库。
 
 ## 核心原则
 
@@ -32,7 +33,7 @@
 - `README.md` / `文件夹说明.md` / `AGENTS.md` / `项目关系与GitHub推送.md` / `Codex重装交接指南.md`（重装 Codex 后先读）。
 - `更新记录.md`：创意空间本地总更新记录，仅存本地、不推送 GitHub。
 
-每个分支项目（创意空间首页 / 坦克大战 / 吞食天地三国 / 超级玛丽 / 墨水屏小站 / 粉丝资源）各自维护 `更新记录.md` 与 `历史版本/`，跟随仓库上传。
+每个分支项目（创意空间首页 / 坦克大战 / 吞食天地三国 / 超级玛丽 / 墨水屏小站 / Mac 软件资源库 / 粉丝资源）各自维护 `更新记录.md` 与 `历史版本/`，跟随仓库上传。
 
 ## 在线试玩
 
@@ -47,6 +48,7 @@ GitHub Pages 会自动部署到 `main` 分支，原有二维码地址现在是�
 - 三国 RPG：<https://sunsharebay-lgtm.github.io/TK/吞食天地三国/>
 - 超级玛丽：<https://sunsharebay-lgtm.github.io/TK/超级玛丽/>
 - 墨水屏小站：<https://sunsharebay-lgtm.github.io/TK/墨水屏小站/>
+- Mac 软件资源库：<https://sunsharebay-lgtm.github.io/TK/Mac软件资源库/>
 - 粉丝资源：<https://sunsharebay-lgtm.github.io/TK/粉丝资源/>
 
 ## 运行方式
@@ -62,6 +64,7 @@ GitHub Pages 会自动部署到 `main` 分支，原有二维码地址现在是�
 - 超级玛丽：`game/super-mario/vX.Y.Z`
 - 墨水屏小站：`game/idle-screen/vX.Y.Z`
 - 创意空间首页：`site/home/vX.Y.Z`
+- Mac 软件资源库：`resource/mac-software-library/vX.Y.Z`
 - 粉丝资源：`content/fan-resources/vX.Y.Z`
 
 `创意空间首页/scripts/generate-game-catalog.cjs` 会在 `main` 部署时读取每个 namespace 下的最高稳定语义版本并写入 `创意空间首页/game-catalog.json`；没有匹配标签时保留卡片 fallback。版本标签只作为发布标记，不单独触发 Pages 部署。

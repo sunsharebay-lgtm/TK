@@ -24,13 +24,13 @@ function parseStableTags(tagText) {
 
   for (const rawTag of tags) {
     const tag = rawTag.trim();
-    const match = tag.match(/^game\/([^/\s]+)\/(v\d+\.\d+\.\d+)$/);
+    const match = tag.match(/^(game|resource)\/([^/\s]+)\/(v\d+\.\d+\.\d+)$/);
     if (!match) {
       continue;
     }
 
-    const namespace = `game/${match[1]}`;
-    const version = match[2];
+    const namespace = `${match[1]}/${match[2]}`;
+    const version = match[3];
     const currentVersion = versionsByNamespace[namespace];
     if (!currentVersion || compareSemanticVersions(version, currentVersion) > 0) {
       versionsByNamespace[namespace] = version;

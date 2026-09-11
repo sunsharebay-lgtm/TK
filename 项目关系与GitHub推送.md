@@ -13,6 +13,7 @@
 | 吞食天地三国 | `吞食天地三国/` | 三国 RPG 网页复刻（入口跳转到网页复刻引擎版），素材/文档/测试独立归档 |
 | 超级玛丽 | `超级玛丽/` | 原创素材的像素平台跳跃游戏，分片源码 |
 | 墨水屏小站 | `墨水屏小站/` | Kindle 墨水屏信息屏，单文件 ES5 兼容页面，站内维护 |
+| Mac 软件资源库 | `Mac软件资源库/` | 独立平级资源库，维护 71 个 Mac 软件的数据、页面、测试与历史版本 |
 | 粉丝资源 | `粉丝资源/` | 视频资源数据与长资料页，独立维护，首页只做展示联动 |
 | 舞台（共享设施） | 根目录 | `.github/`、`scripts` 归属首页、`docs/`、规则与说明文档、根跳转页 |
 
@@ -23,7 +24,8 @@
 - `创意空间首页` 是**总入口**（游戏中心 / GitHub Pages 起始页），它用板块导航和卡片链接到所有子项目页面。
 - 各游戏项目**互相独立**，互不依赖，各自拥有源码、测试、素材与历史版本。
 - `墨水屏小站` 已从外部仓库迁入站内，线上入口为 `/TK/墨水屏小站/`。
-- `粉丝资源` 独立维护 `resources.json` 与资料页；首页只读取 `../粉丝资源/resources.json`，不重复维护内容。
+- `Mac软件资源库` 于 2026-09-10 从 `粉丝资源/资源/Mac软件资源库/` 提升为根目录平级项目；首页以 `RESOURCE 005` 卡片链接 `../Mac软件资源库/`，该项目不再属于粉丝资源。
+- `粉丝资源` 独立维护其 5 条 `resources.json` 资源与资料页；首页只读取 `../粉丝资源/resources.json`，不重复维护内容。
 - 首页通过 `创意空间首页/game-catalog.json` 动态显示各游戏的最新稳定版本号；版本号来自 Git 标签，不是手写。
 - 生成版本目录的脚本 `创意空间首页/scripts/generate-game-catalog.cjs` 属于首页项目。
 - 部署工作流 `.github/workflows/pages.yml` 属于整个创意空间（部署整仓库到 GitHub Pages）。
@@ -44,6 +46,7 @@ https://sunsharebay-lgtm.github.io/TK/
     ├── 吞食天地三国/（入口跳转到 网页复刻/吞食天地Ⅱ同人复刻-网页版/）
     ├── 超级玛丽/index.html
     ├── 墨水屏小站/index.html
+    ├── Mac软件资源库/index.html
     └── 粉丝资源/index.html
 ```
 
@@ -76,6 +79,7 @@ https://sunsharebay-lgtm.github.io/TK/
 - 超级玛丽：`git tag game/super-mario/vX.Y.Z`
 - 墨水屏小站：`git tag game/idle-screen/vX.Y.Z`
 - 创意空间首页：`git tag site/home/vX.Y.Z`
+- Mac 软件资源库：`git tag resource/mac-software-library/vX.Y.Z`
 - 粉丝资源：`git tag content/fan-resources/vX.Y.Z`
 
 发布示例：
@@ -88,7 +92,7 @@ git push origin main
 
 标签先推送作为版本记录，再推送 `main` 触发唯一一次 Pages 部署。部署时 `generate-game-catalog.cjs` 会读取远端标签并把最新稳定版本写进首页的 `game-catalog.json`；`site/**/v*` 与 `content/**/v*` 只作为首页/粉丝资源的发布里程碑。**不要**创建旧的全局版本标签。
 
-发布完成的判定不是“推送成功”，而是：GitHub Actions 成功、部署版本标记与提交一致、六个入口返回 200、粉丝资源数据与详情页验收通过。
+发布完成的判定不是“推送成功”，而是：GitHub Actions 成功、部署版本标记与提交一致、七个入口返回 200、粉丝资源数据与详情页验收通过。
 
 ## 5. 维护本文档
 

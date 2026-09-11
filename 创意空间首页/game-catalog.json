@@ -14,7 +14,7 @@
       "fallbackVersion": "v1.6.1",
       "statusWhenMissing": "稳定版",
       "external": false,
-      "version": "v1.6.1",
+      "version": "v1.6.11",
       "status": "稳定版"
     },
     {
@@ -28,7 +28,7 @@
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
       "external": false,
-      "version": "v0.2.0",
+      "version": "v0.3.0",
       "status": "稳定版"
     },
     {
@@ -58,6 +58,21 @@
       "external": false,
       "version": "v0.4.0",
       "status": "开发版"
+    },
+    {
+      "id": "mac-software-resource-library",
+      "title": "Mac 软件\n资源库",
+      "description": "71 个 Mac 软件按用途整理，提供官方入口、Homebrew 命令与对应的夸克资料文件。",
+      "action": "进入资源库 / OPEN",
+      "url": "../Mac软件资源库/",
+      "tagNamespace": "resource/mac-software-library",
+      "fallbackVersion": "v0.6.0",
+      "statusWhenMissing": "资源库",
+      "statusWhenTagged": "稳定版",
+      "catalogLabel": "RESOURCE",
+      "external": false,
+      "version": "v0.6.0",
+      "status": "资源库"
     }
   ]
 }

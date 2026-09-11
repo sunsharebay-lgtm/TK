@@ -2,8 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const root = path.resolve(__dirname, '..');
-const libraryDir = path.join(root, '资源', 'Mac软件资源库');
+const libraryDir = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(libraryDir, file), 'utf8');
 
 const data = JSON.parse(read('software-resources.json'));
@@ -60,5 +59,6 @@ for (const pattern of [
 
 assert.ok(fs.existsSync(path.join(libraryDir, 'README.md')), '详情页 README 必须存在');
 assert.match(read('README.md'), /2026-09-09/);
+assert.doesNotMatch(page, /粉丝资源/, '独立资源库页面不应再作为粉丝资源详情页呈现');
 
 console.log(`Mac software library checks passed (${data.items.length} items, ${data.categories.length} categories, ${deliveryCounts['安装包镜像']} packages, ${deliveryCounts['官方链接文件']} official-link files).`);
