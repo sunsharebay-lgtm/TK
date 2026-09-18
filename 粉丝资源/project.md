@@ -4,7 +4,7 @@
 
 创意空间子项目，独立维护视频粉丝资源：网址、模板、口令与长资料页。
 
-## 交付规格（v0.6.1）
+## 交付规格（v0.7.0）
 
 - `resources.json` 为唯一资源数据源，条目包含固定两位 `number`、`id`、`date`、`title`、`summary`、`detailUrl`。
 - `index.html` 为独立资源列表入口，动态读取 `resources.json`。
@@ -21,8 +21,9 @@
 - 2026-09-08 根据新版 `名人智囊团_Hermes_Bot_最终版.tar.gz` 覆盖更新编号 `05` 条目，不新建资源；详情页改为最终版定位，夸克分享链接统一上传到网盘 `项目` 文件夹。
 - 2026-09-09 完成 Mac 软件资源库全量建设后，于 2026-09-10 将其提升为根目录平级项目 `Mac软件资源库/`；该项目的页面、数据、测试与批处理约定均已随之迁出，本项目不再维护编号 `06`。
 - 2026-09-17 编号 `05`「名人智囊团 Hermes 安装包（最终版）」的原夸克分享链接被网盘判定为“存在部分违规文件”，对访问者不可用；改用用户重新生成的永久公开链接 `https://pan.quark.cn/s/cf4849928581`，不新建编号、不改动安装说明。
+- 2026-09-18 新增编号 `06`「Codex 生图执行规范（灵链云 Responses API）」，详情页提供夸克永久公开分享链接与一键复制，原始文件不复制进仓库。
 
-## QA 结果（v0.6.1）
+## QA 结果（v0.7.0）
 
 - 数据结构校验通过：固定编号、详情页、复制按钮。
 - 新增自动剪辑视频技能包详情页，包含夸克网盘链接、分享口令和下载后交给 Codex 读取的说明。
@@ -35,15 +36,17 @@
 - Mac 软件资源库的专项 QA、交付记录和后续维护已迁往 `../Mac软件资源库/`，本项目不再保存或执行其专项测试。
 - 2026-09-17 复核编号 `05` 新旧分享链接：新链接分享标题与文件名均为 `名人智囊团_Hermes_Bot_最终版.tar.gz`，`path_info` 为 `/项目`，`url_type=1`（公开）、`expired_type=1`（永久）；旧链接返回“存在部分违规文件”错误，确认失效原因。
 - 详情页仅替换分享链接并补充更换说明，安装流程、包内结构、角色说明等内容未改动；旧版详情页已归档到 `历史版本/v0.6.0/`。
+- 2026-09-18 新增 Codex 生图执行规范详情页，已运行 `node 测试/resources_test.js`，通过 6 条资源、6 个详情页、复制按钮和相对路径校验。
 
 ## 源文件 SHA-256
 
 - `index.html`：`bf791276e3dba84ce5fe64208adff945fae8f4d49ffb1a66c223b7d7b54f09f2`
-- `resources.json`：`0fd78f017f6a88162a8751dfbbf668970cec79b04588f85b5f3219985b96ba7e`
+- `resources.json`：`0bf1c537a31657a8423f7caf77b9c4ff9ebde0fc41b49a7a81c65762edf554fc`
 - `测试/resources_test.js`：`c4f80db2a0b1b5570a3cc1dc5889e57b6aef354a1126262c716fb1976c65fbfe`
 - `资源/giffgaff保命资料/index.html`：`cf1f798b8dc25317560475443d8178f991c9c9876f65f3f1f6b5b1a53707a649`
 - `资源/自动剪辑视频技能包/index.html`：`3988669de3c052d55fa89fb8042a2cf6de9e03dab154183b39f91129c4a9bac5`
 - `资源/iStoreOS安装OpenClash/index.html`：`a9044667ce9e03e3403d06a5bde9a9d7e6569d713fc6dea215c51e31c0b459e5`
 - `资源/汉化Codex和ClaudeCode工具/index.html`：`156fcf94c08d0ecef338e2f42f9a03c2d6258d8ef91b5fd63b7bfe494bf71d6a`
-- `资源/名人智囊团Hermes安装包/index.html`：`ae0827544537327d1fbfcd3bf5e1d8eace24cb60451f20d9d977c05fba60d41d`（上一版为 `c0893e7de64de802b3a9b2c5d3493f423f07085384bde696c32a3d03e225b2f7`，已归档到 `历史版本/v0.6.0/`）
+- `资源/名人智囊团Hermes安装包/index.html`：`ae0827544537327d1fbfcd3bf5e1d8eace24cb60451f20d9d977c05fba60d41d`
+- `资源/Codex生图执行规范/index.html`：`9718c91a5d5d1f955f79f819392c053a6fad75aedd5dbe71674a9146db0cc966`
 - `project.md` 与 `更新记录.md` 属于自引用文档，正文不固化自身 SHA-256；如需核验请以 git blob 或导出快照为准。
