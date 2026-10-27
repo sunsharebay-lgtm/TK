@@ -193,7 +193,7 @@ T.evalFormula = function (formula, a, b) {
 /* ---------------- 特性代码（MZ 公开语义）---------------- */
 const TRAIT = {
   ELEMENT_RATE: 11, DEBUFF_RATE: 12, STATE_RATE: 13, STATE_RESIST: 14,
-  PARAM_RATE: 21, PARAM: 22, XPARAM: 23, SPARAM: 24,
+  PARAM_RATE: 21, XPARAM: 22, SPARAM: 23,
   ATTACK_ELEMENT: 31, ATTACK_STATE: 32, ATTACK_SPEED: 33, ATTACK_TIMES: 34,
   STYPE_ADD: 41, STYPE_SEAL: 42, SKILL_ADD: 43, SKILL_SEAL: 44,
   EQUIP_WTYPE: 51, EQUIP_ATYPE: 52, ACTION_PLUS: 61,
@@ -227,7 +227,7 @@ class Game_BattlerBase {
   onMapStep() {
     for (const id of this._states.slice()) {
       const st = T.$dataStates[id];
-      if (!st || !(st.stepsToRemove > 0)) continue;
+      if (!st || (!st.removeByWalking && st.id !== 16) || !(st.stepsToRemove > 0)) continue;
       const key = "s" + id;
       if (this._stateSteps[key] == null) this._stateSteps[key] = st.stepsToRemove;
       if (--this._stateSteps[key] <= 0) {
@@ -240,7 +240,7 @@ class Game_BattlerBase {
   /* 添加状态后登记步数计数（若该状态按步数解除） */
   registerStepState(id) {
     const st = T.$dataStates[id];
-    if (st && st.stepsToRemove > 0) this._stateSteps["s" + id] = st.stepsToRemove;
+    if (st && (st.removeByWalking || st.id === 16) && st.stepsToRemove > 0) this._stateSteps["s" + id] = st.stepsToRemove;
   }
   allTraits() { return []; }
   traits(code) { return this.allTraits().filter(t => t.code === code); }
@@ -289,12 +289,11 @@ class Game_BattlerBase {
   param(i) {
     const base = this.paramBase(i);
     const rate = this.traitsPi(TRAIT.PARAM_RATE, i) * this.paramBuffRate(i);
-    const plus = this.traitsSum(TRAIT.PARAM, i);
     const bonus = (this._paramBonus && this._paramBonus[i]) || 0;
     const equip = this.equipParam(i);
     /* G2-R3: 阵型按 FC 语义为【乘算倍率】——对最终属性（基础×成长×buff + 特性 + 装备）整体乘算
        （此前为 flat 加法，无法表达"背水阵攻2倍/防减半"这类随属性缩放的效果） */
-    const v = Math.round((Math.round(base * rate) + plus + bonus + equip) * this.formationRate(i));
+    const v = Math.round((Math.round(base * rate) + bonus + equip) * this.formationRate(i));
     /* 特性增量（如 0.95/0.05）可能带小数，最终属性一律取整 */
     return T.clamp(v, i === 0 ? 1 : 0, this.paramMax(i));
   }
@@ -308,12 +307,8 @@ class Game_BattlerBase {
   get mat() { return this.param(4); } get mdf() { return this.param(5); }
   get agi() { return this.param(6); } get luk() { return this.param(7); }
   xparam(id) {
-    /* 命中(0)/目标率(9) 默认为 1，其余 X 参数默认 0，避免无再生特性的单位每回合回满血 */
-    const def = id === 0 || id === 9 ? 1 : 0;
-    for (const t of this.traits(TRAIT.XPARAM)) {
-      if (t.dataId === id) return t.value;
-    }
-    return def;
+    const traits = this.traits(TRAIT.XPARAM).filter(t => t.dataId === id);
+    return traits.length ? traits.reduce((sum, t) => sum + t.value, 0) : (id === 0 ? 1 : 0);
   }
   sparam(id) { return this.traitsPi(TRAIT.SPARAM, id); }
   elementRate(el) { return el <= 0 ? 1 : this.traitsPi(TRAIT.ELEMENT_RATE, el); }
@@ -339,17 +334,20 @@ class Game_BattlerBase {
   get tp() { return this._tp; }
   set tp(v) { this._tp = T.clamp(Math.round(v), 0, 100); }
   refresh() {
+    this.hp = this._hp; this.mp = this._mp;
     if (this._hp <= 0) this.addStateRaw(1);
     else this.removeStateRaw(1);
   }
   recoverAll() {
-    this.hp = this.mhp; this.mp = this.mmp; this._states = []; this._tp = 0;
+    this.clearStates(); this._buffs = {};
+    this.hp = this.mhp; this.mp = this.mmp; this._tp = 0;
   }
   /* ---- 状态 ---- */
-  clearStates() { this._states = []; }
+  clearStates() { this._states = []; this._stateSteps = {}; this._stateTurns = {}; }
   states() { return this._states.map(id => T.$dataStates[id]).filter(Boolean); }
   isStateAffected(id) { return this._states.includes(id); }
-  isDead() { return !this.hidden && this.isStateAffected(1); }
+  isDead() { return this.hp <= 0 || this.isStateAffected(1); }
+  canMove() { return !this.isDead() && !this.hidden && !this.states().some(s => s.restriction >= 4); }
   addStateRaw(id) {
     if (!this._states.includes(id)) {
       this._states.push(id);
@@ -388,7 +386,7 @@ class Game_BattlerBase {
 /* ---------------- 中间层：战斗内行为 ---------------- */
 class Game_Battler extends Game_BattlerBase {
   constructor() { super(); }
-  appearOk() { return true; }
+  appearOk() { return !this.hidden; }
   clearActions() { this._actions = []; this._actionInputIndex = 0; }
   numActions() { return 1 + this.attackTimesAdd(); }
   action(n) {
@@ -403,16 +401,21 @@ class Game_Battler extends Game_BattlerBase {
     if (this.specialFlag(2)) sp += 10000;
     this.turnAddSpeed = sp; return sp;
   }
-  onBattleStart() { this._tp = T.rand(25); this.clearActions(); }
+  onBattleStart() { this._tp = T.rand(25); this._guarding = false; this.clearActions(); }
+  onBattleEnd() {
+    this._guarding = false; this.clearActions(); this._pendingAction = null; this._buffs = {};
+    for (const st of this.states()) if (st.removeAtBattleEnd) this.removeStateRaw(st.id);
+    this.refresh();
+  }
   initMembers() {
     super.initMembers();
     this._actions = []; this._actionInputIndex = 0;
     this._stateTurns = {};
   }
   onTurnEnd() {
-    const hr = Math.max(1, Math.round(this.mhp * this.xparam(7)));
+    const hr = Math.round(this.mhp * this.xparam(7));
     const mr = Math.round(this.mmp * this.xparam(8));
-    if (this.xparam(7) > 0 && !this.isDead()) this.hp += hr;
+    if (hr !== 0 && !this.isDead()) this.hp = Math.max(1, this.hp + hr);
     if (this.xparam(8) > 0 && !this.isDead()) this.mp += mr;
     this.updateBuffsTurns();
     for (const st of this.states()) {
@@ -477,6 +480,7 @@ class Game_Actor extends Game_Battler {
     this.faceName = a.faceName || ""; this.faceIndex = a.faceIndex || 0;
     this.characterName = a.characterName || ""; this.characterIndex = a.characterIndex || 0;
     this.exp = 0;
+    this.learnedSkillIds = []; this.forgottenSkillIds = [];
     this._equips = {};                       // slot -> itemId
     (a.equips || []).forEach((id, i) => { if (id) this._equips[i + 1] = id; });
     this.changeExp(this.expForLevel(this.level), false);
@@ -525,6 +529,7 @@ class Game_Actor extends Game_Battler {
     const oldMmp = this.mmp;
     const oldMp = this.mp;
     this.level = target;
+    this.exp = this.expForLevel(target);
     this.refresh();
     if (delta > 0 && oldMp >= oldMmp) this.mp = this.mmp;
     if (show !== false && delta > 0) {
@@ -542,8 +547,20 @@ class Game_Actor extends Game_Battler {
   skills() {
     const ids = (this.cls().learnings || []).filter(l => l.level <= this.level)
       .sort((x, y) => x.level - y.level).map(l => l.skillId);
+    for (const id of this.learnedSkillIds || []) if (!ids.includes(id)) ids.push(id);
+    for (let i = ids.length - 1; i >= 0; i--) if ((this.forgottenSkillIds || []).includes(ids[i])) ids.splice(i, 1);
     for (const id of this.addedSkills()) if (!ids.includes(id)) ids.push(id);
     return [...new Set(ids)].filter(id => T.$dataSkills[id]).map(id => T.$dataSkills[id]);
+  }
+  knowsSkill(id) { return this.skills().some(skill => skill.id === id); }
+  learnSkill(id) {
+    if (!T.$dataSkills[id]) return;
+    this.learnedSkillIds = [...new Set([...(this.learnedSkillIds || []), id])];
+    this.forgottenSkillIds = (this.forgottenSkillIds || []).filter(value => value !== id);
+  }
+  forgetSkill(id) {
+    this.learnedSkillIds = (this.learnedSkillIds || []).filter(value => value !== id);
+    this.forgottenSkillIds = [...new Set([...(this.forgottenSkillIds || []), id])];
   }
   usableSkills(stypeId) {
     return this.skills().filter(s =>
@@ -604,6 +621,19 @@ class Game_Actor extends Game_Battler {
   changeEquip(slot, itemId) {
     if (itemId === 0) { delete this._equips[slot]; return; }
     this._equips[slot] = itemId;
+  }
+  tradeEquip(slot, itemId) {
+    const old = this.equipAt(slot);
+    const item = itemId ? (slot === 1 ? T.$dataWeapons[itemId] : T.$dataArmors[itemId]) : null;
+    if (old === item) return true;
+    if (itemId && (!item || (item.etypeId || 1) !== slot || !$gameParty.hasItem(item))) return false;
+    if (item) $gameParty.loseItem(item, 1);
+    if (old) {
+      if ($gameParty.itemCount(old) < $gameParty.maxItemCount(old)) $gameParty.gainItem(old, 1);
+      else $gameParty.storageGain(old, 1);
+    }
+    this.changeEquip(slot, itemId); this.refresh();
+    return true;
   }
   attackAnimationId() {
     const w = this.equipAt(1);
@@ -732,15 +762,36 @@ class Game_Party {
   }
   maxItemCount(item) { return 99; }
   /* G3-R7: 仓库（插件 BrotherJie_MenuBase/CallActorStorage：背包 ⇄ 仓库双向存取，随存档持久化） */
-  storageCount(item) { return item ? ((this._storage || {})[item.id] || 0) : 0; }
-  storageGain(item, n) {
-    if (!item) return;
+  storageKey(item) {
+    if (!item) return null;
+    const type = T.$dataItems.includes(item) ? 'i' : T.$dataWeapons.includes(item) ? 'w' : T.$dataArmors.includes(item) ? 'a' : '';
+    return type ? `${type}:${item.id}` : null;
+  }
+  normalizeStorage() {
     this._storage = this._storage || {};
-    this._storage[item.id] = T.clamp((this._storage[item.id] || 0) + (n || 0), 0, 999);
+    // 旧档只有数字键，沿用旧版实际展示的类型；新存入物品使用独立命名空间。
+    for (const key of Object.keys(this._storage)) {
+      if (!/^\d+$/.test(key)) continue;
+      const item = T.$dataItems[+key] || T.$dataWeapons[+key] || T.$dataArmors[+key];
+      const typed = this.storageKey(item);
+      if (typed) this._storage[typed] = (this._storage[typed] || 0) + this._storage[key];
+      delete this._storage[key];
+    }
+  }
+  storageCount(item) { this.normalizeStorage(); return this._storage[this.storageKey(item)] || 0; }
+  storageGain(item, n) {
+    const key = this.storageKey(item); if (!key) return;
+    this.normalizeStorage();
+    const count = Math.max(0, (this._storage[key] || 0) + (n || 0));
+    if (count) this._storage[key] = count; else delete this._storage[key];
   }
   storageLose(item, n) { this.storageGain(item, -(n || 0)); }
   storageAll() {
-    return Object.keys(this._storage || {}).map(id => T.$dataItems[+id] || T.$dataWeapons[+id] || T.$dataArmors[+id]).filter(Boolean);
+    this.normalizeStorage();
+    const tables = { i: T.$dataItems, w: T.$dataWeapons, a: T.$dataArmors };
+    return Object.keys(this._storage).filter(key => this._storage[key] > 0).map(key => {
+      const [type, id] = key.split(':'); return tables[type]?.[+id];
+    }).filter(Boolean);
   }
   /* G3-R9: 军物品合成——役店配方（插件 BrotherJie_ItemSynthesis/AddRecipe）。
      配方载荷 = 字符串数组："[材料..., 产物...]"，材料取自 0-53，产物恒为 54-63。
@@ -763,7 +814,7 @@ class Game_Party {
   }
   loseItem(item, n) { this.gainItem(item, -n); }
   hasItem(item) { return this.itemCount(item) > 0; }
-  consumeItem(item) { if (T.$dataItems.includes(item)) this.loseItem(item, 1); }
+  consumeItem(item) { if (T.$dataItems.includes(item) && item.consumable !== false) this.loseItem(item, 1); }
   /* 成员 */
   allMembers() { return this._actors.map(id => T.getActor(id)); }
   battleMembers() { return this.allMembers().slice(0, T.MAX_BATTLE_MEMBERS); }
@@ -822,6 +873,8 @@ T.resetGameState = function () {
     { name: "八卦阵",  atk: 1.0,  def: 1.80, mat: 1.40, mdf: 1.60, agi: 0.80 },
   ];
   T.$gameTemp = { commonEventQueue: [], destinationX: null, destinationY: null };
+  T._parallelPool = {}; T._shopInterpreter = null; T._pendingBattleTransfer = null;
+  T.PendingBattle = null; T.BattleScene = null; T.currentInterpreter = null;
   /* 标准载具状态：0小船、1大船、2飞行船；地图事件负责触发，实际位置独立保存。 */
   T.$gameVehicles = {
     0: { mapId: 0, x: 0, y: 0 },
@@ -1054,6 +1107,13 @@ T.runMapCommonEvent = function (ceId) {
 };
 T.resetGameState();
 
+T.reserveMapCommonEvent = function (id) {
+  if (!T.$dataCommonEvents[id]) return false;
+  T.$gameTemp.commonEventQueue.push(id);
+  T.SceneManager.returnToMapFromMenu();
+  return true;
+};
+
 /* ---------------- 存档与试玩快照 ---------------- */
 function serializeActors(ids) {
   return ids.map(id => {
@@ -1062,7 +1122,7 @@ function serializeActors(ids) {
              /* G3-R2: 天赋/称号并入存档 */
              talents: a._ownTalents, chengHao: a._chengHao,
              /* G3-R3: 永久成长（蛇胆/武力石等）并入存档 */
-             paramBonus: a._paramBonus,
+             paramBonus: a._paramBonus, learnedSkillIds: a.learnedSkillIds, forgottenSkillIds: a.forgottenSkillIds,
              states: a._states, stateSteps: a._stateSteps, stateTurns: a._stateTurns,
              buffs: a._buffs, tp: a.tp };
   });
@@ -1106,7 +1166,7 @@ T.captureGameSnapshot = function () {
 const GAME_STATE_KEYS = ["$gameTemp", "$gameSystem", "$gameSwitches", "$gameVariables", "$gameSelfSwitches",
   "$gameScreen", "$gameTimer", "$gameMessage", "$gameParty", "$gameTroop", "$gameMap", "$gamePlayer",
   "$gameActors", "$gameVehicles", "$dataMap", "ActorRegistry", "LastBattle", "PendingBattle", "BattleScene",
-  "currentInterpreter", "_synthRecipes"];
+  "currentInterpreter", "_synthRecipes", "_parallelPool", "_shopInterpreter", "_pendingBattleTransfer"];
 // 保存引用用于失败回滚；正常存档仍使用上面的可序列化快照。
 T.captureRuntimeState = () => Object.fromEntries(GAME_STATE_KEYS.map(key => [key, T[key]]));
 T.restoreRuntimeState = saved => { for (const key of GAME_STATE_KEYS) T[key] = saved[key]; };
@@ -1163,19 +1223,22 @@ async function applySnapshotContents(s) {
   }, s.vehicles || {});
   for (const snap of (s.actorSnapshots || [])) {
     const a = T.getActor(snap.id);
-    a.level = snap.level; a.exp = snap.exp || a.expForLevel(snap.level);
+    a.level = T.clamp(Math.round(snap.level), 1, a.maxLevel);
+    a.exp = Math.max(a.expForLevel(a.level), Number(snap.exp) || 0);
+    if (a.level < a.maxLevel) a.exp = Math.min(a.exp, a.expForLevel(a.level + 1) - 1);
     a._equips = snap.equips || {};
     a._ownTalents = snap.talents || [];
     a._chengHao = snap.chengHao || [];
     a._paramBonus = snap.paramBonus || {};
+    a.learnedSkillIds = snap.learnedSkillIds || []; a.forgottenSkillIds = snap.forgottenSkillIds || [];
     a._states = Array.isArray(snap.states) ? snap.states.filter(id => T.$dataStates[id]) : [];
     a._stateSteps = snap.stateSteps || {};
     a._stateTurns = snap.stateTurns || {};
     a._buffs = snap.buffs || {};
     a.tp = snap.tp || 0;
-    a.refresh();
     a.hp = snap.hp == null ? a.mhp : snap.hp;
     a.mp = snap.mp == null ? a.mmp : snap.mp;
+    a.refresh();
   }
   if (T.SceneManager) {
     await T.SceneManager.gotoMap(s.mapId || 1, s.player ? s.player.x : 1, s.player ? s.player.y : 1, s.player ? s.player.dir : 2);

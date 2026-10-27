@@ -10,7 +10,7 @@ function drawActorRow(win, ctx, a, y) {
     const faceSize = Math.min(40, win.innerH - 8);
     win.drawActorFace(ctx, a.faceName, a.faceIndex, win.innerX, y - 4, faceSize);
     const tx = win.innerX + faceSize + 8;
-    win.drawText(ctx, `${a.name}  Lv${a.level}`, tx, y);
+    win.drawText(ctx, `${a.name}  Lv${a.level}`, tx, y, win.innerW - faceSize - 8);
     win.drawText(ctx, `${T.fmt(a.hp)}/${T.fmt(a.mhp)}`, tx, y + 22, win.innerW - faceSize - 8, "right");
     win.drawGauge(ctx, tx, y + 42, win.innerW - faceSize - 8, a.hp / Math.max(1, a.mhp), "#40c060", "#a0ffb0");
     return;
@@ -210,7 +210,7 @@ class Scene_Item {
     this.pendingItem = item;
     this.actionOptions = [];
     if (this.isMapItem(item)) this.actionOptions.push("查看地图");
-    else if (this.isConsumable(item)) this.actionOptions.push("使用");
+    else if (this.isConsumable(item) && [0,2].includes(item.occasion)) this.actionOptions.push("使用");
     if (!this.isMapItem(item) && item?.itypeId !== 2) this.actionOptions.push("丢弃 1 个");
     this.actionOptions.push("取消");
     this.actionWindow.itemMax = this.actionOptions.length;
@@ -248,6 +248,12 @@ class Scene_Item {
           return;
         }
         if (choice === "使用" && this.isConsumable(this.pendingItem) && $gameParty.battleMembers().some(a => !a.isDead())) {
+          if ([0,8,10,11,13].includes(this.pendingItem.scope)) {
+            const item = this.pendingItem;
+            if (this.useItem(item, $gameParty.battleMembers()[0])) $gameParty.consumeItem(item);
+            else T.AudioManager.playSe({ name: 'Buzzer', volume: 60 });
+            this.pendingItem = null; this.mode = 'list'; this.refreshList(); return;
+          }
           this.mode = "target";
           this.memberWindow.active = true;
           this.memberWindow.itemMax = this.targetMembers().length;
@@ -286,24 +292,31 @@ class Scene_Item {
     }
   }
   useItem(item, target) {
+    if (!item || ![0,2].includes(item.occasion)) return false;
     let used = false;
+    const all = $gameParty.battleMembers();
+    const targets = item.scope === 0 ? [] : item.scope === 8 ? all.filter(a => !a.isDead()) :
+      item.scope === 10 ? all.filter(a => a.isDead()) : item.scope === 13 ? all : [target].filter(Boolean);
+    for (const target of targets) {
     for (const eff of item.effects || []) {
       switch (eff.code) {
         case 11:
           const v = Math.round(eff.value1 * target.mhp + eff.value2);
-          target.hp += v; used = true;
+          used = used || target.hp < target.mhp;
+          target.hp += v;
           if (target.isDead() && target.hp > 0) target.revive(); break;
-        case 12: target.mp += eff.value1 * target.mmp + eff.value2; used = true; break;
+        case 12: used = used || target.mp < target.mmp; target.mp += eff.value1 * target.mmp + eff.value2; break;
         case 21: if (!target.isStateAffected(eff.dataId)) { target.addStateRaw(eff.dataId); used = true; } break;
-        case 22: target.removeStateRaw(eff.dataId); used = true; break;
+        case 22: used = used || target.isStateAffected(eff.dataId); target.removeStateRaw(eff.dataId); if (eff.dataId === 1) target.revive(); break;
         case 42: { /* G3-R3: 永久成长（蛇胆/武力石等）菜单使用 */
           target.growParam(eff.dataId, eff.value1);
           T.$gameMessage.add(`${target.name} 的${["兵力","谋点","武力","智力","防御","抗智","速度","统率"][eff.dataId] || "能力"}提升了！`);
           used = true; break;
         }
-        case 44: { const msgs = T.runMapCommonEvent(eff.dataId); for (const mt of msgs) T.$gameMessage.add(mt); used = true; break; }   // G5: 公共事件类道具（护身烟/强身烟）
       }
     }
+    }
+    for (const eff of item.effects || []) if (eff.code === 44) used = T.reserveMapCommonEvent(eff.dataId) || used;
     return used;
   }
   draw(ctx) {
@@ -365,7 +378,7 @@ class Scene_Skill {
     this.actor = this.members[this.memberIndex] || actor;
     for (const a of this.members) T.loadFace(a.faceName);
     this.mode = "list";
-    this.typeWindow = new Window_Selectable(8, 8, 220, 96);
+    this.typeWindow = new Window_Selectable(8, 8, 500, 70);
     this.listWindow = new Window_Selectable(8, 108, 500, T.SCREEN_H - 116);
     this.listWindow.fontSize = 22;
     this.descWindow = new Window_Base(514, 8, T.SCREEN_W - 522, 130);
@@ -376,12 +389,15 @@ class Scene_Skill {
     this.refresh();
   }
   refresh() {
+    this.types = ['全部', ...this.actor.addedSkillTypes().map(id => T.$dataSystem.skillTypes[id]).filter(Boolean)];
+    this.typeIndex = T.clamp(this.typeIndex, 0, this.types.length - 1);
     const stype = this.types[this.typeIndex] || null;
     /* "攻击" 页签（第一个）显示全部可用技能 */
     const stypeId = this.typeIndex === 0 || !stype ? null : T.$dataSystem.skillTypes.indexOf(stype);
     this.skills = this.actor.usableSkills(stypeId == null ? undefined : stypeId);
     this.listWindow.itemMax = this.skills.length;
     this.listWindow.index = 0;
+    this.listWindow.topRow = 0;
   }
   skillScope(skill) { return skill?.scope ?? skill?.damage?.scope ?? 1; }
   isRevivalSkill(skill) {
@@ -403,7 +419,7 @@ class Scene_Skill {
     return this.skillTargetMembers(skill).length > 0;
   }
   isEnemySkill(skill) {
-    return [1, 2].includes(this.skillScope(skill));
+    return [1,2,3,4,5,6].includes(this.skillScope(skill)) || ![0,2].includes(skill.occasion);
   }
   update() {
     if (this.mode === "target") {
@@ -469,7 +485,7 @@ class Scene_Skill {
         T.AudioManager.playSe({ name: "Cursor", volume: 50 });
         return;
       } else {                              // 自身/全体
-        const targets = [8, 10].includes(scope) ? this.skillTargetMembers(s) : [this.actor];
+        const targets = scope === 13 ? this.members : [8, 10].includes(scope) ? this.skillTargetMembers(s) : [this.actor];
         if (!targets.length) {
           T.AudioManager.playSe({ name: "Buzzer", volume: 50 });
           T.$gameMessage.add(scope === 10 ? "没有阵亡的武将可供复活！" : "没有可用的目标！");
@@ -480,6 +496,7 @@ class Scene_Skill {
     }
   }
   applySkillOutOfBattle(skill, targets) {
+    if (!this.actor.canMove() || !this.actor.canUse(skill) || ![0,2].includes(skill.occasion)) return false;
     this.actor.paySkillCost(skill);
     T.$gameMessage.add("使用「" + skill.name + "」！");
     const dmg = skill.damage || {};
@@ -487,7 +504,7 @@ class Scene_Skill {
       /* damage 型恢复（赤心计等 kind=3/4） */
       if (dmg.type === 3 || dmg.type === 4) {
         try {
-          let v = T.evalFormula(dmg.formula, this.actor, target);
+          let v = dmg.type === 3 && skill.name === '完复计' ? target.mhp - target.hp : T.evalFormula(dmg.formula, this.actor, target);
           v = Math.max(0, Math.round(v));
           if (dmg.type === 3) {
             target.hp += v;
@@ -510,14 +527,10 @@ class Scene_Skill {
           case 22: target.removeStateRaw(eff.dataId); break;
           case 31: target.addBuff(eff.dataId, eff.value2 || 3, false); break;
           case 32: target.addBuff(eff.dataId, eff.value2 || 3, true); break;
-          case 44: {
-            const msgs = T.runMapCommonEvent(eff.dataId);
-            for (const mt of msgs) T.$gameMessage.add(mt);
-            break;
-          }
         }
       }
     }
+    for (const eff of skill.effects || []) if (eff.code === 44) T.reserveMapCommonEvent(eff.dataId);
     T.AudioManager.playSe({ name: "Recovery", volume: 80 });
     this.refresh();
   }
@@ -530,25 +543,22 @@ class Scene_Skill {
     this.actorWindow._compact = true;
     this.typeWindow.draw(ctx);
     let ty = this.typeWindow.innerY + 4;
+    const tabWidth = this.typeWindow.innerW / Math.max(1, this.types.length);
     this.types.forEach((tname, i) => {
-      this.typeWindow.drawText(ctx, tname, this.typeWindow.innerX + 8 + i * 100, ty);
+      this.typeWindow.drawText(ctx, tname, this.typeWindow.innerX + i * tabWidth + 4, ty, tabWidth - 8, 'center');
     });
     if (this.typeWindow.active) {
       this.typeWindow.save = null;
       ctx.save();
       ctx.strokeStyle = "#ffd24d"; ctx.lineWidth = 2;
-      ctx.strokeRect(this.typeWindow.innerX + 4 + this.typeIndex * 100, this.typeWindow.y + 4,
-        92, this.typeWindow.h - 8);
+      ctx.strokeRect(this.typeWindow.innerX + this.typeIndex * tabWidth, this.typeWindow.y + 4,
+        tabWidth, this.typeWindow.h - 8);
       ctx.restore();
     }
     this.listWindow.draw(ctx);
-    const ih = this.listWindow.itemHeight();
-    let y = this.listWindow.innerY + 4 - this.listWindow.topRow * ih;
-    for (let i = 0; i < this.skills.length; i++) {
-      const s = this.skills[i];
+    for (const { item: s, y } of this.listWindow.visibleEntries(this.skills)) {
       this.listWindow.drawText(ctx, s.name, this.listWindow.innerX + 8, y);
       this.listWindow.drawText(ctx, `${T.skillCost(s)}`, this.listWindow.innerX + 380, y, 80, "right");
-      y += ih;
     }
     this.listWindow.drawCursorBox(ctx);
     this.descWindow.draw(ctx);
@@ -560,7 +570,6 @@ class Scene_Skill {
     if (this.mode !== "target") {
       this.actorWindow.draw(ctx);
       drawActorRow(this.actorWindow, ctx, this.actor, this.actorWindow.innerY + 26);
-      this.actorWindow.drawText(ctx, "U/I 切换武将", this.actorWindow.innerX + 8, this.actorWindow.h - 26, 240, "left");
     }
     if (this.mode === "target") {
       const members = this.skillTargetMembers(this.pendingSkill);
@@ -595,8 +604,10 @@ class Scene_Equip {
     this.mode = "slot";   // slot | item | member
     this.slotWin = new Window_Selectable(8, 8, 320, 320);
     this.slotWin.fontSize = 22;
+    this.slotWin.lineHeight = 34;
     this.itemWin = new Window_Selectable(332, 8, T.SCREEN_W - 340, T.SCREEN_H - 16);
     this.itemWin.fontSize = 22;
+    this.itemWin.contentBottom = 128;
     this.candidates = [];
     this.statWin = new Window_Base(8, 336, 320, T.SCREEN_H - 344);
     this.statWin.fontSize = 20;
@@ -628,6 +639,7 @@ class Scene_Equip {
     this.curEquipId = cur ? cur.id : 0;
     this.itemWin.itemMax = this.candidates.length;
     this.itemWin.index = Math.max(0, this.candidates.findIndex(c => c && c.id === this.curEquipId));
+    this.itemWin.scrollToFit();
   }
   paramPreview(item) {
     const old = this.actor.equipAt(this.currentSlot());
@@ -656,10 +668,9 @@ class Scene_Equip {
       this.itemWin.updateInput();
       if (T.Input.triggered("ok")) {
         const sel = this.candidates[this.itemWin.index];
-        const old = this.actor.equipAt(this.currentSlot());
-        this.actor.changeEquip(this.currentSlot(), sel ? sel.id : 0);
-        if (old) $gameParty.gainItem(old, 1);
-        if (sel) $gameParty.loseItem(sel, 1);
+        if (!this.actor.tradeEquip(this.currentSlot(), sel ? sel.id : 0)) {
+          T.AudioManager.playSe({ name: 'Buzzer', volume: 60 }); this.refreshCandidates(); return;
+        }
         T.AudioManager.playSe({ name: "Equip1", volume: 70 });
         this.mode = "slot";
       } else if (T.Input.triggered("cancel")) this.mode = "slot";
@@ -683,19 +694,15 @@ class Scene_Equip {
     this.statWin.drawActorFace(ctx, a.faceName, a.faceIndex, this.statWin.innerX + 8, this.statWin.innerY + 2, 48);
     this.statWin.drawText(ctx, `${a.name} 的装备`, this.statWin.innerX + 68, this.statWin.innerY + 10);
     const rows = [
-      `武力 ${a.atk}`, `防御 ${a.def}`, `谋略 ${a.mat}`, `智力 ${a.mdf}`,
+      `武力 ${a.atk}`, `防御 ${a.def}`, `智力 ${a.mat}`, `抗计 ${a.mdf}`,
       `速度 ${a.agi}`, `兵力 ${a.hp}/${a.mhp}`,
     ];
     let sy = this.statWin.innerY + 62;
     for (const r of rows) { this.statWin.drawText(ctx, r, this.statWin.innerX + 10, sy); sy += 28; }
     if (this.mode === "item") {
       this.itemWin.draw(ctx);
-      const ih2 = this.itemWin.itemHeight();
-      let iy = this.itemWin.innerY + 4 - this.itemWin.topRow * ih2;
-      for (let i = 0; i < this.candidates.length; i++) {
-        const it = this.candidates[i];
-        this.itemWin.drawText(ctx, it ? it.name : "卸下", this.itemWin.innerX + 8, iy);
-        iy += ih2;
+      for (const { item: it, y: iy } of this.itemWin.visibleEntries(this.candidates)) {
+        this.itemWin.drawText(ctx, it ? it.name : "卸下", this.itemWin.innerX + 8, iy, this.itemWin.innerW - 16);
       }
       this.itemWin.drawCursorBox(ctx);
       /* 选中候选时显示属性变化预览 */
@@ -704,7 +711,7 @@ class Scene_Equip {
       if (sel || cur) {
         const prev = this.paramPreview(sel);
         const base = { atk: this.actor.atk, def: this.actor.def, mat: this.actor.mat, mdf: this.actor.mdf, agi: this.actor.agi };
-        const labels = [["武力", "atk"], ["防御", "def"], ["谋略", "mat"], ["智力", "mdf"], ["速度", "agi"]];
+        const labels = [["武力", "atk"], ["防御", "def"], ["智力", "mat"], ["抗计", "mdf"], ["速度", "agi"]];
         const py = this.itemWin.y + this.itemWin.h - 116;
         ctx.save();
         ctx.fillStyle = "rgba(16,24,48,0.9)";
@@ -717,8 +724,9 @@ class Scene_Equip {
           const d = Math.round(prev[key] - base[key]);
           ctx.fillStyle = d > 0 ? "#7dfa8a" : d < 0 ? "#ff9a9a" : "#9fb0d0";
           const col = li % 2, row = Math.floor(li / 2);
+          const columnWidth = (this.itemWin.w - 32) / 2;
           ctx.fillText(`${nm} ${base[key]} → ${prev[key]}${d !== 0 ? ` (${d > 0 ? "+" : ""}${d})` : ""}`,
-            this.itemWin.x + 16 + col * 250, py + 50 + row * 24);
+            this.itemWin.x + 16 + col * columnWidth, py + 50 + row * 24, columnWidth - 8);
         }
         ctx.restore();
       }
@@ -769,7 +777,7 @@ class Scene_Status {
     this.win.drawText(ctx, a.profile || "", cx, y); y += 44;
     const stats = [
       ["最大兵力", T.fmt(a.mhp)], ["谋略上限", T.fmt(a.mmp)],
-      ["武力", a.atk], ["防御", a.def], ["谋略", a.mat], ["智略", a.mdf],
+      ["武力", a.atk], ["防御", a.def], ["智力", a.mat], ["抗计", a.mdf],
       ["速度", a.agi], ["运气", a.luk],
     ];
     let sx = this.win.innerX + 20; let sy = y + 20;
@@ -847,6 +855,8 @@ class Scene_Storage {
     this.lwin = new Window_Selectable(8, 60, 400, T.SCREEN_H - 68);
     this.rwin = new Window_Selectable(416, 60, T.SCREEN_W - 424, T.SCREEN_H - 68);
     this.lwin.fontSize = 18; this.rwin.fontSize = 18;
+    this.lwin.contentTop = this.rwin.contentTop = 24;
+    this.lwin.contentBottom = this.rwin.contentBottom = 32;
     this.side = 0;   // 0=背包 1=仓库
     this.refresh();
     T.AudioManager.playSe({ name: "Equip1", volume: 60 });
@@ -874,8 +884,8 @@ class Scene_Storage {
         $gameParty.loseItem(it, n); $gameParty.storageGain(it, n);
         T.$gameMessage.add(`存入「${it.name}」×${n}`);
       } else {
-        const n = $gameParty.storageCount(it);
-        if (n <= 0) return;
+        const n = Math.min($gameParty.storageCount(it), $gameParty.maxItemCount(it) - $gameParty.itemCount(it));
+        if (n <= 0) { T.AudioManager.playSe({ name: 'Buzzer', volume: 60 }); return; }
         $gameParty.storageLose(it, n); $gameParty.gainItem(it, n);
         T.$gameMessage.add(`取出「${it.name}」×${n}`);
       }
@@ -888,24 +898,16 @@ class Scene_Storage {
     this.lwin.draw(ctx); this.rwin.draw(ctx);
     this.lwin.drawText(ctx, "—— 背包 ——", this.lwin.innerX, this.lwin.innerY + 2, this.lwin.innerW, "center");
     this.rwin.drawText(ctx, "—— 仓库 ——", this.rwin.innerX, this.rwin.innerY + 2, this.rwin.innerW, "center");
-    let y = this.lwin.innerY + 24;
-    for (let i = 0; i < this.bag.length; i++) {
-      if (y > this.lwin.y + this.lwin.h - 24) break;
-      const it = this.bag[i];
-      this.lwin.drawText(ctx, it.name || "?", this.lwin.innerX + 8, y);
-      this.lwin.drawText(ctx, `×${$gameParty.itemCount(it)}`, this.lwin.innerX + 300, y, 90, "right");
-      y += this.lwin.itemHeight();
+    for (const { item: it, y } of this.lwin.visibleEntries(this.bag)) {
+      this.lwin.drawText(ctx, it.name || "?", this.lwin.innerX + 8, y, this.lwin.innerW - 94);
+      this.lwin.drawText(ctx, `×${$gameParty.itemCount(it)}`, this.lwin.innerX + this.lwin.innerW - 86, y, 78, "right");
     }
-    this.lwin.drawCursorBox(ctx);
-    let y2 = this.rwin.innerY + 24;
-    for (let i = 0; i < this.sto.length; i++) {
-      if (y2 > this.rwin.y + this.rwin.h - 24) break;
-      const it = this.sto[i];
-      this.rwin.drawText(ctx, it.name || "?", this.rwin.innerX + 8, y2);
-      this.rwin.drawText(ctx, `×${$gameParty.storageCount(it)}`, this.rwin.innerX + 300, y2, 90, "right");
-      y2 += this.rwin.itemHeight();
+    if (this.side === 0) this.lwin.drawCursorBox(ctx);
+    for (const { item: it, y: y2 } of this.rwin.visibleEntries(this.sto)) {
+      this.rwin.drawText(ctx, it.name || "?", this.rwin.innerX + 8, y2, this.rwin.innerW - 94);
+      this.rwin.drawText(ctx, `×${$gameParty.storageCount(it)}`, this.rwin.innerX + this.rwin.innerW - 86, y2, 78, "right");
     }
-    this.rwin.drawCursorBox(ctx);
+    if (this.side === 1) this.rwin.drawCursorBox(ctx);
     ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(8, T.SCREEN_H - 34, T.SCREEN_W - 16, 28);
     ctx.fillStyle = "#ffd24d"; ctx.font = "18px 'PingFang SC',sans-serif";
     ctx.fillText(`${this.side === 0 ? "回车 → 存入仓库" : "回车 → 取出到背包"}    左右键切换   Esc 关闭`, 16, T.SCREEN_H - 14);
@@ -920,6 +922,8 @@ class Scene_Lineup {
     this.lwin = new Window_Selectable(8, 60, 400, T.SCREEN_H - 68);
     this.rwin = new Window_Selectable(416, 60, T.SCREEN_W - 424, T.SCREEN_H - 68);
     this.lwin.fontSize = 18; this.rwin.fontSize = 18;
+    this.lwin.contentTop = this.rwin.contentTop = 24;
+    this.lwin.contentBottom = this.rwin.contentBottom = 32;
     this.side = 0;
     this.refresh();
     T.AudioManager.playSe({ name: "Equip1", volume: 60 });
@@ -958,22 +962,16 @@ class Scene_Lineup {
     this.lwin.draw(ctx); this.rwin.draw(ctx);
     this.lwin.drawText(ctx, `—— 出战（${this.act.length}/${T.MAX_BATTLE_MEMBERS}） ——`, this.lwin.innerX, this.lwin.innerY + 2, this.lwin.innerW, "center");
     this.rwin.drawText(ctx, "—— 候补 ——", this.rwin.innerX, this.rwin.innerY + 2, this.rwin.innerW, "center");
-    let y = this.lwin.innerY + 24;
-    for (const a of this.act) {
-      if (y > this.lwin.y + this.lwin.h - 24) break;
+    for (const { item: a, y } of this.lwin.visibleEntries(this.act)) {
       this.lwin.drawText(ctx, a.name, this.lwin.innerX + 8, y);
-      this.lwin.drawText(ctx, `Lv${a.level}`, this.lwin.innerX + 330, y, 60, "right");
-      y += this.lwin.itemHeight();
+      this.lwin.drawText(ctx, `Lv${a.level}`, this.lwin.innerX + this.lwin.innerW - 68, y, 60, "right");
     }
-    this.lwin.drawCursorBox(ctx);
-    let y2 = this.rwin.innerY + 24;
-    for (const a of this.bench) {
-      if (y2 > this.rwin.y + this.rwin.h - 24) break;
+    if (this.side === 0) this.lwin.drawCursorBox(ctx);
+    for (const { item: a, y: y2 } of this.rwin.visibleEntries(this.bench)) {
       this.rwin.drawText(ctx, a.name, this.rwin.innerX + 8, y2);
-      this.rwin.drawText(ctx, `Lv${a.level}`, this.rwin.innerX + 330, y2, 60, "right");
-      y2 += this.rwin.itemHeight();
+      this.rwin.drawText(ctx, `Lv${a.level}`, this.rwin.innerX + this.rwin.innerW - 68, y2, 60, "right");
     }
-    this.rwin.drawCursorBox(ctx);
+    if (this.side === 1) this.rwin.drawCursorBox(ctx);
     ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(8, T.SCREEN_H - 34, T.SCREEN_W - 16, 28);
     ctx.fillStyle = "#ffd24d"; ctx.font = "18px 'PingFang SC',sans-serif";
     ctx.fillText(`${this.side === 0 ? "回车 → 换下候补" : "回车 → 换上出战"}    左右切换   Esc 关闭`, 16, T.SCREEN_H - 14);
@@ -1045,7 +1043,7 @@ class Scene_SaveLoad {
       }
       y += 56;
     }
-    if (this.error) this.win.drawText(this.error, this.win.innerX + 20, y + 24, this.win.innerW - 40);
+    if (this.error) this.win.drawText(ctx, this.error, this.win.innerX + 20, y + 24, this.win.innerW - 40);
     /* 行文本从 innerY+40 开始，使用专用光标，避免通用窗口把光标画到标题上。 */
     const x = this.win.x + 10;
     const cursorY = this.win.innerY + 32 + T.clamp(this.win.index, 0, 3) * 56;
@@ -1091,9 +1089,9 @@ class Scene_Shop {
   }
   refresh() {
     if (this.tradeMode === "buy") {
-      this.entries = this.goods.filter(([kind]) => kind === this.tabIndex).map(([, id]) => {
+      this.entries = this.goods.filter(([kind]) => kind === this.tabIndex).map(([, id, priceType, price]) => {
         const item = this.tabIndex === 0 ? T.$dataItems[id] : this.tabIndex === 1 ? T.$dataWeapons[id] : T.$dataArmors[id];
-        return { item, price: item ? (item.price || 0) : 0 };
+        return { item, price: priceType === 1 ? price : item ? (item.price || 0) : 0 };
       }).filter(e => e.item);
     } else {
       const list = this.tabIndex === 0 ? $gameParty.items()
@@ -1129,10 +1127,10 @@ class Scene_Shop {
       T.SceneManager.popScene(); return;
     }
     const e = this.entries[this.win.index];
-    if (!e) { if (T.Input.triggered("ok")) T.SceneManager.popScene(); return; }
+    if (!e) { if (T.Input.triggered("ok")) T.AudioManager.playSe({ name: 'Buzzer', volume: 60 }); return; }
     if (T.Input.triggered("ok")) {
       if (this.tradeMode === "buy") {
-        if ($gameParty.gold() >= e.price) {
+        if ($gameParty.gold() >= e.price && $gameParty.itemCount(e.item) < $gameParty.maxItemCount(e.item)) {
           $gameParty.loseGold(e.price);
           $gameParty.gainItem(e.item, 1);
           T.AudioManager.playSe({ name: "Shop", volume: 80 });
