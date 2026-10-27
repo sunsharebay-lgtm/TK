@@ -149,7 +149,7 @@
 - 真实发布包包含 1745 个文件、约 45.7 MiB，全部静态引用检查通过；隔离发布包回归确认粉丝资源 8 个页面及 JSON、JS、CSS 完整交付。
 - 标签为 `content/fan-resources/v0.8.0`，推送到 `main` 后由 Actions 执行全仓测试、Pages 部署与提交标记验收。
 
-### 最新工作区 SHA-256（2026-10-27）
+### v0.8.0 源码 SHA-256（历史记录）
 
 本节为本次发布源码校验；之前的审查结果按历史保留。`project.md` 不固化自身哈希。
 
@@ -175,3 +175,33 @@
 - `测试/package_test.js`：`f5aec9741cb2caf6b59a365ec39bd27e37f7ae5a18c51decfe3115271e177845`
 - `测试/resources_test.js`：`146d34a8da2b1a5e68f74fca0d74c4d15d967d2c1aa46780ed75f03699352e7f`
 - `../scripts/build-site.cjs`：`33b7a8aca2ab0c637b7df8da91a3a09c509818eceeb18438bc90984f4b0a0503`
+
+
+## v0.9.0 · 资源 07：DSH 插件迁移包
+
+### 交付规格与决策
+
+- 新增固定编号 `07`、id `dsh-plugin-migration-kit`，详情页为 `资源/DSH插件迁移包/index.html`。用户原始说明保留为：拖到目标机器任意位置、解压、向能访问解压目录的 Agent 发「读一下 AGENT.md，按里面的要求做。」；按包内说明走完六步并完全退出重启 DSH。
+- 原文件：`/Users/sun/Desktop/dsh-plugin-kit.tar.gz`，13534 字节，SHA-256：`c4c650f3a033ac142bc297f184b19200e204bd13e732e8e571d22995e371399b`。原包未改写、未重新压缩，压缩包本身不加入网页仓库。
+- 夸克文件：`316696617aa1468fb464d9b6b00abfa5`；永久公开分享 `https://pan.quark.cn/s/e090368a3ba3`。分享详情核对：文件名 `dsh-plugin-kit.tar.gz`，大小13534字节，公开、永久，返回1个文件且无违规标记。
+- 包内实际清单为16个第三方插件、5个随应用分发的官方 bundle，参考 DSH 版本 `0.2.1-rc.3`；页面说明联网下载依赖、可选配置由 Agent 询问、密钥由使用者配置。六步执行说明（0～5）与 README 已作为资料核对，本次没有在当前电脑执行包内安装指令，也没有重新实测16个插件安装。
+- 详情页复用现有公共样式与复制脚本，提供独立的 Agent 指令和夸克链接复制按钮，保持用户无需记安装命令的使用方式。
+- 修改前数据、文档、测试保存于 `历史版本/v0.8.0-before-dsh/`，清单为 `manifest.json`。目录总数、空白搜索、排序不变性和发布包页数的测试改为依据数据，避免后续新增资料时再次固定为6条。
+
+### QA 与发布
+
+- 五组基础回归通过：7条目录、7个详情页、35组页面/剪贴板模式，隔离发布包9个页面及依赖完整。
+- 全仓门禁 **44/44 通过（含图集像素验证）**；三国现行 `current_engine_test.js`、`engine_audit_test.js`、`snapshot_recovery_test.js` 与历史单文件 `three_kingdoms_smoke.js`、`three_kingdoms_test.js` 分别通过。
+- 浏览器22项回归覆盖新增07/DSH/AGENT.md搜索，7个详情页、10个复制按钮的5种环境；8个页面×5种宽度共40个布局组合。专项测试逐字验证用户指令和分享链接，六步列表确为6项。
+- 真实 `.site/` 为1746个文件、约45.7 MiB，全部必需文件、数据、脚本和静态引用检查通过。原包的独立安装兼容性不在本次网页QA范围。
+- 发布标签：`content/fan-resources/v0.9.0`；页面与资源数据通过 `main` 统一部署，完成以 Actions 和线上验收结果为准。
+
+### v0.9.0 变更文件 SHA-256
+
+- `resources.json`：`5c5ef6e3ab4fb9ab046a7a2d7674e3da632c3523abc875fe153cd1938b5565c1`
+- `README.md`：`ac5577aee46e8a07f2637913f9b65a8d2065d9eacb2cd708a1bea5b971c84f22`
+- `更新记录.md`：`b01b3c4dc29fa39a50aaeacbeca2e8c31556be64c75b32a083e7e6580e257514`
+- `资源/DSH插件迁移包/index.html`：`00aa765b4d7cc849479cd69862bc284364c1c330f986d9375ff9c03d7b66933d`
+- `测试/catalog_validation_test.js`：`e6e31ecceb9a8d26f1b46259f2695d08d086cde4242482c36d84d6391d8e86da`
+- `测试/browser_test.cjs`：`338bb37f7424f70e797e9c6dd24c46a832b5149162fcd59819807691eb4e7ed7`
+- `测试/package_test.js`：`ac986f037121389b72f16f61c61a1982ac53b7fef5e4cc3e831fc647dd1a5eeb`

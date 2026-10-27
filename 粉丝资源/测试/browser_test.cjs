@@ -72,7 +72,7 @@ for (const failure of ['http', 'json', 'schema', 'network', 'timeout']) {
     await page.getByRole('button', { name: '重新加载' }).click();
     await page.locator('.resource-card').last().waitFor();
     assert.equal(await page.locator('.resource-card').count(), items.length);
-    assert.equal(await page.locator('#resource-count').innerText(), '06');
+    assert.equal(await page.locator('#resource-count').innerText(), String(items.length).padStart(2, '0'));
   }));
 }
 
@@ -88,14 +88,14 @@ test('catalog: number, keyword, case, whitespace, no results and clearing search
   await page.goto(base);
   await page.locator('.resource-card').last().waitFor();
   const search = page.getByRole('searchbox', { name: '查找资源' });
-  for (const [query, expected] of [['06', ['06']], ['6', ['06']], [' HERMES ', ['05']], ['codex 生图', ['06']], ['退款', ['01']], ['不存在的资源', []]]) {
+  for (const [query, expected] of [['06', ['06']], ['6', ['06']], [' HERMES ', ['05']], ['codex 生图', ['06']], ['退款', ['01']], ['07', ['07']], ['DSH', ['07']], ['AGENT.md', ['07']], ['不存在的资源', []]]) {
     await search.fill(query);
     assert.deepEqual(await page.locator('.resource-number').allTextContents(), expected);
-    assert.equal(await page.locator('#resource-count').innerText(), '06', 'filter must not change collection total');
+    assert.equal(await page.locator('#resource-count').innerText(), String(items.length).padStart(2, '0'), 'filter must not change collection total');
   }
   assert.match(await page.locator('#resources-status').innerText(), /没有找到/);
   await page.getByRole('button', { name: '清空搜索' }).click();
-  assert.equal(await page.locator('.resource-card').count(), 6);
+  assert.equal(await page.locator('.resource-card').count(), items.length);
   assert.equal(await search.inputValue(), '');
   assert.ok(await search.evaluate(el => document.activeElement === el));
   const links = await page.locator('.resource-open').evaluateAll(nodes => nodes.map(el => ({ name: el.getAttribute('aria-label'), url: el.getAttribute('href') })));
@@ -134,8 +134,8 @@ test('catalog: a timed-out response cannot overwrite a successful retry', () => 
   await page.getByRole('button', { name: '重新加载' }).click();
   await page.locator('.resource-card').last().waitFor();
   await page.evaluate(async () => { window.completeOldRequest(); await new Promise(resolve => setTimeout(resolve, 0)); });
-  assert.equal(await page.locator('.resource-card').count(), 6);
-  assert.equal(await page.locator('#resource-count').innerText(), '06');
+  assert.equal(await page.locator('.resource-card').count(), items.length);
+  assert.equal(await page.locator('#resource-count').innerText(), String(items.length).padStart(2, '0'));
 }));
 
 test('catalog: text from data is displayed without interpreting markup', () => withPage(async (page) => {
@@ -190,6 +190,25 @@ test('details: Hermes share is a directly usable link', () => withPage(async (pa
   await page.goto(base + items[4].detailUrl.slice(2));
   const share = page.locator('a#share-link');
   assert.equal(await share.getAttribute('href'), 'https://pan.quark.cn/s/cf4849928581');
+}));
+
+test('resource 07: DSH download and the exact user-provided Agent instruction', () => withPage(async (page) => {
+  const item = items.find(resource => resource.id === 'dsh-plugin-migration-kit');
+  assert.ok(item, 'DSH resource must be present in the catalog');
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async value => { window.lastCopied = value; } } });
+  });
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto(base + item.detailUrl.slice(2));
+  await page.getByRole('heading', { name: 'DSH 插件迁移包', exact: true }).waitFor();
+  assert.equal(await page.locator('a[href="https://pan.quark.cn/s/e090368a3ba3"]').count(), 1);
+  assert.equal(await page.locator('ol li').count(), 6);
+  await page.getByRole('button', { name: '复制 Agent 使用指令' }).click();
+  assert.equal(await page.evaluate(() => window.lastCopied), '读一下 AGENT.md，按里面的要求做。');
+  await page.getByRole('button', { name: '复制夸克分享链接' }).click();
+  assert.equal(await page.evaluate(() => window.lastCopied), 'https://pan.quark.cn/s/e090368a3ba3');
+  fs.mkdirSync(path.join(__dirname, '.artifacts'), { recursive: true });
+  await page.screenshot({ path: path.join(__dirname, '.artifacts', 'dsh-resource-375.png'), fullPage: true });
 }));
 
 test('copy: pending writes ignore repeated activation and retain focus', () => withPage(async (page) => {

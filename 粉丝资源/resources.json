@@ -47,6 +47,14 @@
       "title": "Codex 生图执行规范（灵链云 Responses API）",
       "summary": "灵链云 Responses API 生图规范与可移交执行手册，适合交给新的 Codex 会话继续使用",
       "detailUrl": "./资源/Codex生图执行规范/"
+    },
+    {
+      "number": "07",
+      "id": "dsh-plugin-migration-kit",
+      "date": "2026-10-27",
+      "title": "DSH 插件迁移包",
+      "summary": "16 个插件的迁移清单与安装工具，解压后让 Agent 读取 AGENT.md，按 6 步完成安装并提示重启 DSH",
+      "detailUrl": "./资源/DSH插件迁移包/"
     }
   ]
 }

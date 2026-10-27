@@ -4,7 +4,7 @@ const data = require('../resources.json');
 const fresh = () => JSON.parse(JSON.stringify(data));
 const resources = validateResources(data);
 
-assert.equal(resources.length, 6);
+assert.deepEqual(resources.map(item => item.number), data.resources.map(item => item.number).sort());
 assert.deepEqual(validateResources({ resources: [] }), []);
 for (const invalid of [null, {}, { resources: null }, { resources: {} }, { resources: [null] }, { resources: [[]] }]) {
   assert.throws(() => validateResources(invalid));
@@ -39,9 +39,9 @@ assert.doesNotThrow(() => validateResources(leapYear));
 const shuffled = fresh();
 shuffled.resources.reverse();
 assert.deepEqual(validateResources(shuffled).map(item => item.number), resources.map(item => item.number));
-assert.equal(shuffled.resources[0].number, '06', 'validation must not mutate source data');
-for (const [query, expected] of [['6', ['06']], ['０６', ['06']], [' HERMES ', ['05']], ['codex 生图', ['06']], ['不存在', []]]) {
+assert.equal(shuffled.resources[0].number, data.resources.at(-1).number, 'validation must not mutate source data');
+for (const [query, expected] of [['6', ['06']], ['０６', ['06']], [' HERMES ', ['05']], ['codex 生图', ['06']], ['DSH', ['07']], ['不存在', []]]) {
   assert.deepEqual(findResources(resources, query).map(item => item.number), expected);
 }
-assert.equal(findResources(resources, '  ').length, 6);
+assert.equal(findResources(resources, '  ').length, resources.length);
 console.log('Catalog validation checks passed (schema, duplicates, real dates, safe paths, ordering and search).');

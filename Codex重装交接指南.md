@@ -108,7 +108,7 @@
 ### 5.7 粉丝资源 `粉丝资源/`
 
 - 数据源：`resources.json`，手动维护；每条使用固定两位 `number`，必须提供 `detailUrl`。
-- 长资料独立页：`资源/<资料名>/`；当前保留五条粉丝资源，Mac 软件资源库已迁出，不得重新放入此目录。
+- 长资料独立页：`资源/<资料名>/`；当前保留 `01`～`07` 七条粉丝资源；Mac 软件资源库已迁出，旧地址仅为兼容跳转。
 - 独立入口：`index.html`；首页读取本项目的 `resources.json` 做展示联动。
 - 测试：`测试/resources_test.js`。
 - 运行：`node 粉丝资源/测试/resources_test.js`
@@ -202,3 +202,10 @@ git push origin game/three-kingdoms/v1.0.0
 - 入口依次加载 `粉丝资源/scripts/catalog.js`、`scripts/resources.js`；详情页共用 `scripts/copy.js`；所有页面使用 `styles/common.css`。共享打包清单必须收录 styles/，否则发布后缺失公共交互样式。
 - 本项目基础回归为 `resources_test.js`、`catalog_validation_test.js`、`clipboard_test.js`、`legacy_routes_test.js`、`package_test.js`；浏览器回归用 `node --test 测试/browser_test.cjs`，依赖恢复见粉丝资源 README。
 - 本次以远程 main 已验收的 v0.7.1 为基线，在隔离工作树发布 v0.8.0；专项审查前的源码快照与当前校验值见 `粉丝资源/project.md`。
+
+
+### 粉丝资源 v0.9.0：DSH 插件迁移包
+
+- 新增资源07「DSH 插件迁移包」，正文及复制指令在 `粉丝资源/资源/DSH插件迁移包/index.html`；唯一目录仍为 `粉丝资源/resources.json`，无须改首页源码。
+- 原包通过夸克永久分享提供，使用方式为解压后让目标 Agent 读取 `AGENT.md`，按六步说明完成后重启 DSH。包内容与原文件SHA见粉丝资源 `project.md`。
+- 本项目基础回归五组、浏览器22项通过；测试中的目录总数按数据读取，添加后续资源时不应把总数重新固定写死。

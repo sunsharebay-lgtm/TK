@@ -46,7 +46,7 @@ try {
   }
   assert.deepEqual(fs.readFileSync(path.join(delivered, 'resources.json')), fs.readFileSync(path.join(root, 'resources.json')));
   for (const excluded of ['历史版本', '测试']) assert.ok(!fs.existsSync(path.join(delivered, excluded)), `不应发布 ${excluded}`);
-  console.log('Fan resource package checks passed (8 pages, data, JS/CSS dependencies, excluded history/test files).');
+  console.log(`Fan resource package checks passed (${pages.length} pages, data, JS/CSS dependencies, excluded history/test files).`);
 } finally {
   fs.rmSync(fixture, { recursive: true, force: true });
 }

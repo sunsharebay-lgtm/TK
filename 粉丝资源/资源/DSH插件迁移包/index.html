@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b12">
+  <meta name="description" content="DSH 插件迁移包：解压后让 Agent 读取 AGENT.md，按 6 步完成安装并提示重启。">
+  <title>DSH 插件迁移包 · 粉丝资源</title>
+  <style>
+    :root { color-scheme: dark; --bg:#070b12; --panel:rgba(14,23,36,.86); --ink:#edf4ff; --muted:#8da0b9; --line:rgba(139,169,208,.2); --cyan:#43e8ff; --amber:#ffb347; --green:#5ce08a; font-family:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; }
+    * { box-sizing:border-box; }
+    body { min-height:100vh; margin:0; color:var(--ink); background:radial-gradient(900px 560px at 78% -8%,rgba(37,109,145,.25),transparent 68%),linear-gradient(155deg,#0a111c 0%,var(--bg) 55%,#090d16 100%); }
+    .shell { width:min(960px,calc(100% - 32px)); margin:0 auto; padding:20px 0 34px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+    .brand,.footer a { color:var(--ink); text-decoration:none; }
+    .brand { display:inline-flex; align-items:center; gap:10px; font-size:12px; font-weight:700; }
+    .brand-mark { display:grid; width:28px; height:28px; place-items:center; color:#061018; background:var(--cyan); clip-path:polygon(0 0,100% 0,100% 76%,76% 100%,0 100%); font-size:11px; font-weight:900; }
+    .system-status,.label,.step-index { color:var(--muted); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+    .hero { padding:clamp(30px,6vw,58px) 0 36px; }
+    .eyebrow { margin:0 0 12px; color:var(--amber); font-size:11px; letter-spacing:.2em; text-transform:uppercase; }
+    h1 { max-width:780px; margin:0; font-size:clamp(34px,7vw,64px); line-height:1; letter-spacing:0; }
+    .hero-copy { max-width:700px; margin:18px 0 0; color:var(--muted); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:15px; line-height:1.8; }
+    .section { margin-top:28px; }
+    .section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:14px; }
+    .section-heading h2 { margin:0; font-size:15px; letter-spacing:.08em; }
+    .section-heading p { margin:0; color:var(--muted); font-size:10px; }
+    .steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .step,.link-card,.note { padding:18px; border:1px solid var(--line); background:var(--panel); }
+    .step h3 { margin:14px 0 8px; font-size:15px; }
+    .step p,.note { margin:0; color:var(--muted); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:13px; line-height:1.8; }
+    .links { display:grid; gap:10px; }
+    .link-card { display:flex; flex-direction:column; gap:10px; }
+    .link-card a { color:var(--cyan); overflow-wrap:anywhere; line-height:1.6; }
+    .template-block { padding:18px; border:1px solid rgba(67,232,255,.28); background:rgba(67,232,255,.05); }
+    .template-head { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    .template-head h3 { margin:6px 0 0; font-size:15px; }
+    .template-text { color:var(--ink); font-family:inherit; white-space:pre-wrap; overflow-wrap:anywhere; user-select:all; }
+    .template-note { color:var(--muted); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:12px; line-height:1.7; }
+    .copy-btn { border:1px solid var(--cyan); padding:8px 14px; color:var(--cyan); background:transparent; cursor:pointer; font:inherit; }
+    .copy-btn.copied { color:var(--green); border-color:var(--green); }
+    .note { margin-top:28px; border-left:3px solid var(--amber); }
+    .footer { display:flex; justify-content:space-between; gap:16px; margin-top:34px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+    .footer a { color:var(--cyan); }
+    @media (max-width:700px) { .steps { grid-template-columns:1fr; } .topbar,.footer { align-items:flex-start; flex-direction:column; } }
+  </style>
+  <link rel="stylesheet" href="../../styles/common.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="返回粉丝资源列表"><span class="brand-mark">创</span><span>创意空间 // CREATIVE SPACE</span></a>
+      <div class="system-status">FAN RESOURCE / 粉丝资料</div>
+    </header>
+    <section class="hero">
+      <p class="eyebrow">资源 07 / DeepSeek Harness</p>
+      <h1>DSH 插件迁移包</h1>
+      <p class="hero-copy">把这套插件迁移到另一台装了 DeepSeek Harness 桌面端的机器上。你只需要下载、解压，再告诉目标机器上的 Agent 一句话：读一下 AGENT.md，按里面的要求做。</p>
+    </section>
+    <section class="section">
+      <div class="section-heading"><h2>使用方法 / QUICK START</h2><p>不需要记任何命令</p></div>
+      <div class="steps">
+        <div class="step"><span class="step-index">STEP 01</span><h3>拖到目标机器并解压</h3><p>下载「dsh-plugin-kit.tar.gz」，拖到目标机器任意位置并解压，得到 dsh-plugin-kit 文件夹。</p></div>
+        <div class="step"><span class="step-index">STEP 02</span><h3>把一句话交给 Agent</h3><p>让目标机器上的 Agent 能访问解压后的文件夹，再把下方的使用指令发给它。</p></div>
+        <div class="step"><span class="step-index">STEP 03</span><h3>按提示重启 DSH</h3><p>Agent 会按包内说明走完 6 步，最后提示你完全退出并重新打开 DSH。你不需要记任何命令。</p></div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-heading"><h2>发给 Agent / COPY AND GO</h2><p>复制这一句话</p></div>
+      <div class="template-block">
+        <div class="template-head"><div><span class="label">AGENT PROMPT</span><h3>使用指令</h3></div><button class="copy-btn" type="button" aria-label="复制 Agent 使用指令">复制</button></div>
+        <p class="template-note">在目标机器解压完成后，将这句话发给能够访问该文件夹的 Agent。</p>
+        <pre class="template-text">读一下 AGENT.md，按里面的要求做。</pre>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-heading"><h2>下载入口 / DOWNLOAD</h2><p>夸克网盘永久公开分享</p></div>
+      <div class="links">
+        <div class="link-card"><span class="label">夸克网盘链接</span><a href="https://pan.quark.cn/s/e090368a3ba3" target="_blank" rel="noopener noreferrer">https://pan.quark.cn/s/e090368a3ba3</a></div>
+        <div class="link-card"><span class="label">文件名</span><span class="template-text">dsh-plugin-kit.tar.gz</span></div>
+      </div>
+      <div class="template-block" style="margin-top:12px">
+        <div class="template-head"><div><span class="label">SHARE LINK</span><h3>分享链接</h3></div><button class="copy-btn" type="button" aria-label="复制夸克分享链接">复制</button></div>
+        <p class="template-note">公开分享，无需提取码。可直接打开，或复制到夸克 APP 中获取。</p>
+        <pre class="template-text">https://pan.quark.cn/s/e090368a3ba3</pre>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-heading"><h2>Agent 会做什么 / SIX STEPS</h2><p>执行说明在 AGENT.md 中</p></div>
+      <ol class="hero-copy">
+        <li>核对目标机器的 DSH 版本、安装环境与插件清单。</li>
+        <li>先预演安装计划，检查将执行的操作。</li>
+        <li>备份目标配置并安装清单里的插件。</li>
+        <li>核对安装结果与插件加载列表。</li>
+        <li>按需要询问界面偏好与模型配置。</li>
+        <li>提示完全退出并重启 DSH，再检查插件是否生效。</li>
+      </ol>
+    </section>
+    <section class="section note"><strong>使用前提：</strong>目标机器已安装 DeepSeek Harness 桌面端。包内清单以 DSH 0.2.1-rc.3 为参考环境，包含 16 个第三方插件的名称和版本，以及可选配置模板。插件依赖仍需联网下载；版本差异与可选配置按 Agent 提示确认，模型密钥由使用者自行配置。</section>
+    <footer class="footer"><a href="../../">返回粉丝资源列表</a><span>Resource 07 / Creative Space</span></footer>
+  </main>
+  <script src="../../scripts/copy.js"></script>
+</body>
+</html>
