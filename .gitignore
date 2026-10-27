@@ -9,3 +9,11 @@ node_modules/
 
 # GitHub Pages 每次部署时生成的运行时标记
 创意空间首页/deployment-meta.json
+
+# 仅包含网页运行文件的本地/CI 发布产物
+/.site/
+**/测试/.artifacts/
+**/test/.artifacts/
+
+# 发布验收的本地运行证据
+docs/发布/**/.artifacts/

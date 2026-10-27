@@ -50,3 +50,42 @@
 - `资源/名人智囊团Hermes安装包/index.html`：`ae0827544537327d1fbfcd3bf5e1d8eace24cb60451f20d9d977c05fba60d41d`
 - `资源/Codex生图执行规范/index.html`：`9718c91a5d5d1f955f79f819392c053a6fad75aedd5dbe71674a9146db0cc966`
 - `project.md` 与 `更新记录.md` 属于自引用文档，正文不固化自身 SHA-256；如需核验请以 git blob 或导出快照为准。
+
+## 2026-10-26 · 全项目审查修复（本地待发布）
+
+### 决策与修复
+
+- 修复自动剪辑视频技能包、汉化 Codex 和 Claude Code 资料页复制了前面的说明或文件名、没有复制分享口令的问题。
+- 六个资料页统一引用本项目的 `scripts/copy.js`，按按钮所在模板或明确 `data-copy-target` 取内容；每个复制按钮只复制对应资料。
+- 现代剪贴板被拒绝时尝试兼容复制；兼容命令返回 false 或抛错时明确提示失败，不再显示“已复制”；临时文本框始终清理。Hermes 资料页同时获得兼容复制能力。
+- 修改前源码归档于 `历史版本/2026-10-26-review-before/`；本轮未创建版本标签或执行发布。
+
+### QA
+
+- 新增 `node 测试/clipboard_test.js`，直接执行六个页面实际引用的脚本，验证每个按钮的真实文字与 5 种剪贴板环境（成功、拒绝后回退、兼容成功、返回 false、抛错），共 30 组通过。修复前准确复现把说明文字复制为分享口令。
+- `node 测试/resources_test.js`：6 条资源与详情页校验通过。
+
+### 本轮源文件 SHA-256
+
+- `scripts/copy.js`：`7fb2a8f48bbd9a003ac7057b8cbdacbda5dc3145ef98c8b04fa2cbbc9a2303f4`
+- `测试/clipboard_test.js`：`40fb4e71291fe9d61586784efc145675b23b828fe207251e384eeec4216c1461`
+- `资源/Codex生图执行规范/index.html`：`7d65fda88889d85cf6e351d8398e3fa1dd580a050d2134f91c984ca75a8187f1`
+- `资源/giffgaff保命资料/index.html`：`08f5bd1b9bba813a87a933b08b75a0e3a9a7e1397be65be65157b1ea012ff73c`
+- `资源/iStoreOS安装OpenClash/index.html`：`e293807dfcbf1bbdf90593cbd97344067016f07fbb04880fec67ad14ff674cd4`
+- `资源/名人智囊团Hermes安装包/index.html`：`fbbe8daf168f6eda85715202a28b08211cb036e9e25fa30a64453e7cb05123e9`
+- `资源/汉化Codex和ClaudeCode工具/index.html`：`a159f0a1487d42439514e39f8bc0d516d951bed033dd6e1828c6fafe048bd6fa`
+- `资源/自动剪辑视频技能包/index.html`：`fe5aacda0eee2ba4df29c1f28adfc65741c0026fa61f8ffb5bcfa9098e9fb08a`
+
+### 本轮兼容入口与浏览器复核补充
+
+- 历史证据：`958845c` 中编号 06 的 `detailUrl` 为 `./资源/Mac软件资源库/`；`b3e9bc2` 迁出后旧 URL 返回 404。现补纯跳转壳，保留 query/hash，软件数据与正式入口仍属于独立 Mac 项目。
+- `node 测试/legacy_routes_test.js` 先因缺失兼容入口失败，新增入口后通过；真实浏览器旧书签 `?from=bookmark#software-grid` 跳到新项目并保留查询与锚点。
+- 六个现行资源页逐页在真实浏览器点击复制，口令/链接/清单均与对应内容一致；共 8 个按钮（Giffgaff 3 个、其它各 1 个）。
+- `资源/Mac软件资源库/index.html` SHA-256：`88a94a82822208403f9bc6c72b3a077d3a035c1178235c587837430f3095bacf`。
+- `测试/legacy_routes_test.js` SHA-256：`b8fb008293855e5c108257a9257e4102ae3981b0bc673df6a41521b5579afed0`。
+
+## 2026-10-27 · 统一补丁发布 v0.7.1
+
+- 交付：复制正确内容、失败反馈与旧Mac地址兼容跳转。标签：`content/fan-resources/v0.7.1`。
+- 本轮发布使用已验收恢复快照，排除共享工作区中其他对话正在继续的修改；历史章节中的“未发布”指当时状态。
+- 发布前在干净检出中执行统一门禁，部署后按预期提交号验收。发布记录：`../docs/发布/2026-10-27/project.md`。

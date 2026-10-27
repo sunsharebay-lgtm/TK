@@ -81,15 +81,6 @@
     <section class="section note"><strong>说明：</strong>本资料用于 Codex 生图任务的执行与交接。使用时请结合当前 Codex 配置、灵链云账户权限和实际接口返回结果判断；不要在公开场合泄露个人密钥或授权信息。</section>
     <footer class="footer"><a href="../../">返回粉丝资源列表</a><span>Copy and go / 复制即用</span></footer>
   </main>
-  <script>
-    (() => {
-      const button = document.querySelector('.copy-btn');
-      const source = document.querySelector('.template-block .template-text');
-      if (!button || !source) return;
-      const done = () => { const original = button.textContent; button.textContent = '已复制'; button.classList.add('copied'); button.disabled = true; setTimeout(() => { button.textContent = original; button.classList.remove('copied'); button.disabled = false; }, 1500); };
-      const fallback = (value) => { const textarea = document.createElement('textarea'); textarea.value = value; textarea.setAttribute('readonly',''); textarea.style.position='fixed'; textarea.style.left='-9999px'; document.body.appendChild(textarea); textarea.select(); try { document.execCommand('copy'); done(); } finally { textarea.remove(); } };
-      button.addEventListener('click', () => { const value = source.textContent.trim(); if (navigator.clipboard?.writeText) navigator.clipboard.writeText(value).then(done).catch(() => fallback(value)); else fallback(value); });
-    })();
-  </script>
+  <script src="../../scripts/copy.js"></script>
 </body>
 </html>

@@ -31,14 +31,21 @@ T.Preview = {
   ],
 
   liveSnapshot() {
-    try { return JSON.parse(localStorage.getItem(this.liveKey) || "null"); } catch (e) { return null; }
+    try {
+      const snapshot = JSON.parse(localStorage.getItem(this.liveKey) || "null");
+      return T.isGameSnapshot(snapshot) ? snapshot : null;
+    } catch (e) { return null; }
   },
   saveLive() {
     if (!T.$gameParty || !T.$gameMap) return false;
     const snap = T.captureGameSnapshot();
     snap.savedAt = Date.now();
     snap.debugLabel = `现场 · ${T.$gameSystem.currentChapterName || "当前进度"}`;
-    localStorage.setItem(this.liveKey, JSON.stringify(snap));
+    try { localStorage.setItem(this.liveKey, JSON.stringify(snap)); }
+    catch (e) {
+      if (T.$gameMessage) T.$gameMessage.add("试玩现场保存失败，请检查浏览器存储空间。");
+      return false;
+    }
     if (T.$gameMessage) T.$gameMessage.add("试玩现场已保存。重新打开 ?debug=1 可从‘现场快照’恢复。");
     return true;
   },
@@ -56,35 +63,45 @@ T.Preview = {
   },
   makeNodeSnapshot(node) {
     if (node.snapshot) return node.snapshot;
-    T.resetGameState();
-    T.ActorRegistry = {};
-    T.$gameVariables.setValue(1, node.stage);
-    T.$gameVariables.setValue(4, 1);
-    T.$gameParty._actors = [];
-    T.$gameParty._gold = node.gold || 0;
-    for (const id of node.party || [2]) T.$gameParty.addActor(id);
-    for (const actor of T.$gameParty.allMembers()) {
-      actor.changeLevel(node.level || 1, false);
-      actor.recoverAll();
-      for (const item of actor.equippedItems()) if (item) T.$gameParty.gainItem(item, 1);
+    if (node.id === "live") {
+      const snapshot = this.liveSnapshot();
+      if (!snapshot) throw new Error("没有可用的试玩现场快照。");
+      return snapshot;
     }
-    /* 调试节点给出足量基础物资，便于检查系统，不会进入正常存档。 */
-    for (const id of [1, 2, 3, 4, 5, 6, 7, 8]) if (T.$dataItems[id]) T.$gameParty.gainItem(T.$dataItems[id], 8);
-    for (const id of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) if (T.$dataWeapons[id]) T.$gameParty.gainItem(T.$dataWeapons[id], 2);
-    for (const id of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) if (T.$dataArmors[id]) T.$gameParty.gainItem(T.$dataArmors[id], 2);
-    for (const id of node.items || []) if (T.$dataItems[id]) T.$gameParty.gainItem(T.$dataItems[id], 3);
-    T.$gameSystem.chapterGuides = {};
-    T.$gameSystem.chapter1Complete = node.stage >= 80;
-    const snapshot = T.captureGameSnapshot();
-    /* 生成节点时还没有地图场景，必须显式写入目标地图，否则会落到默认地图1。 */
-    snapshot.mapId = node.mapId;
-    snapshot.player = { x: node.x || 8, y: node.y || 8, dir: 2 };
-    return snapshot;
+    const previous = T.captureRuntimeState();
+    try {
+      T.resetGameState();
+      T.ActorRegistry = {};
+      T.$gameVariables.setValue(1, node.stage);
+      T.$gameVariables.setValue(4, 1);
+      T.$gameParty._actors = [];
+      T.$gameParty._gold = node.gold || 0;
+      for (const id of node.party || [2]) T.$gameParty.addActor(id);
+      for (const actor of T.$gameParty.allMembers()) {
+        actor.changeLevel(node.level || 1, false);
+        actor.recoverAll();
+        for (const item of actor.equippedItems()) if (item) T.$gameParty.gainItem(item, 1);
+      }
+      /* 调试节点给出足量基础物资，便于检查系统，不会进入正常存档。 */
+      for (const id of [1, 2, 3, 4, 5, 6, 7, 8]) if (T.$dataItems[id]) T.$gameParty.gainItem(T.$dataItems[id], 8);
+      for (const id of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) if (T.$dataWeapons[id]) T.$gameParty.gainItem(T.$dataWeapons[id], 2);
+      for (const id of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) if (T.$dataArmors[id]) T.$gameParty.gainItem(T.$dataArmors[id], 2);
+      for (const id of node.items || []) if (T.$dataItems[id]) T.$gameParty.gainItem(T.$dataItems[id], 3);
+      T.$gameSystem.chapterGuides = {};
+      T.$gameSystem.chapter1Complete = node.stage >= 80;
+      const snapshot = T.captureGameSnapshot();
+      /* 生成节点时还没有地图场景，必须显式写入目标地图，否则会落到默认地图1。 */
+      snapshot.mapId = node.mapId;
+      snapshot.player = { x: node.x ?? 8, y: node.y ?? 8, dir: 2 };
+      return snapshot;
+    } finally {
+      T.restoreRuntimeState(previous);
+    }
   },
   resolveSpawn(node) {
     const map = T.$gameMap;
     const target = node.eventId && map ? map.event(node.eventId) : null;
-    const wanted = target ? { x: target.x, y: target.y } : { x: node.x || 8, y: node.y || 8 };
+    const wanted = target ? { x: target.x, y: target.y } : { x: node.x ?? 8, y: node.y ?? 8 };
     const candidates = target
       ? [[0, 1, 8], [0, -1, 2], [-1, 0, 6], [1, 0, 4]]
       : [[0, 0, 2], [0, 1, 8], [0, -1, 2], [-1, 0, 6], [1, 0, 4]];
@@ -99,18 +116,27 @@ T.Preview = {
     return { x: wanted.x, y: wanted.y, dir: 2 };
   },
   async launch(node) {
+    const wasEnabled = this.enabled;
     this.enabled = true;
-    const snapshot = this.makeNodeSnapshot(node);
-    await T.applyGameSnapshot(snapshot);
-    const pos = this.resolveSpawn(node);
-    if (T.$gamePlayer) {
-      T.$gamePlayer.x = pos.x; T.$gamePlayer.y = pos.y;
-      T.$gamePlayer._prevX = pos.x; T.$gamePlayer._prevY = pos.y;
-      T.$gamePlayer._realX = pos.x; T.$gamePlayer._realY = pos.y;
-      T.$gamePlayer.setDirection(pos.dir);
+    try {
+      const snapshot = this.makeNodeSnapshot(node);
+      if (!await T.applyGameSnapshot(snapshot)) throw new Error("试玩快照恢复失败，原进度已保留。");
+      // 现场快照已包含玩家坐标；只有预设节点需要搜索事件旁的出生点。
+      if (node.id !== "live" && !node.snapshot) {
+        const pos = this.resolveSpawn(node);
+        if (T.$gamePlayer) {
+          T.$gamePlayer.x = pos.x; T.$gamePlayer.y = pos.y;
+          T.$gamePlayer._prevX = pos.x; T.$gamePlayer._prevY = pos.y;
+          T.$gamePlayer._realX = pos.x; T.$gamePlayer._realY = pos.y;
+          T.$gamePlayer.setDirection(pos.dir);
+        }
+      }
+      if (T.$gameMap && T.$gameMap.interpreter && T.$gameMap.interpreter.clear) T.$gameMap.interpreter.clear();
+      T.$gameSystem.previewNode = node.id;
+    } catch (error) {
+      this.enabled = wasEnabled;
+      throw error;
     }
-    if (T.$gameMap && T.$gameMap.interpreter && T.$gameMap.interpreter.clear) T.$gameMap.interpreter.clear();
-    T.$gameSystem.previewNode = node.id;
   },
 };
 

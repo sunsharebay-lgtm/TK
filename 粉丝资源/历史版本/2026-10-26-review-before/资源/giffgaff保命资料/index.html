@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b12">
+  <meta name="description" content="Giffgaff 保命资料：退款工单模板、僵局确认函话术与通信监察专员申诉流程。">
+  <title>Giffgaff 保命资料 · 创意空间</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b12;
+      --panel: rgba(14, 23, 36, .86);
+      --panel-strong: #111d2d;
+      --ink: #edf4ff;
+      --muted: #8da0b9;
+      --line: rgba(139, 169, 208, .2);
+      --cyan: #43e8ff;
+      --amber: #ffb347;
+      --green: #5ce08a;
+      font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; background: var(--bg); }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 560px at 78% -8%, rgba(37, 109, 145, .26), transparent 68%),
+        radial-gradient(760px 520px at 12% 110%, rgba(200, 130, 60, .14), transparent 70%),
+        linear-gradient(155deg, #0a111c 0%, var(--bg) 55%, #090d16 100%);
+    }
+
+    .shell {
+      width: min(880px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 20px 0 34px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: #061018;
+      background: var(--cyan);
+      clip-path: polygon(0 0, 100% 0, 100% 76%, 76% 100%, 0 100%);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .system-status {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      padding: clamp(28px, 6vw, 54px) 0 34px;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--amber);
+      font-size: 11px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 640px;
+      margin: 0;
+      font-size: clamp(34px, 7vw, 58px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .hero-copy {
+      max-width: 560px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .section {
+      margin-top: 26px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .step {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .step-index {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--amber);
+      font-size: 9px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .link-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .link-card:hover,
+    .link-card:focus-within {
+      border-color: rgba(67, 232, 255, .72);
+      background: var(--panel-strong);
+    }
+
+    .link-card .label {
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .link-card a {
+      color: var(--ink);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+      text-decoration-color: rgba(67, 232, 255, .6);
+      text-underline-offset: 3px;
+    }
+
+    .template-block {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .template-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .template-kicker {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--amber);
+      font-size: 9px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .template-head h3 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .copy-btn {
+      flex: 0 0 auto;
+      min-width: 64px;
+      height: 30px;
+      padding: 0 12px;
+      border: 1px solid rgba(67, 232, 255, .4);
+      background: rgba(67, 232, 255, .08);
+      color: var(--cyan);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      cursor: pointer;
+      transition: border-color .2s ease, color .2s ease, background .2s ease;
+    }
+
+    .copy-btn:hover,
+    .copy-btn:focus-visible {
+      border-color: var(--cyan);
+      background: rgba(67, 232, 255, .18);
+      color: var(--ink);
+    }
+
+    .copy-btn.copied {
+      border-color: rgba(92, 224, 138, .6);
+      background: rgba(92, 224, 138, .12);
+      color: var(--green);
+    }
+
+    .template-note {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .template-note code {
+      color: var(--amber);
+      font-family: inherit;
+    }
+
+    .template-text {
+      margin: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: rgba(9, 16, 27, .72);
+      color: var(--ink);
+      font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      user-select: all;
+    }
+
+    .notes {
+      padding: 16px 18px;
+      border: 1px solid rgba(255, 179, 71, .3);
+      border-left: 3px solid var(--amber);
+      background: rgba(255, 179, 71, .06);
+    }
+
+    .notes h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .notes ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.85;
+    }
+
+    .notes strong {
+      color: var(--ink);
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 28px, 560px); }
+      .steps, .links { grid-template-columns: 1fr; }
+      .section-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
+      .template-head { align-items: flex-start; flex-direction: column; }
+      .footer { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="返回创意空间首页">
+        <span class="brand-mark">创</span>
+        <span>创意空间 // CREATIVE SPACE</span>
+      </a>
+      <div class="system-status">FAN RESOURCE / 粉丝资料</div>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Giffgaff / 退款申诉</p>
+      <h1>Giffgaff 保命资料</h1>
+      <p class="hero-copy">账户余额需要退回时，按下面流程走：先在 Giffgaff 官网开退款工单，被拒绝后索要僵局确认函，再拿确认函向通信监察专员申诉。三个英文模板都做好了，一键复制后替换个人信息即可。</p>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>流程速览 / QUICK STEPS</h2>
+        <p>按顺序执行</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="step-index">STEP 01</span>
+          <h3>开退款工单</h3>
+          <p>到 Giffgaff 官网建立工单，使用下方「退款工单模板」申请退还余额。</p>
+        </div>
+        <div class="step">
+          <span class="step-index">STEP 02</span>
+          <h3>索要僵局确认函</h3>
+          <p>如果工单里被拒绝，回复「僵局确认函话术」，要求对方出具 deadlock letter。</p>
+        </div>
+        <div class="step">
+          <span class="step-index">STEP 03</span>
+          <h3>向监察专员申诉</h3>
+          <p>注册 Ombudsman Services 账号，提交「申诉正文」，并附上余额、停服邮件与确认函截图。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>官方网址 / LINKS</h2>
+        <p>两个入口</p>
+      </div>
+      <div class="links">
+        <div class="link-card">
+          <span class="label">Ombudsman Services</span>
+          <a href="https://case.ombudsman-services.org/" target="_blank" rel="noopener noreferrer">https://case.ombudsman-services.org/</a>
+        </div>
+        <div class="link-card">
+          <span class="label">Giffgaff 官网工单</span>
+          <a href="https://support2.giffgaff.com/" target="_blank" rel="noopener noreferrer">https://support2.giffgaff.com/</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>可复制模板 / TEMPLATES</h2>
+        <p>复制后替换占位符</p>
+      </div>
+      <div class="template-block">
+        <div class="template-head">
+          <div>
+            <span class="template-kicker">TEMPLATE 01</span>
+            <h3>退款工单模板</h3>
+          </div>
+          <button class="copy-btn" type="button" aria-label="复制退款工单模板">复制</button>
+        </div>
+        <p class="template-note">注意把 <code>*</code> 的位置换成你的手机号，把 <code>#</code> 的位置换成你的名字。</p>
+        <pre class="template-text">Subject: Refund Request for Remaining Account Balance - Phone Number: **********
+
+Dear giffgaff Customer Service Team,
+
+I am writing to request a refund for the remaining credit balance on my account. I have recently stopped using my giffgaff SIM card as I no longer need it. I only used the service for a very short period of time, and I noticed there is still some remaining balance left. Could you please assist me in processing a refund for this remaining amount back to my original payment method?
+
+Below is my account detail for your reference:
+
+giffgaff Phone Number: ******************
+
+Thank you for your time and assistance.
+
+Sincerely,
+#####</pre>
+      </div>
+
+      <div class="template-block">
+        <div class="template-head">
+          <div>
+            <span class="template-kicker">TEMPLATE 02</span>
+            <h3>僵局确认函话术</h3>
+          </div>
+          <button class="copy-btn" type="button" aria-label="复制僵局确认函话术">复制</button>
+        </div>
+        <p class="template-note">当 giffgaff 在官网工单中拒绝你的退款需求后，在工单里回复这句话，索取僵局确认函。</p>
+        <pre class="template-text">I am not satisfied with this resolution. Please issue a deadlock letter so I can escalate this to the Communications Ombudsman.</pre>
+      </div>
+
+      <div class="template-block">
+        <div class="template-head">
+          <div>
+            <span class="template-kicker">TEMPLATE 03</span>
+            <h3>通信监察专员申诉正文</h3>
+          </div>
+          <button class="copy-btn" type="button" aria-label="复制通信监察专员申诉正文">复制</button>
+        </div>
+        <p class="template-note">在第一个申诉网址注册账号后提交。大意是：我的账户余额未使用，但我收到邮件通知服务将被暂停，因此我将无法再使用账户中的资金，请将剩余余额退还至我的原支付账户。如果你是找号商或者别人帮你代充的，改成要求退还到你指定的账户。</p>
+        <pre class="template-text">My account balance remains unused, yet I have received an email notifying me that services will be suspended. As a result, I will no longer be able to access the funds in my account. Please refund my remaining balance to my original payment method.</pre>
+      </div>
+    </section>
+
+    <section class="section notes">
+      <h2>申诉注意 / REMINDERS</h2>
+      <ul>
+        <li>提交申诉前最好准备好三张截图：账户余额、Giffgaff 发给你的停服邮件、拿到的僵局确认函，截图里最好能看到账号名称和日期。</li>
+        <li>直接申诉可能被否决。申诉条件有两个：一是已经拿到僵局确认函，二是从处理开始算满 14 天（两周）。如果还没到 14 天，就等到 14 天后再提交。</li>
+        <li>如果你是通过找号商或别人代充的，把申诉正文中「退还至原支付账户」改为退还到你指定的账户。</li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      <span>创意空间 · Creative Space</span>
+      <span>Copy and go / 复制即用</span>
+    </footer>
+  </main>
+  <script>
+    (function setupCopy() {
+      const done = (button) => {
+        const original = button.textContent;
+        button.textContent = '已复制';
+        button.classList.add('copied');
+        button.disabled = true;
+        setTimeout(() => {
+          button.textContent = original;
+          button.classList.remove('copied');
+          button.disabled = false;
+        }, 1500);
+      };
+
+      const legacyCopy = (value, callback) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          callback();
+        } catch (_) {
+          // Clipboard is unavailable; the text remains user-selectable.
+        }
+        textarea.remove();
+      };
+
+      document.querySelectorAll('.copy-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+          const block = button.closest('.template-block');
+          const source = block && block.querySelector('.template-text');
+          if (!source) return;
+          const value = source.textContent.trim();
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(() => done(button)).catch(() => legacyCopy(value, () => done(button)));
+          } else {
+            legacyCopy(value, () => done(button));
+          }
+        });
+      });
+    }());
+  </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -9,33 +10,32 @@ const { generateCatalog, parseStableTags } = require(path.join(root, 'scripts/ge
 const catalogPath = path.join(root, 'game-catalog.json');
 assert.ok(fs.existsSync(catalogPath), '游戏目录元数据文件必须存在');
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+const template = JSON.parse(read('game-catalog.template.json'));
+const reachableTags = execFileSync('git', ['tag', '--list', '--merged', 'HEAD'], {
+  cwd: path.resolve(root, '..'), encoding: 'utf8',
+});
+assert.deepEqual(catalog, generateCatalog(template, reachableTags), '目录快照必须与当前 HEAD 可达标签一致；请重新运行目录生成器');
+for (const game of catalog.games) {
+  assert.match(game.version, /^v\d+\.\d+\.\d+$/, `${game.id} 版本必须使用稳定语义版本`);
+  assert.ok(typeof game.status === 'string' && game.status, `${game.id} 必须有展示状态`);
+}
 const tank = catalog.games.find((game) => game.id === 'tank-battle');
 assert.ok(tank, '游戏目录必须包含坦克大战');
-assert.match(tank.version, /^v\d+\.\d+\.\d+$/, '坦克大战版本必须使用稳定版语义版本');
-assert.equal(tank.status, '稳定版', '坦克大战应标记为稳定版');
 const threeKingdoms = catalog.games.find((game) => game.id === 'three-kingdoms');
 assert.ok(threeKingdoms, '游戏目录必须包含三国 RPG');
-assert.equal(threeKingdoms.version, 'v0.3.0', '三国 RPG 当前稳定切片必须为 v0.3.0');
-assert.equal(threeKingdoms.status, '稳定版', '三国 RPG v0.3.0 应标记为稳定版');
 const superMario = catalog.games.find((game) => game.id === 'super-mario');
 assert.ok(superMario, '游戏目录必须包含超级玛丽');
-assert.equal(superMario.version, 'v0.1.0', '超级玛丽尚无正式标签时使用 v0.1.0');
-assert.equal(superMario.status, '开发版', '超级玛丽暂无正式标签时应为开发版');
 const idleScreen = catalog.games.find((game) => game.id === 'idle-screen');
 assert.ok(idleScreen, '游戏目录必须包含闲置屏幕');
-assert.equal(idleScreen.version, 'v0.4.0', '闲置屏幕应使用语义化版本号');
 assert.equal(idleScreen.external, false, '墨水屏小站迁入后应标记为站内项目');
 assert.equal(idleScreen.url, '../墨水屏小站/', '墨水屏小站应使用站内相对路径');
 assert.equal(idleScreen.tagNamespace, 'game/idle-screen', '墨水屏小站应使用独立标签命名空间');
 const macSoftwareLibrary = catalog.games.find((game) => game.id === 'mac-software-resource-library');
 assert.ok(macSoftwareLibrary, '目录必须包含 Mac 软件资源库');
-assert.equal(macSoftwareLibrary.version, 'v0.6.0', 'Mac 软件资源库应使用 v0.6.0 回退版本');
-assert.equal(macSoftwareLibrary.status, '资源库', '未打标签时 Mac 软件资源库应标记为资源库');
 assert.equal(macSoftwareLibrary.url, '../Mac软件资源库/', 'Mac 软件资源库应使用站内相对路径');
 assert.equal(macSoftwareLibrary.tagNamespace, 'resource/mac-software-library', 'Mac 软件资源库应使用 resource 标签命名空间');
-assert.equal(catalog.games.length, 5, '当前可展示创意数量应为 5');
+assert.equal(catalog.games.length, template.games.length, '目录数量与注册模板一致');
 
-const template = JSON.parse(read('game-catalog.template.json'));
 const parsedTags = parseStableTags([
   'game/tank-battle/v1.6.1',
   'game/tank-battle/v1.6.2',
@@ -69,19 +69,16 @@ const taggedMacSoftwareLibrary = taggedCatalog.games.find((game) => game.id === 
 assert.equal(taggedMacSoftwareLibrary.version, 'v0.6.1', '目录应解析资源库 namespace 稳定版本');
 assert.equal(taggedMacSoftwareLibrary.status, '稳定版', '存在资源库 namespace 标签时应标记为稳定版');
 const taggedSuperMario = taggedCatalog.games.find((game) => game.id === 'super-mario');
-assert.equal(taggedSuperMario.version, 'v0.1.0', '没有超级玛丽标签时应保留 fallback');
-assert.equal(taggedSuperMario.status, '开发版', '没有超级玛丽标签时应保持开发版');
+const marioTemplate = template.games.find((game) => game.id === 'super-mario');
+assert.equal(taggedSuperMario.version, marioTemplate.fallbackVersion, '没有超级玛丽标签时应保留 fallback');
+assert.equal(taggedSuperMario.status, marioTemplate.statusWhenMissing, '没有超级玛丽标签时应保持回退状态');
 
 const fallbackCatalog = generateCatalog(template, 'v9.9.9\nrelease/foo');
-const fallbackTank = fallbackCatalog.games.find((game) => game.id === 'tank-battle');
-assert.equal(fallbackTank.version, 'v1.6.1', '没有匹配 namespace 标签时应使用坦克大战 fallback');
-assert.equal(fallbackTank.status, '稳定版', '没有匹配 namespace 标签时应使用稳定版状态');
-const fallbackThreeKingdoms = fallbackCatalog.games.find((game) => game.id === 'three-kingdoms');
-assert.equal(fallbackThreeKingdoms.version, 'v0.2.0', '没有匹配 namespace 标签时应使用三国 RPG fallback');
-assert.equal(fallbackThreeKingdoms.status, '开发版', '没有匹配 namespace 标签时三国 RPG 应保留开发版状态');
-const fallbackMacSoftwareLibrary = fallbackCatalog.games.find((game) => game.id === 'mac-software-resource-library');
-assert.equal(fallbackMacSoftwareLibrary.version, 'v0.6.0', '没有匹配 namespace 标签时资源库应使用 fallback');
-assert.equal(fallbackMacSoftwareLibrary.status, '资源库', '没有匹配 namespace 标签时资源库应保留资源库状态');
+for (const game of fallbackCatalog.games) {
+  const configured = template.games.find((entry) => entry.id === game.id);
+  assert.equal(game.version, configured.fallbackVersion, `${game.id} 没有标签时使用配置的回退版本`);
+  assert.equal(game.status, configured.statusWhenMissing, `${game.id} 没有标签时使用配置的回退状态`);
+}
 
 const generator = read('scripts/generate-game-catalog.cjs');
 assert.match(generator, /game-catalog\.json/, '版本生成器应生成游戏目录文件');

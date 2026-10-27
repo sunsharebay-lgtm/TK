@@ -9,6 +9,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : dflt; };
@@ -28,11 +29,12 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i].startsWith("--eval=")) evals.push(args[i].slice(7));
   else if (args[i] === "--eval-file") evals.push(...JSON.parse(fs.readFileSync(args[i + 1], "utf8")));
 }
-const profile = opt("--profile", "/tmp/tk-cdp-profile-" + process.pid);
+const ownedProfile = !args.includes("--profile") && !args.includes("--attach");
+const profile = opt("--profile", ownedProfile ? fs.mkdtempSync(path.join(os.tmpdir(), "tk-cdp-")) : "");
+let port = Number(opt("--port", args.includes("--attach") ? "9333" : "0"));
 
-if (!args.includes("--attach")) { try { execSync("pkill -f \"remote-debugging-port=9333\""); } catch {} }
 fs.mkdirSync(outDir, { recursive: true });
-const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const chromePath = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -41,32 +43,50 @@ const chrome = args.includes("--attach") ? null : spawn(chromePath, [
   "--no-first-run", "--no-default-browser-check", "--disable-extensions", "--disable-http-cache",
   "--window-size=1366,900",
   `--user-data-dir=${profile}`,
-  "--remote-debugging-port=9333",
+  `--remote-debugging-port=${port}`,
 ], { stdio: ["ignore", "ignore", "pipe"] });
+if (chrome) {
+  chrome.stderr.resume();
+  chrome.on('error', error => { console.error(error.message); process.exit(1); });
+}
+process.once('exit', () => {
+  if (!args.includes('--keep')) {
+    if (chrome) { try { chrome.kill(); } catch {} }
+    if (ownedProfile) { try { fs.rmSync(profile, { recursive: true, force: true }); } catch {} }
+  }
+});
+process.once('SIGTERM', () => process.exit(143));
+process.once('SIGINT', () => process.exit(130));
 
 let page = null;
 for (let i = 0; i < 100 && !page; i++) {
   try {
-    const list = await (await fetch("http://127.0.0.1:9333/json/list")).json();
+    if (!port) port = Number(fs.readFileSync(path.join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0]);
+    const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
     page = list.find(t => t.type === "page");
   } catch {}
   if (!page) await sleep(200);
 }
-if (!page) { console.error(JSON.stringify({ error: "no page target on 9333" })); process.exit(1); }
+if (!page) { console.error(JSON.stringify({ error: `no page target on ${port}` })); process.exit(1); }
 const sock = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((res, rej) => { sock.onopen = res; sock.onerror = rej; });
 
 let msgId = 0;
 const pending = new Map();
 const consoleLogs = [], exceptions = [], badResponses = [], failures = [], jsResponses = [];
+const requests = new Map();
 sock.onmessage = ev => {
   const m = JSON.parse(ev.data);
-  if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+  if (m.id && pending.has(m.id)) {
+    const call = pending.get(m.id); clearTimeout(call.timer); pending.delete(m.id);
+    if (m.error) call.reject(new Error(`${call.method}: ${m.error.message}`)); else call.resolve(m);
+  }
   if (m.method === "Runtime.consoleAPICalled") {
     const type = m.params.type;
     const txt = (m.params.args || []).map(a => a.value ?? a.description ?? "").join(" ");
     consoleLogs.push({ type, txt });
   }
+  if (m.method === 'Network.requestWillBeSent') requests.set(m.params.requestId, m.params.request.url);
   if (m.method === "Runtime.exceptionThrown") {
     exceptions.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text);
   }
@@ -77,12 +97,18 @@ sock.onmessage = ev => {
     jsResponses.push({ status: m.params.response.status, headers: m.params.response.headers, url: m.params.response.url });
   }
   if (m.method === "Network.loadingFailed") {
-    failures.push({ errorText: m.params.errorText, url: m.params.requestId });
+    failures.push({ errorText: m.params.errorText, url: requests.get(m.params.requestId) || m.params.requestId });
   }
 };
-const send = (method, params = {}) => new Promise(res => {
+sock.onclose = () => {
+  for (const call of pending.values()) { clearTimeout(call.timer); call.reject(new Error(`CDP connection closed during ${call.method}`)); }
+  pending.clear();
+};
+const send = (method, params = {}) => new Promise((resolve, reject) => {
   const id = ++msgId;
-  pending.set(id, res);
+  // Native WebSocket alone may not keep Node alive while a browser Promise is pending.
+  const timer = setTimeout(() => { pending.delete(id); reject(new Error(`CDP timeout: ${method}`)); }, 30000);
+  pending.set(id, { resolve, reject, timer, method });
   sock.send(JSON.stringify({ id, method, params }));
 });
 
@@ -170,5 +196,5 @@ for (const expr of evals) {
 }
 const summary = { shots, preEvalResults, midDone, midEvalResults, evalResults, jsResponses, consoleLogs: consoleLogs.slice(0, 40), exceptions, badResponses: badResponses.slice(0, 30), failures: failures.slice(0, 20) };
 console.log(JSON.stringify(summary, null, 1));
-if (!args.includes("--keep")) { try { chrome.kill(); } catch {} }
+sock.close();
 process.exit(0);

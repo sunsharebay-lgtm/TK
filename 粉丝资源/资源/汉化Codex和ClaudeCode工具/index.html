@@ -346,45 +346,6 @@
       <span>Resource 04 / Creative Space</span>
     </footer>
   </main>
-  <script>
-    (function setupCopy() {
-      const button = document.querySelector('.copy-btn');
-      const source = document.querySelector('.template-text');
-      if (!button || !source) return;
-
-      const done = () => {
-        const original = button.textContent;
-        button.textContent = '已复制';
-        button.classList.add('copied');
-        button.disabled = true;
-        setTimeout(() => {
-          button.textContent = original;
-          button.classList.remove('copied');
-          button.disabled = false;
-        }, 1500);
-      };
-
-      button.addEventListener('click', () => {
-        const value = source.textContent.trim();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(value).then(done).catch(() => fallbackCopy(value));
-        } else {
-          fallbackCopy(value);
-        }
-      });
-
-      function fallbackCopy(value) {
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try { document.execCommand('copy'); done(); } catch (_) {}
-        textarea.remove();
-      }
-    }());
-  </script>
+  <script src="../../scripts/copy.js"></script>
 </body>
 </html>

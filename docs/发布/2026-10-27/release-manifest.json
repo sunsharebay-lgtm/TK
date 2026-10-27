@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-27",
+  "baseCommit": "6044041f96149e9b1bc1842804e2bb85feabb0c6",
+  "projects": [
+    {
+      "project": "创意空间首页",
+      "tag": "site/home/v0.5.2",
+      "changes": "首页手机布局、B站主页、可达标签目录与发布验收"
+    },
+    {
+      "project": "坦克大战",
+      "tag": "game/tank-battle/v1.6.12",
+      "changes": "输入释放、手柄重连与版本显示"
+    },
+    {
+      "project": "吞食天地三国",
+      "tag": "game/three-kingdoms/v0.3.1",
+      "changes": "现行引擎输入、存档完整性/失败保护与现场恢复"
+    },
+    {
+      "project": "超级玛丽",
+      "tag": "game/super-mario/v0.1.1",
+      "changes": "手柄/触屏输入与原子构建；仍暂停新增玩法"
+    },
+    {
+      "project": "墨水屏小站",
+      "tag": "game/idle-screen/v0.4.1",
+      "changes": "设置、番茄钟、天气、窄屏布局；原生原型源码修复"
+    },
+    {
+      "project": "Mac软件资源库",
+      "tag": "resource/mac-software-library/v0.6.1",
+      "changes": "剪贴板失败反馈；软件目录仍是2026-09-09数据快照"
+    },
+    {
+      "project": "粉丝资源",
+      "tag": "content/fan-resources/v0.7.1",
+      "changes": "复制正确内容、失败反馈与旧Mac地址兼容跳转"
+    }
+  ]
+}

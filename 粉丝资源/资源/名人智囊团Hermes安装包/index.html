@@ -219,25 +219,6 @@
     </footer>
   </main>
 
-  <script>
-    document.querySelectorAll('.copy-btn').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const target = document.getElementById(button.dataset.copyTarget);
-        if (!target) return;
-        try {
-          await navigator.clipboard.writeText(target.textContent.trim());
-          const original = button.textContent;
-          button.textContent = '已复制';
-          setTimeout(() => { button.textContent = original; }, 1600);
-        } catch {
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(target);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-      });
-    });
-  </script>
+  <script src="../../scripts/copy.js"></script>
 </body>
 </html>

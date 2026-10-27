@@ -15,7 +15,7 @@
 | 墨水屏小站 | `墨水屏小站/` | Kindle 墨水屏信息屏，单文件 ES5 兼容页面，站内维护 |
 | Mac 软件资源库 | `Mac软件资源库/` | 独立平级资源库，维护 71 个 Mac 软件的数据、页面、测试与历史版本 |
 | 粉丝资源 | `粉丝资源/` | 视频资源数据与长资料页，独立维护，首页只做展示联动 |
-| 舞台（共享设施） | 根目录 | `.github/`、`scripts` 归属首页、`docs/`、规则与说明文档、根跳转页 |
+| 舞台（共享设施） | 根目录 | `.github/`、跨项目 `scripts/`、`docs/`、规则与说明文档、根跳转页；版本生成器仍归属首页 |
 
 每个项目的开发约定：**一个创意一个文件夹，所有该创意的文件都放进对应文件夹**。详见 [AGENTS.md](AGENTS.md)。
 
@@ -25,23 +25,23 @@
 - 各游戏项目**互相独立**，互不依赖，各自拥有源码、测试、素材与历史版本。
 - `墨水屏小站` 已从外部仓库迁入站内，线上入口为 `/TK/墨水屏小站/`。
 - `Mac软件资源库` 于 2026-09-10 从 `粉丝资源/资源/Mac软件资源库/` 提升为根目录平级项目；首页以 `RESOURCE 005` 卡片链接 `../Mac软件资源库/`，该项目不再属于粉丝资源。
-- `粉丝资源` 独立维护其 5 条 `resources.json` 资源与资料页；首页只读取 `../粉丝资源/resources.json`，不重复维护内容。
+- `粉丝资源` 独立维护其 6 条 `resources.json` 资源与资料页；首页只读取 `../粉丝资源/resources.json`，不重复维护内容。Mac 旧地址仅为兼容跳转壳。
 - 首页通过 `创意空间首页/game-catalog.json` 动态显示各游戏的最新稳定版本号；版本号来自 Git 标签，不是手写。
 - 生成版本目录的脚本 `创意空间首页/scripts/generate-game-catalog.cjs` 属于首页项目。
-- 部署工作流 `.github/workflows/pages.yml` 属于整个创意空间（部署整仓库到 GitHub Pages）。
+- 部署工作流 `.github/workflows/pages.yml` 属于整个创意空间；共享脚本验证全部子项目，再打包网页运行文件到 `.site/`。
 
 ## 3. 在线部署结构
 
-GitHub Pages 从**仓库根目录**发布整站，所以网址结构如下：
+GitHub Pages 发布 `.site/` 中与仓库运行目录一致的结构，网址保持如下：
 
 ```text
 https://sunsharebay-lgtm.github.io/TK/
     ├── index.html          # 根跳转页（自动跳到创意空间首页，不要当首页改）
-    └── 创意空间首页/        # 真正的首页 / 游戏中心
+    ├── 创意空间首页/        # 真正的首页 / 游戏中心
         ├── index.html
         ├── game-catalog.json
-        ├── game-catalog.template.json
-        └── scripts/generate-game-catalog.cjs
+        ├── deployment-meta.json
+        └── qq-group-qrcode.jpg
     ├── 坦克大战/tank-battle.html
     ├── 吞食天地三国/（入口跳转到 网页复刻/吞食天地Ⅱ同人复刻-网页版/）
     ├── 超级玛丽/index.html
@@ -66,7 +66,7 @@ https://sunsharebay-lgtm.github.io/TK/
    git push origin main
    ```
 
-3. 推送到 `main` 会自动触发 GitHub Pages 重新部署，几分钟后线上更新，无需其他操作。
+3. 推送到 `main` 会触发测试、打包、部署和线上验收。只有全部成功才算发布完成。
 
 > 关于更新记录：各分支项目的 `更新记录.md` 与 `历史版本/` 属于仓库内容，会随 `git add -A` 一起推送；但根目录的 `创意空间/更新记录.md` 是**仅本地的总更新记录**，已在 `.gitignore` 中排除，`git add -A` 不会把它推上 GitHub。
 
@@ -90,7 +90,7 @@ git push origin game/three-kingdoms/v1.0.0
 git push origin main
 ```
 
-标签先推送作为版本记录，再推送 `main` 触发唯一一次 Pages 部署。部署时 `generate-game-catalog.cjs` 会读取远端标签并把最新稳定版本写进首页的 `game-catalog.json`；`site/**/v*` 与 `content/**/v*` 只作为首页/粉丝资源的发布里程碑。**不要**创建旧的全局版本标签。
+标签先推送作为版本记录，再推送 `main` 触发唯一一次 Pages 部署。部署时 `generate-game-catalog.cjs` 只读取当前提交可达的标签，并把最高稳定版本写进首页目录；`site/**/v*` 与 `content/**/v*` 只作为首页/粉丝资源里程碑。**不要**创建旧的全局版本标签。
 
 发布完成的判定不是“推送成功”，而是：GitHub Actions 成功、部署版本标记与提交一致、七个入口返回 200、粉丝资源数据与详情页验收通过。
 

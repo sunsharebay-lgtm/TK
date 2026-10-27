@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const output = path.join(__dirname, '..', 'game-catalog.json');
 const templatePath = path.join(__dirname, '..', 'game-catalog.template.json');
+const repositoryRoot = path.resolve(__dirname, '..', '..');
 
 function compareSemanticVersions(left, right) {
   const leftParts = left.slice(1).split('.').map(Number);
@@ -62,7 +63,10 @@ function generateCatalog(template, tagText) {
 
 function main() {
   const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
-  const tagText = execFileSync('git', ['tag', '--list'], { encoding: 'utf8' });
+  const tagText = execFileSync('git', ['tag', '--list', '--merged', 'HEAD'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
   const catalog = generateCatalog(template, tagText);
   fs.writeFileSync(output, `${JSON.stringify(catalog, null, 2)}\n`);
   console.log(`Generated ${path.relative(process.cwd(), output)} from per-game stable tags`);

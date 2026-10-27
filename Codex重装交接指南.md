@@ -16,8 +16,8 @@
 - GitHub Pages 地址：`https://sunsharebay-lgtm.github.io/TK/`
   - 根地址是跳转页，自动跳到 `创意空间首页/`。
   - 首页直达：`https://sunsharebay-lgtm.github.io/TK/创意空间首页/`
-- 本机运行环境：macOS，Node `v26.7.0`；多数测试用 `node` 运行。
-- 本地预览：`cd "/Users/sun/Desktop/AI/创意空间" && python3 -m http.server 8123 --bind 127.0.0.1`，再访问 `http://127.0.0.1:8123/创意空间首页/`。
+- 本机运行环境：macOS，本轮 Node `v24.20.0`（CI 固定 24）；多数测试用 `node` 运行。
+- 本地预览：`cd "/Users/sun/Desktop/AI/创意空间" && node scripts/serve-site.cjs . 8123`，再访问 `http://127.0.0.1:8123/创意空间首页/`。
 
 ## 3. 目录结构速览
 
@@ -31,6 +31,7 @@
 ├── Codex重装交接指南.md         # 本文件
 ├── index.html                 # 根部署跳转页（勿当首页改）
 ├── .github/workflows/pages.yml# Pages 部署工作流
+├── scripts/                   # 全项目检查、打包、本地预览与浏览器验收
 ├── docs/                      # 项目级共享文档
 ├── 创意空间首页/              # 创意：首页 / 游戏中心
 ├── 坦克大战/                  # 创意：坦克大战
@@ -68,7 +69,7 @@
 
 ### 5.2 坦克大战 `坦克大战/`
 
-- 主文件：`tank-battle.html`（单文件 Canvas，当前稳定版 `v1.6.1`）。
+- 主文件：`tank-battle.html`（单文件 Canvas + 本地图集，当前标签 `v1.6.12`）。
 - `坦克大战.html`：旧中文入口兼容跳转。
 - 测试：`坦克大战/测试/`（`smoke_test.js`、`validate_maps.js` 等，多数传入 `tank-battle.html` 路径运行）。
 - 冒烟测试示例：`node 坦克大战/测试/smoke_test.js 坦克大战/tank-battle.html`
@@ -115,7 +116,7 @@
 
 ## 6. 架构与联动
 
-- GitHub Pages 从仓库根目录发布整站。
+- GitHub Pages 从 `scripts/build-site.cjs` 生成的 `.site/` 发布运行文件，保留原有网址结构；不发布历史版本、测试、开发文档和原生实验代码。
 - 根 `index.html` → 自动跳 `创意空间首页/`。
 - 首页卡片：版本号从 `game-catalog.json` 读；`game-catalog.json` 由生成脚本从 Git 标签生成（`game/<id>/vX.Y.Z` 或 `resource/<id>/vX.Y.Z`）。
 - 部署工作流 `.github/workflows/pages.yml`：只响应 `main` 推送和手动触发；生成目录、写入部署版本标记，并在 Pages 部署后执行线上验收。
@@ -173,3 +174,16 @@ git push origin game/three-kingdoms/v1.0.0
 - 任何「重装后不读文档就不知道」的事实。
 
 经验或结构变化要**随时记录**，不要在本地积累太久才写。
+
+## 10. 2026-10-26 审查后的恢复要点
+
+- 先读 `docs/审查/2026-10-26/project.md`，其中区分本次修复、既有未提交内容、QA 结果和仍需用户/设备核实的边界。本次未提交、推送或打新标签。
+- 一键回归：`node scripts/check-all.cjs`；设置 `TEST_PYTHON` 可运行图集像素检查。系统 Python 本轮缺 Pillow；已使用 Codex 自带 Python 3.12.14 / Pillow 12.3.0 验证，恢复时重新发现运行时路径，不假定缓存目录恒定。
+- 三国的 327/78 项旧测试只覆盖 `three-kingdoms.html`。现行引擎应跑 `current_engine_test.js`、`snapshot_recovery_test.js` 和 `测试/tools/regress.mjs` 的 62 个浏览器场景。
+- 三国浏览器回归：在仓库根执行 `node scripts/serve-site.cjs 吞食天地三国/网页复刻/吞食天地Ⅱ同人复刻-网页版 8642`，另一终端执行 `node 吞食天地三国/测试/tools/regress.mjs --jobs 2`。需要 Chrome（可设 `CHROME_PATH`）。驱动使用临时独立端口和浏览器配置，不结束其他 Chrome 进程。不要用小连接队列的服务并发跑场景；本轮 Python http.server 出现过脚本请求重置。
+- 七项目浏览器验收：安装/发现 Playwright，运行 `node scripts/browser-smoke.cjs http://127.0.0.1:8123/`；如使用 Codex 自带包，通过 `NODE_PATH` 提供工具返回的 node_modules 路径。天气接口在此测试中模拟；不代表外网天气可用或 Kindle 真机验证。
+- `.site/` 可随时由生成目录、部署标记和 `scripts/build-site.cjs` 重建。部署前 `site_package_test.cjs` 验证文件大小写与引用；新增运行文件需同步打包清单。
+- Native Kindle 测试在 `墨水屏小站/原生版/墨屏小站原生测试/测试/`；启动恢复用 shell fixture，坐标回放使用 Python `lupa` 运行实际 Lua。临时 Python 包在 `.artifacts/`，不随 Git/Pages 发布；真机需重新验证后再安装。
+- Mac 旧地址 `粉丝资源/资源/Mac软件资源库/` 只保留兼容跳转，不恢复原编号。详情页复制共用 `粉丝资源/scripts/copy.js`，必须随详情页部署。
+- 版本目录只使用当前 HEAD 可达的稳定标签，避免未合并分支/未来标签污染。`main` 手动发布限制与测试门禁均已写入工作流，但本轮没有执行 GitHub Actions 新部署。
+- 本轮恢复增量在 `/Users/sun/Desktop/AI/Codex恢复备份/2026-10-26-创意空间-review/`；它不是完整 Codex 安装备份。

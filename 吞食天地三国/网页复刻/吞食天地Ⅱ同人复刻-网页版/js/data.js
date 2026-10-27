@@ -1062,7 +1062,9 @@ function serializeActors(ids) {
              /* G3-R2: 天赋/称号并入存档 */
              talents: a._ownTalents, chengHao: a._chengHao,
              /* G3-R3: 永久成长（蛇胆/武力石等）并入存档 */
-             paramBonus: a._paramBonus };
+             paramBonus: a._paramBonus,
+             states: a._states, stateSteps: a._stateSteps, stateTurns: a._stateTurns,
+             buffs: a._buffs, tp: a.tp };
   });
 }
 T.captureGameSnapshot = function () {
@@ -1091,7 +1093,8 @@ T.captureGameSnapshot = function () {
       steps: T.$gameParty._steps || 0,
     },
     vehicles: JSON.parse(JSON.stringify(T.$gameVehicles || {})),
-    actorSnapshots: serializeActors(T.$gameParty._actors),
+    // 剧情离队不会删除武将实例；存档也必须保留其装备和永久成长。
+    actorSnapshots: serializeActors([...new Set([...T.$gameParty._actors, ...Object.keys(T.ActorRegistry).map(Number)])]),
     mapId: T.$gameMap ? T.$gameMap.mapId : 1,
     player: T.$gamePlayer ? {
       x: T.$gamePlayer.x, y: T.$gamePlayer.y, dir: T.$gamePlayer.direction(),
@@ -1100,8 +1103,28 @@ T.captureGameSnapshot = function () {
     encounterProgress: T.$gameMap ? T.$gameMap.encounterProgress || 0 : 0,
   };
 };
-T.applyGameSnapshot = async function (s) {
-  if (!s || !s.party) return false;
+const GAME_STATE_KEYS = ["$gameTemp", "$gameSystem", "$gameSwitches", "$gameVariables", "$gameSelfSwitches",
+  "$gameScreen", "$gameTimer", "$gameMessage", "$gameParty", "$gameTroop", "$gameMap", "$gamePlayer",
+  "$gameActors", "$gameVehicles", "$dataMap", "ActorRegistry", "LastBattle", "PendingBattle", "BattleScene",
+  "currentInterpreter", "_synthRecipes"];
+// 保存引用用于失败回滚；正常存档仍使用上面的可序列化快照。
+T.captureRuntimeState = () => Object.fromEntries(GAME_STATE_KEYS.map(key => [key, T[key]]));
+T.restoreRuntimeState = saved => { for (const key of GAME_STATE_KEYS) T[key] = saved[key]; };
+T.isGameSnapshot = function (s) {
+  const record = value => value && typeof value === "object" && !Array.isArray(value);
+  const actorId = id => Number.isInteger(id) && id > 0 && !!(T.$dataActors && T.$dataActors[id]);
+  if (!record(s) || !record(s.party) || !Array.isArray(s.party.actors) || !s.party.actors.every(actorId)) return false;
+  if (s.actorSnapshots != null && (!Array.isArray(s.actorSnapshots) || !s.actorSnapshots.every(a =>
+    record(a) && actorId(a.id) && Number.isFinite(a.level) && a.level >= 1))) return false;
+  if (s.mapId != null && (!Number.isInteger(s.mapId) || s.mapId < 1 || (T.$dataMapInfos && !T.$dataMapInfos[s.mapId]))) return false;
+  if (s.player != null && (!record(s.player) || !Number.isFinite(s.player.x) || !Number.isFinite(s.player.y))) return false;
+  if (s.switches != null && !Array.isArray(s.switches)) return false;
+  if (s.variables != null && !Array.isArray(s.variables)) return false;
+  for (const key of ["system", "selfSwitches", "screen", "vehicles"]) if (s[key] != null && !record(s[key])) return false;
+  for (const key of ["items", "weapons", "armors", "storage"]) if (s.party[key] != null && !record(s.party[key])) return false;
+  return true;
+};
+async function applySnapshotContents(s) {
   T.ActorRegistry = {};
   T.$gameSystem = Object.assign({ saveCount: 0, framesOnSave: 0, bgmOnSave: null, battleCount: 0, winCount: 0 }, s.system || {});
   T.$gameSwitches._data = s.switches || [];
@@ -1112,10 +1135,10 @@ T.applyGameSnapshot = async function (s) {
   T.$gameSelfSwitches._data = s.selfSwitches || {};
   T.$gameScreen.pictures = {};
   for (const [id, p] of Object.entries((s.screen && s.screen.pictures) || {})) {
-    T.$gameScreen.pictures[id] = { name: p.name, x: p.x, y: p.y, opacity: p.opacity, scale: p.scale, img: null };
+    const picture = { name: p.name, x: p.x, y: p.y, opacity: p.opacity, scale: p.scale, img: null };
+    T.$gameScreen.pictures[id] = picture;
     if (p.name) T.ImageManager.picture(p.name).then(img => {
-      const current = T.$gameScreen.pictures[id];
-      if (current) current.img = img;
+      picture.img = img;
     });
   }
   const party = s.party || {};
@@ -1145,6 +1168,11 @@ T.applyGameSnapshot = async function (s) {
     a._ownTalents = snap.talents || [];
     a._chengHao = snap.chengHao || [];
     a._paramBonus = snap.paramBonus || {};
+    a._states = Array.isArray(snap.states) ? snap.states.filter(id => T.$dataStates[id]) : [];
+    a._stateSteps = snap.stateSteps || {};
+    a._stateTurns = snap.stateTurns || {};
+    a._buffs = snap.buffs || {};
+    a.tp = snap.tp || 0;
     a.refresh();
     a.hp = snap.hp == null ? a.mhp : snap.hp;
     a.mp = snap.mp == null ? a.mmp : snap.mp;
@@ -1158,26 +1186,57 @@ T.applyGameSnapshot = async function (s) {
     if (T.$gameMap) T.$gameMap.encounterProgress = Number(s.encounterProgress) || 0;
   }
   return true;
+}
+T.applyGameSnapshot = async function (s) {
+  if (!T.isGameSnapshot(s) || T._loadingSnapshot) return false;
+  const previous = T.captureRuntimeState();
+  const manager = T.SceneManager;
+  const oldStack = manager && manager.stack, oldBusy = manager && manager.busy;
+  T._loadingSnapshot = true;
+  if (manager) { manager.busy = true; manager.stack = []; }
+  try {
+    // 新建状态对象，地图异步加载期间不改变旧场景引用的对象。
+    const snapshot = JSON.parse(JSON.stringify(s));
+    T.resetGameState();
+    T.PendingBattle = null; T.BattleScene = null; T.currentInterpreter = null;
+    return await applySnapshotContents(snapshot);
+  } catch (error) {
+    T.restoreRuntimeState(previous);
+    if (manager) manager.stack = oldStack;
+    console.warn("读档失败，已保留原进度:", error.message);
+    return false;
+  } finally {
+    if (manager) manager.busy = oldBusy;
+    T._loadingSnapshot = false;
+  }
 };
 T.saveGame = async function (slot) {
-  T.$gameSystem.framesOnSave = T.GameMain ? T.GameMain.frameCount : 0;
-  const snap = T.captureGameSnapshot();
-  snap.savedAt = Date.now();
-  const prefix = T.Preview && T.Preview.enabled ? "tndt_debug_save_" : "tndt_save_";
-  localStorage.setItem(prefix + slot, JSON.stringify(snap));
-  T.$gameSystem.saveCount++;
+  if (T._loadingSnapshot) return false;
+  try {
+    const snap = T.captureGameSnapshot();
+    snap.savedAt = Date.now();
+    snap.system.framesOnSave = T.GameMain ? T.GameMain.frameCount : 0;
+    snap.system.saveCount = (T.$gameSystem.saveCount || 0) + 1;
+    localStorage.setItem(T.savePrefix() + slot, JSON.stringify(snap));
+    T.$gameSystem.framesOnSave = snap.system.framesOnSave;
+    T.$gameSystem.saveCount = snap.system.saveCount;
+    return true;
+  } catch (error) {
+    console.warn("存档失败:", error.message);
+    return false;
+  }
 };
 T.savePrefix = () => T.Preview && T.Preview.enabled ? "tndt_debug_save_" : "tndt_save_";
-T.hasSaveFile = slot => !!localStorage.getItem(T.savePrefix() + slot);
+T.hasSaveFile = slot => !!T.saveInfo(slot);
 T.saveInfo = function (slot) {
-  try { return JSON.parse(localStorage.getItem(T.savePrefix() + slot)); } catch (e) { return null; }
+  try {
+    const snapshot = JSON.parse(localStorage.getItem(T.savePrefix() + slot));
+    return T.isGameSnapshot(snapshot) ? snapshot : null;
+  } catch (e) { return null; }
 };
 T.loadGame = async function (slot) {
-  const raw = localStorage.getItem(T.savePrefix() + slot);
-  if (!raw) return false;
-  let s;
-  try { s = JSON.parse(raw); } catch (e) { console.warn("坏档:", slot, e); return false; }
-  return T.applyGameSnapshot(s);
+  const snapshot = T.saveInfo(slot);
+  return snapshot ? T.applyGameSnapshot(snapshot) : false;
 };
 
 /* ---------------- 全局别名：供事件脚本 eval 与引擎内部使用 ---------------- */

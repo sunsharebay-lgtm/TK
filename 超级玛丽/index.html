@@ -85,6 +85,7 @@ function isSolid(t){ return TILE_SOLID.has(t); }
 
 const INP = {
   keys:{}, just:{}, anyKey:false,
+  keyCodes:{}, sources:{keyboard:{},touch:{},gamepad:{}}, touchPointers:{},
   map:{
     left:['ArrowLeft','KeyA'], right:['ArrowRight','KeyD'],
     down:['ArrowDown','KeyS'],
@@ -97,24 +98,54 @@ const INP = {
     const dn=e=>{
       this.anyKey=true;
       if(e.code==='F5'||(e.ctrlKey&&e.code==='KeyR'))return;
+      this.keyCodes[e.code]=true;
       for(const k in this.map) if(this.map[k].includes(e.code)){
-        if(!this.keys[k])this.just[k]=true; this.keys[k]=true; e.preventDefault();
+        this.setSource('keyboard',k,true); e.preventDefault();
       }
       A.unlock();
     };
-    const up=e=>{ for(const k in this.map) if(this.map[k].includes(e.code)) this.keys[k]=false; };
+    const up=e=>{
+      delete this.keyCodes[e.code];
+      for(const k in this.map) if(this.map[k].includes(e.code)){
+        this.setSource('keyboard',k,this.map[k].some(code=>this.keyCodes[code]));
+      }
+    };
     addEventListener('keydown',dn,{passive:false});
     addEventListener('keyup',up);
-    addEventListener('blur',()=>{ this.keys={}; });
+    addEventListener('blur',()=>this.clear());
+    document.addEventListener('visibilitychange',()=>{ if(document.hidden)this.clear(); });
     this.initTouch();
     this.initGamepad();
+  },
+  setSource(source,k,held){
+    held=!!held;
+    if(!!this.sources[source][k]===held)return;
+    this.sources[source][k]=held;
+    const down=Object.values(this.sources).some(state=>state[k]);
+    if(down&&!this.keys[k])this.just[k]=true;
+    this.keys[k]=down;
+  },
+  clear(){
+    this.keys={}; this.just={}; this.keyCodes={}; this.touchPointers={}; this.anyKey=false;
+    this.sources={keyboard:{},touch:{},gamepad:{}};
+    for(const id of ['bL','bR','bD','bA','bB'])document.getElementById(id)?.classList.remove('on');
   },
   press(k){ return !!this.just[k]; },
   endFrame(){ this.just={}; },
   bindBtn(id,k){
     const el=document.getElementById(id); if(!el)return;
-    const on=e=>{ e.preventDefault(); if(!this.keys[k])this.just[k]=true; this.keys[k]=true; el.classList.add('on'); A.unlock(); };
-    const off=e=>{ e.preventDefault(); this.keys[k]=false; el.classList.remove('on'); };
+    const sync=()=>{
+      const held=Object.values(this.touchPointers).includes(k);
+      this.setSource('touch',k,held);
+      // A 在菜单中承担确认，与键盘 K / Space 的行为一致。
+      if(k==='jump')this.setSource('touch','confirm',held);
+      if(held)el.classList.add('on');else el.classList.remove('on');
+    };
+    const on=e=>{
+      e.preventDefault(); this.touchPointers[e.pointerId]=k; sync();
+      el.setPointerCapture?.(e.pointerId); A.unlock();
+    };
+    const off=e=>{ e.preventDefault(); delete this.touchPointers[e.pointerId]; sync(); };
     el.addEventListener('pointerdown',on);
     el.addEventListener('pointerup',off);
     el.addEventListener('pointercancel',off);
@@ -130,40 +161,30 @@ const INP = {
     const fs=document.getElementById('fs');
     if(fs) fs.addEventListener('click',()=>{
       const w=document.getElementById('wrap');
-      if(!document.fullscreenElement){ (w.requestFullscreen||w.webkitRequestFullscreen).call(w); }
-      else document.exitFullscreen();
+      const active=document.fullscreenElement||document.webkitFullscreenElement;
+      const target=active?document:w;
+      const action=active?(document.exitFullscreen||document.webkitExitFullscreen):(w.requestFullscreen||w.webkitRequestFullscreen);
+      if(!action)return;
+      try{ const result=action.call(target); if(result&&result.catch)result.catch(()=>{}); }catch(e){}
     });
   },
-  gpPrev:{},
   initGamepad(){},
   pollGamepad(){
-    if(!navigator.getGamepads)return;
-    const gps=navigator.getGamepads();
-    const seen=new Set();
+    let gps=[];
+    try{ if(navigator.getGamepads)gps=navigator.getGamepads(); }catch(e){}
+    const held={left:false,right:false,up:false,down:false,jump:false,run:false,confirm:false,pause:false};
     for(const gp of gps){
       if(!gp)continue;
-      const id=String(gp.index);
-      seen.add(id);
-      const ax=gp.axes[0]||0;
-      const held={
-        left:ax<-.4||!!(gp.buttons[14]&&gp.buttons[14].pressed),
-        right:ax>.4||!!(gp.buttons[15]&&gp.buttons[15].pressed),
-        jump:!!(gp.buttons[0]&&gp.buttons[0].pressed),
-        run:!!(gp.buttons[2]&&gp.buttons[2].pressed)||!!(gp.buttons[1]&&gp.buttons[1].pressed)
+      const ax=gp.axes[0]||0, ay=gp.axes[1]||0;
+      const button=n=>!!(gp.buttons[n]&&gp.buttons[n].pressed);
+      const current={
+        left:ax<-.4||button(14),right:ax>.4||button(15),
+        up:ay<-.4||button(12),down:ay>.4||button(13),
+        jump:button(0),run:button(2)||button(1),confirm:button(0),pause:button(9)
       };
-      for(const k of ['left','right','jump','run']){
-        if(held[k]&&!this.gpPrev[id+'|'+k])this.just[k]=true;
-        this.keys[k]=this.keys[k]||held[k];
-      }
-      const st=!!(gp.buttons[9]&&gp.buttons[9].pressed);
-      if(st&&!this.gpPrev[id+'|pause'])this.just.pause=true;
-      this.gpPrev[id+'|left']=held.left; this.gpPrev[id+'|right']=held.right;
-      this.gpPrev[id+'|jump']=held.jump; this.gpPrev[id+'|run']=held.run;
-      this.gpPrev[id+'|pause']=st;
+      for(const k in held)held[k]=held[k]||current[k];
     }
-    for(const k of Object.keys(this.gpPrev)){
-      if(!seen.has(k.split('|')[0]))delete this.gpPrev[k];
-    }
+    for(const k in held)this.setSource('gamepad',k,held[k]);
   }
 };
 const A = {

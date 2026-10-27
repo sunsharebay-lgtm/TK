@@ -985,6 +985,7 @@ T.openLineup = function () { T.SceneManager.push(new T.Scene_Lineup()); };
 class Scene_SaveLoad {
   constructor(mode) {
     this.mode = mode;   // save | load
+    this.error = "";
     this.win = new Window_Selectable(8, 8, T.SCREEN_W - 16, T.SCREEN_H - 16);
     this.win.fontSize = 24;
     this.slots = [0, 1, 2, 3];
@@ -1000,7 +1001,12 @@ class Scene_SaveLoad {
     if (T.Input.triggered("ok")) {
       const slot = this.selectedSlot();
       if (this.mode === "save") {
-        T.saveGame(slot).then(() => {
+        T.saveGame(slot).then(ok => {
+          if (!ok) {
+            this.error = "存档失败，请检查浏览器存储空间。";
+            T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
+            return;
+          }
           T.AudioManager.playSe({ name: "Save", volume: 80 });
           T.SceneManager.popScene();
         });
@@ -1010,7 +1016,10 @@ class Scene_SaveLoad {
             // loadGame 内部已通过 gotoMap 重建地图场景栈
             T.AudioManager.playSe({ name: "Load1", volume: 80 });
           }
-          else T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
+          else {
+            this.error = "读档失败，原进度已保留。";
+            T.AudioManager.playSe({ name: "Buzzer", volume: 60 });
+          }
         });
       }
     }
@@ -1036,6 +1045,7 @@ class Scene_SaveLoad {
       }
       y += 56;
     }
+    if (this.error) this.win.drawText(this.error, this.win.innerX + 20, y + 24, this.win.innerW - 40);
     /* 行文本从 innerY+40 开始，使用专用光标，避免通用窗口把光标画到标题上。 */
     const x = this.win.x + 10;
     const cursorY = this.win.innerY + 32 + T.clamp(this.win.index, 0, 3) * 56;

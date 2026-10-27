@@ -7,7 +7,7 @@
   <title>墨屏小站 · 闲置屏幕</title>
   <style>
     /* ================================================================
-    * 墨屏小站 v0.4(像素级参考 Kindle Noodle)
+    * 墨屏小站 v0.4.1(像素级参考 Kindle Noodle)
      * 兼容目标:Kindle Paperwhite 3 实验浏览器(2015 年 WebKit)
      * 约束:ES5、Flexbox(老 WebKit 支持良好)、固定 758px 宽
      * ================================================================ */
@@ -867,6 +867,37 @@
       body:not(.orient-landscape) .weread-strip { width: auto; }
     }
 
+    /* 窄屏预览：保留双卡片结构，缩小留白并分行摆放天气操作。 */
+    @media (max-width: 600px) {
+      body:not(.orient-landscape) #bottom-nav { padding: 6px; border-radius: 24px; }
+      body:not(.orient-landscape) .nav-item { padding: 6px 2px; }
+      body:not(.orient-landscape) .nav-ico { width: 32px; height: 32px; }
+      body:not(.orient-landscape) .nav-txt { font-size: 16px; margin-top: 3px; }
+      body:not(.orient-landscape) .clock-card { padding: 12px; height: auto; border-radius: 28px; }
+      body:not(.orient-landscape) .digit-card { min-width: 0; border-radius: 20px; }
+      body:not(.orient-landscape) .clock-colon { font-size: 40px; }
+      body:not(.orient-landscape) .clock-colon + .digit-card { margin-left: 10px; }
+      body:not(.orient-landscape) .weather-strip { padding: 10px 14px; border-radius: 24px; }
+      body:not(.orient-landscape) .weather-main { font-size: 24px; }
+      body:not(.orient-landscape) .weather-sub-row,
+      body:not(.orient-landscape) .weather-sub,
+      body:not(.orient-landscape) .weather-btns { display: block; width: 100%; }
+      body:not(.orient-landscape) .weather-sub { font-size: 16px; white-space: normal; }
+      body:not(.orient-landscape) .weather-btns { margin-top: 6px; }
+      body:not(.orient-landscape) .weather-refresh-btn,
+      body:not(.orient-landscape) .weather-settings-btn { font-size: 16px; padding: 3px 12px; }
+      body:not(.orient-landscape) .bottom-row { height: auto; }
+      body:not(.orient-landscape) .date-card,
+      body:not(.orient-landscape) .quote-card { width: auto; height: auto; padding: 12px; border-radius: 24px; }
+      body:not(.orient-landscape) .date-weekday { font-size: 20px; margin-bottom: 4px; }
+      body:not(.orient-landscape) .date-day-wrap { min-height: 0; }
+      body:not(.orient-landscape) .date-day { font-size: 56px; }
+      body:not(.orient-landscape) .date-rule { margin: 4px 0; }
+      body:not(.orient-landscape) .date-lunar { font-size: 14px; margin-top: 4px; }
+      body:not(.orient-landscape) .quote-label { height: 28px; line-height: 28px; font-size: 18px; margin-bottom: 6px; }
+      body:not(.orient-landscape) .quote-author { font-size: 14px; margin-top: 4px; }
+    }
+
     /* 手动横屏模式(无陀螺仪设备):宽度铺满 */
     body.orient-landscape {
       /* 横屏旋转由 #rotate-wrap 的 transform 实现,尺寸由 fitScreen 计算 */
@@ -1011,7 +1042,7 @@
       <div class="set-row">
         <span class="set-label">城市</span>
         <input type="text" id="set-city-input" placeholder="输入城市名">
-        <button class="set-save-btn" onclick="saveCity()">保存</button>
+        <button class="set-save-btn" onclick="saveCity('set-city-input')">保存</button>
       </div>
       <div class="set-row">
         <span class="set-label">横竖屏</span>
@@ -1025,7 +1056,7 @@
         <span class="set-label">刷新天气</span>
         <button class="set-btn" onclick="refreshWeather()">刷新</button>
       </div>
-      <div class="set-about">墨屏小站 v0.4 · 让闲置屏幕发光</div>
+      <div class="set-about">墨屏小站 v0.4.1 · 让闲置屏幕发光</div>
     </div>
   </div>
 
@@ -1071,7 +1102,7 @@
 
 <script>
 /* ================================================================
- * 墨屏小站 v0.4 - ES5 兼容版
+ * 墨屏小站 v0.4.1 - ES5 兼容版
  * ================================================================ */
 
 /* ---------- 配置 ---------- */
@@ -1090,7 +1121,8 @@
     for (var i = 0; i < cookies.length; i++) {
       var parts = cookies[i].split('=');
       if (parts[0] === name) {
-        return decodeURIComponent(parts[1] || '');
+        try { return decodeURIComponent(parts.slice(1).join('=') || ''); }
+        catch (e) { return ''; }
       }
     }
     return '';
@@ -1115,17 +1147,25 @@
   function xhrGet(url, callback, timeout) {
     timeout = timeout || 8000;
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.timeout = timeout;
+    var completed = false;
+    function finish(error, text) {
+      if (completed) return;
+      completed = true;
+      callback(error, text);
+    }
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4) {
-        var ok = xhr.status === 200 || xhr.status === 0;
-        callback(ok ? null : xhr.status, ok ? xhr.responseText : '');
+        var ok = xhr.status >= 200 && xhr.status < 300;
+        finish(ok ? null : (xhr.status || -1), ok ? xhr.responseText : '');
       }
     };
-    xhr.onerror = function() { callback(-1, ''); };
-    xhr.ontimeout = function() { callback(-2, ''); };
-    xhr.send();
+    xhr.onerror = function() { finish(-1, ''); };
+    xhr.ontimeout = function() { finish(-2, ''); };
+    try {
+      xhr.open('GET', url, true);
+      xhr.timeout = timeout;
+      xhr.send();
+    } catch (e) { finish(-1, ''); }
   }
 
   /* ---------- 墨水屏刷新(切换视图时去残影) ---------- */
@@ -1161,6 +1201,7 @@
       WEEKDAYS[dow] + '  ' + MONTHS[month];
     document.getElementById('day-number').textContent = pad(day);
     document.getElementById('lunar-date').textContent = toLunarLabel(now);
+    fitClock();
   }
 
   /* ---------- 日期/农历 ---------- */
@@ -1234,8 +1275,10 @@
 
   /* ---------- 天气 ---------- */
   var weatherTimer = null;
+  var weatherRequest = 0;
 
   function refreshWeather() {
+    var request = ++weatherRequest;
     var elMain = document.getElementById('weather-main');
     var elSub = document.getElementById('weather-sub');
     elMain.textContent = '刷新中...';
@@ -1247,6 +1290,7 @@
 
     /* wttr.in j1 JSON 接口(字段稳定,适合老浏览器) */
     xhrGet(WEATHER_API + encodeURIComponent(city) + '?format=j1&m', function(err, text) {
+      if (request !== weatherRequest) return;
       if (!err && text) {
         try {
           var data = JSON.parse(text);
@@ -1268,6 +1312,7 @@
       }
       /* 回退:文本接口 */
       xhrGet(WEATHER_API + encodeURIComponent(city) + '?format=%l+%c+%t+%h+%w&m', function(err2, text2) {
+        if (request !== weatherRequest) return;
         if (!err2 && text2) {
           var clean = text2.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
           elMain.textContent = clean;
@@ -1421,8 +1466,8 @@
     document.getElementById('settings-panel').style.display = 'none';
   }
 
-  function saveCity() {
-    var input = document.getElementById('city-input');
+  function saveCity(inputId) {
+    var input = document.getElementById(inputId || 'city-input');
     var city = input.value.replace(/^\s+|\s+$/g, '');
     if (!city) city = CITY_DEFAULT;
     setCookie(CITY_COOKIE, city);
@@ -1444,8 +1489,7 @@
     if (setInput && setInput.addEventListener) {
       setInput.addEventListener('keypress', function(e) {
         if (e.keyCode === 13 || e.which === 13) {
-          document.getElementById('city-input').value = setInput.value;
-          saveCity();
+          saveCity('set-city-input');
         }
       });
     }
@@ -1500,6 +1544,19 @@
       rotateWrap.style.webkitTransform = 'translateX(' + vw + 'px) rotate(90deg)';
       rotateWrap.style.transform = 'translateX(' + vw + 'px) rotate(90deg)';
     }
+    fitClock();
+  }
+
+  /* 根据卡片实际尺寸缩小数字，避免窄屏/横屏中两位时间被裁切。 */
+  function fitClock() {
+    if (!document.getElementsByClassName) return;
+    var digits = document.getElementsByClassName('digit-number');
+    for (var i = 0; i < digits.length; i++) {
+      var digit = digits[i], card = digit.parentNode;
+      if (!card.clientWidth || !card.clientHeight) continue;
+      var size = Math.min(200, Math.floor(card.clientHeight - 12), Math.floor(card.clientWidth / 1.2));
+      digit.style.fontSize = Math.max(16, size) + 'px';
+    }
   }
 
   function initOrient() {
@@ -1513,12 +1570,13 @@
   function toggleClockStyle() {
     var isSimple = document.body.className.indexOf('clock-simple') >= 0;
     if (isSimple) {
-      document.body.className = '';
+      document.body.className = document.body.className.replace(/\bclock-simple\b/g, '').replace(/\s+/g, ' ').trim();
       setCookie(CLOCK_STYLE_COOKIE, '');
     } else {
-      document.body.className = 'clock-simple';
+      document.body.className += ' clock-simple';
       setCookie(CLOCK_STYLE_COOKIE, 'simple');
     }
+    fitScreen();
     einkRefresh(null);
   }
 
@@ -1549,6 +1607,7 @@
 
     /* 导航页初始化 */
     renderList();
+    setupListInput();
     syncSetCity();
 
     /* 一屏适配 */
@@ -1601,16 +1660,22 @@
   var pomoLeft = pomoTotal;
   var pomoTimer = null;
   var pomoRunning = false;
+  var pomoDeadline = 0;
 
   function pomoStart() {
     if (pomoRunning) { pausePomo(); return; }
+    if (pomoLeft <= 0) pomoLeft = pomoTotal;
+    pomoDeadline = Date.now() + pomoLeft * 1000;
     pomoRunning = true;
     document.getElementById('pomo-start-btn').textContent = '暂停';
+    document.getElementById('pomo-tip').textContent = '专注 25 分钟,休息 5 分钟';
+    renderPomo();
     pomoTimer = setInterval(pomoTick, 1000);
   }
 
   function pomoTick() {
-    pomoLeft--;
+    if (!pomoRunning) return;
+    pomoLeft = Math.max(0, Math.ceil((pomoDeadline - Date.now()) / 1000));
     if (pomoLeft <= 0) {
       pomoLeft = 0;
       pomoDone();
@@ -1620,6 +1685,8 @@
   }
 
   function pausePomo() {
+    pomoTick();
+    if (!pomoRunning) return;
     pomoRunning = false;
     clearInterval(pomoTimer);
     document.getElementById('pomo-start-btn').textContent = '继续';
@@ -1630,6 +1697,7 @@
     clearInterval(pomoTimer);
     pomoLeft = pomoTotal;
     document.getElementById('pomo-start-btn').textContent = '开始';
+    document.getElementById('pomo-tip').textContent = '专注 25 分钟,休息 5 分钟';
     renderPomo();
   }
 
@@ -1656,7 +1724,7 @@
     if (!raw) return [];
     try {
       var arr = JSON.parse(raw);
-      return arr && arr.length !== undefined ? arr : [];
+      return Object.prototype.toString.call(arr) === '[object Array]' ? arr : [];
     } catch (e) { return []; }
   }
 
@@ -1689,6 +1757,15 @@
     saveList(arr);
     input.value = '';
     renderList();
+  }
+
+  function setupListInput() {
+    var input = document.getElementById('list-input');
+    if (input && input.addEventListener) {
+      input.addEventListener('keypress', function(e) {
+        if (e.keyCode === 13 || e.which === 13) listAdd();
+      });
+    }
   }
 
   function listDel(i) {

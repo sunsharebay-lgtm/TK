@@ -2,7 +2,7 @@
 
 经典即时战斗网页游戏，Canvas 实现。核心玩法仍保持单页运行，Blender 离线产出的本地精灵图集随页面静态部署。
 
-- 当前稳定版：`v1.6.11`（`tank-battle.html`），加入 Blender 预渲染 2.5D 坦克美术。
+- 当前稳定版：`v1.6.12`（`tank-battle.html`），加入 Blender 预渲染 2.5D 坦克美术。
 - 入口：`tank-battle.html`；`坦克大战.html` 是旧中文入口兼容跳转。
 - 测试：`测试/`（冒烟、地图校验、Blender 图集完整性等脚本）。
 - 美术源文件：`美术/blender/tank-sprites-v1.blend`；重新渲染命令见同目录 `render_tank_sprite_sheet.py` 文件头。
@@ -27,6 +27,8 @@ python3 测试/blender_pixels_test.py
 node 测试/blender_loader_test.js
 node 测试/smoke_test.js tank-battle.html
 node 测试/validate_maps.js tank-battle.html
+node 测试/input_release_test.js
+node 测试/gamepad_test.js tank-battle.html
 ```
 
 浏览器逐帧验收：在本目录启动 `python3 -m http.server 8124 --bind 127.0.0.1`，打开 `/测试/blender-browser.html`，确认 PASS 并检查实战画面；验收后停止服务。日常试玩可以直接打开 `tank-battle.html`。
@@ -36,4 +38,7 @@ node 测试/validate_maps.js tank-battle.html
 - 2026-09-06 初稿曾出现半辆坦克：相机中心未对齐整张图集，且原型集合重复参与渲染。归档在 `历史版本/v1.7.0-blender-初稿/`。
 - 不要只验证 PNG 头部尺寸：必须检查每一格的透明边距、中心、连通轮廓、炮口方向，以及浏览器最终切片。
 - 不要把高分辨率素材预先压成 32px。保留 128px 切片，最终绘制为逻辑 32px，避免先缩小再放大的细节损失。
-- 每轮交付决策、QA 和 SHA-256 见 `project.md`，历史阶段见 `更新记录.md`。当前稳定发布版为 `v1.6.11`。
+- 每轮交付决策、QA 和 SHA-256 见 `project.md`，历史阶段见 `更新记录.md`。当前稳定发布版为 `v1.6.12`。
+- 2026-10-26 本地维护：窗口失焦/切后台同时清理键盘、触屏摇杆、开火与未消费的按键事件；手柄断开后重置边沿历史，权限不可用时回退键盘。`input_release_test.js` 覆盖这类输入卡住问题。
+
+本轮补丁发布：`game/tank-battle/v1.6.12`（2026-10-27），内容与验收见 [统一发布记录](../docs/发布/2026-10-27/project.md)。

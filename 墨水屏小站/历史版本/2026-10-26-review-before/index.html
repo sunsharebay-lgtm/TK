@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="refresh" content="43200">
+  <title>墨屏小站 · 闲置屏幕</title>
+  <style>
+    /* ================================================================
+    * 墨屏小站 v0.4(像素级参考 Kindle Noodle)
+     * 兼容目标:Kindle Paperwhite 3 实验浏览器(2015 年 WebKit)
+     * 约束:ES5、Flexbox(老 WebKit 支持良好)、固定 758px 宽
+     * ================================================================ */
+
+    /* 基础重置(老 WebKit 兼容) */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-animation: none !important;
+      animation: none !important;
+      -webkit-transition: none !important;
+      transition: none !important;
+    }
+
+    html { height: 100%; overflow: hidden; }
+
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+      overflow: hidden;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-box-align: stretch;
+      -webkit-align-items: stretch;
+      align-items: stretch;
+      -webkit-box-pack: start;
+      -webkit-justify-content: flex-start;
+      justify-content: flex-start;
+    }
+
+    /* ===== 舞台层(竖屏铺满视口,横屏 rotate 90°) ===== */
+    #rotate-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-transform-origin: 0 0;
+      transform-origin: 0 0;
+    }
+
+    /* 主容器(弹性伸缩填满剩余高度) */
+    #main {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      min-height: 0;
+      padding: 8px 8px 8px;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+    }
+
+    /* ===== 时钟卡片(顶部弹性区) ===== */
+    .clock-card {
+      background: #fff;
+      border-radius: 60px;
+      border: 1px solid #ddd;
+      border-bottom: 3px solid #ddd;
+      padding: 18px 28px 12px;
+      height: auto;
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: 8px;
+      overflow: hidden;
+      position: relative;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+    }
+
+    .clock-digits {
+      width: 100%;
+      overflow: hidden;
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      min-height: 0;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: horizontal;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      -webkit-box-align: stretch;
+      -webkit-align-items: stretch;
+      align-items: stretch;
+    }
+
+    .digit-card {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      background: #000;
+      border-radius: 46px;
+      overflow: hidden;
+      position: relative;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      justify-content: center;
+      -webkit-box-align: center;
+      -webkit-align-items: center;
+      align-items: center;
+    }
+
+    .clock-colon + .digit-card {
+      margin-left: 20px;
+    }
+
+    .digit-number {
+      font-weight: 900;
+      font-size: 200px;
+      color: #fff;
+      line-height: 1;
+      white-space: nowrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 数字中间分割线(模拟数码管效果) */
+    .digit-line {
+      position: absolute;
+      top: 50%;
+      left: 34px;
+      right: 34px;
+      height: 6px;
+      margin-top: -3px;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 2;
+    }
+
+    /* 时间冒号 */
+    .clock-colon {
+      display: none;
+      font-size: 100px;
+      font-weight: bold;
+      color: #ccc;
+      line-height: 1;
+      text-align: center;
+      -webkit-box-flex: 0;
+      -webkit-flex: none;
+      flex: none;
+      -webkit-box-align: center;
+      align-items: center;
+      margin-left: 12px;
+    }
+
+    /* 时钟设置按钮 */
+    .clock-style-btn {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      -webkit-box-align: center;
+      align-items: center;
+    }
+
+    /* ===== 天气横条(块级两行,兼容老 WebKit) ===== */
+    .weather-strip {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      margin-bottom: 8px;
+      background: #fff;
+      border-radius: 40px;
+      border: 1px solid #ddd;
+      border-bottom: 3px solid #ddd;
+      padding: 8px 20px 8px;
+      display: block;
+    }
+
+    /* 第一行:城市 + 天气 + 温度(全宽,永不被截) */
+    .weather-main {
+      display: block;
+      font-size: 36px;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: 1px;
+      line-height: 1.2;
+      white-space: normal;
+      overflow: visible;
+      width: 100%;
+    }
+
+    /* 第二行:湿度风速 + 右侧按钮 */
+    .weather-sub-row {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      margin-top: 6px;
+    }
+
+    .weather-sub {
+      display: table-cell;
+      vertical-align: middle;
+      font-size: 27px;
+      color: #000;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .weather-btns {
+      display: table-cell;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .weather-refresh-btn {
+      background: none;
+      border: 2px solid #000;
+      border-radius: 24px;
+      padding: 4px 16px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #000;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* 设置按钮(城市输入) */
+    .weather-settings-btn {
+      background: none;
+      border: 2px solid #000;
+      border-radius: 24px;
+      padding: 4px 14px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #000;
+      cursor: pointer;
+      margin-left: 8px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* ===== 底部双卡片行 ===== */
+    .bottom-row {
+      height: auto;
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: horizontal;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+    }
+
+    /* 日期卡片 & 语录卡片(各半宽) */
+    .date-card,
+    .quote-card {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      min-width: 0;
+      background: #fff;
+      border-radius: 60px;
+      border: 1px solid #ddd;
+      border-bottom: 3px solid #ddd;
+      padding: 28px;
+      height: auto;
+    }
+
+    .date-card {
+      margin-right: 8px;
+      text-align: center;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+    }
+
+    .date-weekday {
+      font-size: 30px;
+      font-weight: 900;
+      color: #000;
+      margin-bottom: 8px;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
+
+    .date-rule {
+      height: 1px;
+      background: #e0e0e0;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
+
+    .date-rule { height: 1px; background: #e0e0e0; flex-shrink: 0; margin: 8px 0; }
+    .date-day-wrap {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      justify-content: center;
+      -webkit-box-align: center;
+      -webkit-align-items: center;
+      align-items: center;
+    }
+
+    .date-day {
+      font-size: 96px;
+      font-weight: bold;
+      color: #000;
+      line-height: 1;
+    }
+
+    .date-lunar {
+      font-size: 26px;
+      color: #000;
+      font-weight: 900;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    /* 语录卡片 */
+    .quote-card {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+    }
+
+    .quote-label {
+      background: #eee;
+      border-radius: 38px;
+      height: 52px;
+      line-height: 52px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 900;
+      color: #000;
+      margin-bottom: 12px;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
+
+    .quote-body-wrap {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      justify-content: center;
+      overflow: hidden;
+      padding-bottom: 8px;
+    }
+
+    .quote-body {
+      font-size: 32px;
+      font-weight: 900;
+      color: #000;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    .quote-author {
+      font-size: 22px;
+      color: #000;
+      font-weight: 900;
+      text-align: right;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    /* ===== 微信读书入口(底部小条) ===== */
+    .weread-strip {
+      height: 52px;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 40px;
+      border: 1px solid #ddd;
+      border-bottom: 3px solid #ddd;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: horizontal;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      -webkit-box-align: center;
+      -webkit-align-items: center;
+      align-items: center;
+      padding: 0 28px;
+      text-align: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      justify-content: center;
+    }
+
+    .weread-strip a {
+      font-size: 22px;
+      font-weight: 700;
+      color: #000;
+      text-decoration: none;
+      letter-spacing: 2px;
+    }
+
+    /* ===== 多页导航 ===== */
+    .page {
+      display: none;
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      min-height: 0;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-box-align: stretch;
+      -webkit-align-items: stretch;
+      align-items: stretch;
+      -webkit-box-pack: start;
+      -webkit-justify-content: flex-start;
+      justify-content: flex-start;
+    }
+    .page.page-active {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+    }
+    .page-card {
+      background: #fff;
+      border-radius: 40px;
+      border: 1px solid #ddd;
+      border-bottom: 3px solid #ddd;
+      padding: 24px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .page-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 8px;
+    }
+    .page-sub {
+      font-size: 20px;
+      color: #000;
+      margin-bottom: 24px;
+    }
+
+    /* 微信读书页 */
+    .weread-big-btn {
+      display: block;
+      background: #000;
+      border-radius: 30px;
+      padding: 28px 20px;
+      margin: 10px auto 20px;
+      max-width: 420px;
+      text-decoration: none;
+    }
+    .weread-btn-text {
+      display: block;
+      color: #fff;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 3px;
+    }
+    .weread-btn-sub {
+      display: block;
+      color: #ccc;
+      font-size: 18px;
+      margin-top: 6px;
+    }
+    .weread-tip {
+      font-size: 17px;
+      color: #000;
+      margin-top: 16px;
+    }
+
+    /* 番茄钟页 */
+    .pomo-time {
+      font-size: 88px;
+      font-weight: 700;
+      color: #000;
+      margin: 30px 0 30px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .pomo-btns {
+      display: table;
+      margin: 0 auto;
+      border-spacing: 16px 0;
+    }
+    .pomo-btn {
+      display: table-cell;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      padding: 16px 40px;
+      font-size: 28px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .pomo-tip {
+      font-size: 18px;
+      color: #000;
+      margin-top: 20px;
+    }
+
+    /* 阅读清单页 */
+    .list-input-row {
+      display: table;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    #list-input {
+      display: table-cell;
+      width: 78%;
+      font-size: 22px;
+      padding: 12px 14px;
+      border: 2px solid #000;
+      border-radius: 12px 0 0 12px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .list-add-btn {
+      display: table-cell;
+      width: 22%;
+      font-size: 22px;
+      font-weight: 700;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 0 12px 12px 0;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .list-items {
+      text-align: left;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+    .list-item {
+      display: table;
+      width: 100%;
+      padding: 10px 6px;
+      border-bottom: 1px solid #eee;
+      font-size: 22px;
+      color: #000;
+    }
+    .list-item-text {
+      display: table-cell;
+      width: 85%;
+      vertical-align: middle;
+      padding-right: 8px;
+    }
+    .list-item-del {
+      display: table-cell;
+      width: 15%;
+      text-align: right;
+      font-size: 22px;
+      font-weight: 700;
+      color: #000;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .list-empty {
+      font-size: 20px;
+      color: #000;
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    /* 设置页 */
+    .set-row {
+      display: table;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .set-label {
+      display: table-cell;
+      width: 28%;
+      font-size: 24px;
+      font-weight: 700;
+      color: #000;
+      vertical-align: middle;
+    }
+    #set-city-input {
+      display: table-cell;
+      width: 46%;
+      font-size: 22px;
+      padding: 10px 12px;
+      border: 2px solid #000;
+      border-radius: 10px 0 0 10px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .set-save-btn, .set-btn {
+      display: table-cell;
+      width: 26%;
+      font-size: 20px;
+      font-weight: 700;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 0 10px 10px 0;
+      padding: 10px 8px;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .set-about {
+      font-size: 18px;
+      color: #000;
+      margin-top: 30px;
+    }
+
+    /* 底部导航栏(流内,flex 贴底,随 rotate-wrap 一起旋转) */
+    #bottom-nav {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      background: #fff;
+      border-radius: 40px;
+      border: 2px solid #000;
+      border-bottom: 4px solid #000;
+      padding: 14px 8px 16px;
+      box-sizing: border-box;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      z-index: 100;
+      margin-top: 8px;
+    }
+    .nav-item {
+      display: table-cell;
+      text-align: center;
+      vertical-align: middle;
+      cursor: pointer;
+      padding: 10px 2px;
+    }
+    .nav-ico {
+      display: block;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto;
+      line-height: 0;
+    }
+    .nav-ico svg {
+      width: 100%;
+      height: 100%;
+    }
+    .nav-txt {
+      display: block;
+      font-size: 32px;
+      font-weight: 700;
+      color: #000;
+      margin-top: 4px;
+    }
+    .nav-item-active .nav-ico,
+    .nav-item-active .nav-txt {
+      color: #000;
+      font-weight: 700;
+    }
+    .nav-item-active {
+      background: #ddd;
+      border-radius: 26px;
+    }
+
+    /* ===== 设置面板 ===== */
+    #settings-panel {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 5000;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      padding: 20px 28px 28px;
+    }
+
+    #settings-panel p {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    #settings-panel input {
+      font-size: 20px;
+      padding: 8px 12px;
+      border: 1px solid #aaa;
+      border-radius: 8px;
+      width: 280px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #settings-panel button {
+      font-size: 18px;
+      padding: 8px 18px;
+      border: 1px solid #555;
+      border-radius: 20px;
+      background: #000;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 10px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #settings-panel .close-btn {
+      background: none;
+      border: 1px solid #aaa;
+      color: #555;
+      margin-left: 8px;
+    }
+
+    /* ===== 极简模式(黑底白字时钟) ===== */
+    body.clock-simple .digit-card {
+      background: #fff;
+      border: 3px solid #000;
+      border-bottom: 5px solid #000;
+    }
+
+    body.clock-simple .digit-number {
+      color: #000;
+    }
+
+    body.clock-simple .digit-line {
+      display: none;
+    }
+
+    body.clock-simple .clock-colon {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      margin-left: 8px;
+    }
+
+    body.clock-simple .clock-colon + .digit-card {
+      margin-left: 8px;
+    }
+
+    /* ===== 加载状态 ===== */
+    .loading {
+      color: #999 !important;
+      font-size: 22px !important;
+    }
+
+    /* ===== 矮屏/横屏适配(Kindle 横屏 1024x615 等) ===== */
+    /* 横屏/矮屏(≤800px 高,Kindle 横屏 758 触发) */
+    @media (max-height: 800px) {
+      body:not(.orient-landscape) #bottom-nav { padding: 8px 6px 10px; border-radius: 30px; }
+      body:not(.orient-landscape) .nav-ico { width: 42px; height: 42px; }
+      body:not(.orient-landscape) .nav-txt { font-size: 22px; margin-top: 2px; }
+      body:not(.orient-landscape) .clock-card { padding: 14px 20px 10px; height: 240px; }
+      body:not(.orient-landscape) .digit-number { font-size: 130px; }
+      body:not(.orient-landscape) .digit-line { left: 24px; right: 24px; height: 5px; }
+      body:not(.orient-landscape) .clock-style-btn { top: 10px; right: 14px; }
+      body:not(.orient-landscape) .weather-strip { margin-bottom: 6px; padding: 8px 20px 8px; }
+      body:not(.orient-landscape) .weather-main { font-size: 28px; }
+      body:not(.orient-landscape) .weather-sub { font-size: 20px; color: #000; font-weight: 700; }
+      body:not(.orient-landscape) .weather-sub-row { margin-top: 6px; }
+      body:not(.orient-landscape) .weather-refresh-btn, .weather-settings-btn { font-size: 18px; padding: 4px 12px; }
+      body:not(.orient-landscape) .orient-btn { font-size: 16px; padding: 2px 8px; }
+      body:not(.orient-landscape) .bottom-row { height: 190px; margin-bottom: 6px; }
+      body:not(.orient-landscape) .date-card, .quote-card { width: 365px; height: 190px; padding: 14px 18px; }
+      body:not(.orient-landscape) .date-weekday { font-size: 24px; margin-bottom: 6px; }
+      body:not(.orient-landscape) .date-day { font-size: 76px; }
+      body:not(.orient-landscape) .date-lunar { font-size: 20px; margin-top: 4px; color: #000; font-weight: 900; }
+      body:not(.orient-landscape) .quote-label { height: 34px; line-height: 34px; font-size: 18px; margin-bottom: 6px; }
+      body:not(.orient-landscape) .quote-body { font-size: 22px; }
+      body:not(.orient-landscape) .quote-author { font-size: 16px; margin-top: 4px; }
+      body:not(.orient-landscape) .weread-strip { height: 46px; }
+      body:not(.orient-landscape) .weread-strip a { font-size: 18px; font-weight: 700; }
+    }
+
+    /* 超矮屏(<650px 高,极窄设备) */
+    @media (max-height: 650px) {
+      body:not(.orient-landscape) #bottom-nav { padding: 6px 4px 8px; border-radius: 24px; }
+      body:not(.orient-landscape) .nav-ico { width: 32px; height: 32px; }
+      body:not(.orient-landscape) .nav-txt { font-size: 16px; margin-top: 1px; }
+      body:not(.orient-landscape) .clock-card { height: 200px; padding: 12px 20px 10px; }
+      body:not(.orient-landscape) .digit-number { font-size: 100px; }
+      body:not(.orient-landscape) .bottom-row { height: 150px; }
+      body:not(.orient-landscape) .date-card, .quote-card { height: 150px; padding: 10px 14px; }
+      body:not(.orient-landscape) .date-day { font-size: 56px; }
+      body:not(.orient-landscape) .date-weekday { font-size: 20px; }
+      body:not(.orient-landscape) .date-lunar { font-size: 16px; }
+      body:not(.orient-landscape) .quote-label { height: 26px; line-height: 26px; font-size: 14px; margin-bottom: 4px; }
+      body:not(.orient-landscape) .quote-body { font-size: 18px; }
+      body:not(.orient-landscape) .quote-author { font-size: 13px; margin-top: 2px; }
+      body:not(.orient-landscape) .weather-strip { padding: 6px 16px 6px; margin-bottom: 4px; }
+      body:not(.orient-landscape) .weather-main { font-size: 22px; }
+      body:not(.orient-landscape) .weather-sub { font-size: 16px; }
+      body:not(.orient-landscape) .weather-sub-row { margin-top: 4px; }
+      body:not(.orient-landscape) .weather-refresh-btn, .weather-settings-btn { font-size: 15px; padding: 3px 10px; }
+      body:not(.orient-landscape) .orient-btn { font-size: 14px; padding: 1px 6px; }
+      body:not(.orient-landscape) .weread-strip { height: 42px; }
+    }
+
+    /* ===== 横屏宽屏(宽>800px):宽度铺满视口 ===== */
+    @media (min-width: 800px) {
+      body:not(.orient-landscape) body { width: 100%; margin: 0; }
+      body:not(.orient-landscape) #page-wrapper { width: 100%; }
+      body:not(.orient-landscape) .page { width: 100%; }
+      body:not(.orient-landscape) .content { width: 100%; }
+      body:not(.orient-landscape) .clock-card { width: auto; }
+      body:not(.orient-landscape) .clock-digits { width: 100%; }
+      body:not(.orient-landscape) .bottom-row { width: 100%; }
+      body:not(.orient-landscape) .date-card, .quote-card { width: 48%; }
+      body:not(.orient-landscape) .weather-strip { width: auto; }
+      body:not(.orient-landscape) .weread-strip { width: auto; }
+    }
+
+    /* 手动横屏模式(无陀螺仪设备):宽度铺满 */
+    body.orient-landscape {
+      /* 横屏旋转由 #rotate-wrap 的 transform 实现,尺寸由 fitScreen 计算 */
+    }
+
+    /* 横竖屏切换按钮 */
+    .orient-btn {
+      margin-left: auto;
+      width: 34px;
+      height: 34px;
+      border-radius: 17px;
+      border: 2px solid #ccc;
+      background: #fff;
+      color: #888;
+      font-size: 18px;
+      line-height: 34px;
+      text-align: center;
+      cursor: pointer;
+      outline: none;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-pack: center;
+      justify-content: center;
+      -webkit-box-align: center;
+      align-items: center;
+      z-index: 10;
+    }
+    .orient-btn:active { background: #f0f0f0; }
+
+  </style>
+</head>
+<body>
+
+  <div id="rotate-wrap">
+
+  <div id="main">
+    <!-- 时钟卡片 -->
+    <div class="clock-card">
+      <div class="clock-digits">
+        <div class="digit-card">
+          <span class="digit-number" id="hour">--</span>
+          <div class="digit-line"></div>
+        </div>
+        <div class="clock-colon">:</div>
+        <div class="digit-card">
+          <span class="digit-number" id="minute">--</span>
+          <div class="digit-line"></div>
+        </div>
+      </div>
+      <div class="clock-style-btn" onclick="openSettings()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <g stroke="#888" stroke-width="2.5" stroke-linejoin="round">
+            <rect x="5" y="5" width="4" height="4" rx="0.5"></rect>
+            <rect x="15" y="5" width="4" height="4" rx="0.5"></rect>
+            <rect x="5" y="15" width="4" height="4" rx="0.5"></rect>
+            <rect x="15" y="15" width="4" height="4" rx="0.5"></rect>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 天气横条 -->
+    <div class="weather-strip">
+      <div class="weather-main" id="weather-main">加载天气中...</div>
+      <div class="weather-sub-row">
+        <div class="weather-sub" id="weather-sub"></div>
+        <div class="weather-btns">
+          <button class="weather-refresh-btn" onclick="refreshWeather()">刷新</button>
+          <button class="weather-settings-btn" onclick="openSettings()">设置</button>
+          <button class="orient-btn" onclick="toggleOrient()" title="切换横竖屏">⊞</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部双卡片行 -->
+    <div class="bottom-row">
+      <!-- 日期卡片 -->
+      <div class="date-card">
+        <div class="date-weekday" id="weekday-month">--月 --日</div>
+        <div class="date-rule"></div>
+        <div class="date-day-wrap">
+          <div class="date-day" id="day-number">--</div>
+        </div>
+        <div class="date-lunar" id="lunar-date">--</div>
+      </div>
+
+      <!-- 语录卡片 -->
+      <div class="quote-card">
+        <div class="quote-label">每 日 一 句</div>
+        <div class="quote-body-wrap">
+          <div class="quote-body" id="quote-body">--</div>
+        </div>
+        <div class="quote-author" id="quote-author"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 页面 2:微信读书 ===== -->
+  <div id="page-weread" class="page" style="display:none">
+    <div class="page-card page-weread-card">
+      <div class="page-title">微信读书</div>
+      <div class="page-sub">在 Kindle 上在线阅读</div>
+      <a class="weread-big-btn" href="https://weread.qq.com/" target="_blank" rel="noopener noreferrer">
+        <span class="weread-btn-text">打开微信读书</span>
+        <span class="weread-btn-sub">weread.qq.com</span>
+      </a>
+      <div class="weread-tip">提示:Kindle 老浏览器可直接访问,如加载缓慢请稍候</div>
+    </div>
+  </div>
+
+  <!-- ===== 页面 3:番茄钟 ===== -->
+  <div id="page-pomo" class="page" style="display:none">
+    <div class="page-card page-pomo-card">
+      <div class="page-title">番茄钟</div>
+      <div class="pomo-time" id="pomo-time">25:00</div>
+      <div class="pomo-btns">
+        <button class="pomo-btn" onclick="pomoStart()" id="pomo-start-btn">开始</button>
+        <button class="pomo-btn" onclick="pomoReset()">重置</button>
+      </div>
+      <div class="pomo-tip" id="pomo-tip">专注 25 分钟,休息 5 分钟</div>
+    </div>
+  </div>
+
+  <!-- ===== 页面 4:阅读清单 ===== -->
+  <div id="page-list" class="page" style="display:none">
+    <div class="page-card page-list-card">
+      <div class="page-title">阅读清单</div>
+      <div class="list-input-row">
+        <input type="text" id="list-input" placeholder="想读的书,回车添加">
+        <button class="list-add-btn" onclick="listAdd()">添加</button>
+      </div>
+      <div class="list-items" id="list-items"></div>
+    </div>
+  </div>
+
+  <!-- ===== 页面 5:设置 ===== -->
+  <div id="page-settings" class="page" style="display:none">
+    <div class="page-card page-settings-card">
+      <div class="page-title">设置</div>
+      <div class="set-row">
+        <span class="set-label">城市</span>
+        <input type="text" id="set-city-input" placeholder="输入城市名">
+        <button class="set-save-btn" onclick="saveCity()">保存</button>
+      </div>
+      <div class="set-row">
+        <span class="set-label">横竖屏</span>
+        <button class="set-btn" onclick="toggleOrient()">切换</button>
+      </div>
+      <div class="set-row">
+        <span class="set-label">时钟样式</span>
+        <button class="set-btn" onclick="toggleClockStyle()">切换</button>
+      </div>
+      <div class="set-row">
+        <span class="set-label">刷新天气</span>
+        <button class="set-btn" onclick="refreshWeather()">刷新</button>
+      </div>
+      <div class="set-about">墨屏小站 v0.4 · 让闲置屏幕发光</div>
+    </div>
+  </div>
+
+
+
+
+  <!-- ===== 底部导航栏 ===== -->
+  <div id="bottom-nav">
+    <div class="nav-item" onclick="switchPage('home')" id="nav-home">
+      <span class="nav-ico"><svg viewBox="0 0 48 48" width="56" height="56"><path d="M24 6 L42 22 L42 42 L30 42 L30 28 L18 28 L18 42 L6 42 L6 22 Z" fill="#000"/></svg></span>
+      <span class="nav-txt">主页</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('weread')" id="nav-weread">
+      <span class="nav-ico"><svg viewBox="0 0 48 48" width="56" height="56"><path d="M24 12 C20 8 14 6 6 6 L6 38 C14 38 20 40 24 44 C28 40 34 38 42 38 L42 6 C34 6 28 8 24 12 Z" fill="#000"/><path d="M24 12 L24 44" stroke="#fff" stroke-width="2"/></svg></span>
+      <span class="nav-txt">阅读</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('pomo')" id="nav-pomo">
+      <span class="nav-ico"><svg viewBox="0 0 48 48" width="56" height="56"><circle cx="24" cy="24" r="18" fill="#fff" stroke="#000" stroke-width="3"/><path d="M24 12 L24 24 L32 28" fill="none" stroke="#000" stroke-width="3"/><circle cx="24" cy="24" r="2.5" fill="#000"/></svg></span>
+      <span class="nav-txt">番茄</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('list')" id="nav-list">
+      <span class="nav-ico"><svg viewBox="0 0 48 48" width="56" height="56"><path d="M8 14 L40 14 M8 24 L40 24 M8 34 L40 34" stroke="#000" stroke-width="4" stroke-linecap="round"/></svg></span>
+      <span class="nav-txt">清单</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('settings')" id="nav-settings">
+      <span class="nav-ico"><svg viewBox="0 0 48 48" width="56" height="56"><path d="M24 14 A10 10 0 1 0 24 34 A10 10 0 1 0 24 14 Z" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="24" cy="24" r="4.5" fill="#000"/><path d="M24 2 L26 8 L22 8 Z M24 46 L26 40 L22 40 Z M2 24 L8 22 L8 26 Z M46 24 L40 22 L40 26 Z M9 9 L13 13 L11 15 Z M39 39 L35 35 L37 33 Z M39 9 L35 13 L37 15 Z M9 39 L13 35 L11 33 Z" fill="#000"/></svg></span>
+      <span class="nav-txt">设置</span>
+    </div>
+  </div><!-- /#bottom-nav -->
+
+</div><!-- /#rotate-wrap -->
+
+
+
+
+  <!-- 设置面板 -->
+  <div id="settings-panel">
+    <p>城市(如:上海 / Beijing / London)</p>
+    <input type="text" id="city-input" placeholder="输入城市名后保存">
+    <button onclick="saveCity()">保存</button>
+    <button class="close-btn" onclick="closeSettings()">取消</button>
+  </div>
+
+<script>
+/* ================================================================
+ * 墨屏小站 v0.4 - ES5 兼容版
+ * ================================================================ */
+
+/* ---------- 配置 ---------- */
+  var WEATHER_API = 'https://wttr.in/';
+  var CITY_COOKIE = 'mpxz_city';
+  var ORIENT_COOKIE = 'mpxz_orient';
+  var CITY_DEFAULT = '上海';
+  var QUOTE_SEED_COOKIE = 'mpxz_quote_seed';
+  var CLOCK_STYLE_COOKIE = 'mpxz_clock_style';
+  var tzOffsetMs = 8 * 3600000; /* 时区偏移(毫秒),默认东八区,可被 ip-api 覆盖 */
+  var currentCity = '';
+
+  /* ---------- 工具函数 ---------- */
+  function getCookie(name) {
+    var cookies = document.cookie.split('; ');
+    for (var i = 0; i < cookies.length; i++) {
+      var parts = cookies[i].split('=');
+      if (parts[0] === name) {
+        return decodeURIComponent(parts[1] || '');
+      }
+    }
+    return '';
+  }
+
+  function setCookie(name, value, days) {
+    var exp = new Date();
+    exp.setTime(exp.getTime() + (days || 365) * 86400000);
+    document.cookie = name + '=' + encodeURIComponent(value) +
+      '; expires=' + exp.toGMTString() +
+      '; path=/';
+  }
+
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+
+  /* 获取本地时间(含时区偏移) */
+  function getLocalDate() {
+    return new Date(Date.now() + tzOffsetMs);
+  }
+
+  /* XHR 封装(ES5 兼容) */
+  function xhrGet(url, callback, timeout) {
+    timeout = timeout || 8000;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.timeout = timeout;
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        var ok = xhr.status === 200 || xhr.status === 0;
+        callback(ok ? null : xhr.status, ok ? xhr.responseText : '');
+      }
+    };
+    xhr.onerror = function() { callback(-1, ''); };
+    xhr.ontimeout = function() { callback(-2, ''); };
+    xhr.send();
+  }
+
+  /* ---------- 墨水屏刷新(切换视图时去残影) ---------- */
+  function einkRefresh(callback) {
+    var base = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none;';
+    var black = document.createElement('div');
+    black.style.cssText = base + 'background:#000;';
+    var white = document.createElement('div');
+    white.style.cssText = base + 'background:#fff;';
+    document.body.appendChild(black);
+    setTimeout(function() {
+      document.body.removeChild(black);
+      document.body.appendChild(white);
+      setTimeout(function() {
+        if (callback) callback();
+        document.body.removeChild(white);
+      }, 120);
+    }, 120);
+  }
+
+  /* ---------- 时钟 ---------- */
+  function updateClock() {
+    var now = getLocalDate();
+    var h = pad(now.getUTCHours());
+    var m = pad(now.getUTCMinutes());
+    var dow = now.getUTCDay();   /* 0=周日 */
+    var month = now.getUTCMonth(); /* 0=一月 */
+    var day = now.getUTCDate();
+
+    document.getElementById('hour').textContent = h;
+    document.getElementById('minute').textContent = m;
+    document.getElementById('weekday-month').textContent =
+      WEEKDAYS[dow] + '  ' + MONTHS[month];
+    document.getElementById('day-number').textContent = pad(day);
+    document.getElementById('lunar-date').textContent = toLunarLabel(now);
+  }
+
+  /* ---------- 日期/农历 ---------- */
+  var WEEKDAYS = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  var MONTHS   = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+
+  /* ---------- 农历查表(1900-2100,标准数据) ---------- */
+  var LUNAR_INFO = [
+      0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+      0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+      0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+      0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+      0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+      0x06ca0,0x0b550,0x15355,0x04da0,0x0a5d0,0x14573,0x052d0,0x0a9a8,0x0e950,0x06aa0,
+      0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+      0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+      0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+      0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
+      0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+      0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+      0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+      0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+      0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+      0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+      0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+      0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+      0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+      0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+      0x0d520
+    ];
+
+  var LUNAR_MONTHS = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+  var LUNAR_DAYS = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+    '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+    '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+
+  var _lunarCache = { day: -1, label: '' };
+
+  function lLeapMonth(y) { return LUNAR_INFO[y - 1900] & 0xf; }
+  function lLeapDays(y) { return lLeapMonth(y) ? ((LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29) : 0; }
+  function lMonthDays(y, m) { return (LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29; }
+  function lYearDays(y) {
+    var sum = 348, i;
+    for (i = 0x8000; i > 0x8; i >>= 1) { sum += (LUNAR_INFO[y - 1900] & i) ? 1 : 0; }
+    return sum + lLeapDays(y);
+  }
+
+  function toLunarLabel(date) {
+    var y = date.getUTCFullYear(), mo = date.getUTCMonth(), d = date.getUTCDate();
+    var key = d + mo * 31 + y * 372;
+    if (_lunarCache.day === key) { return _lunarCache.label; }
+    var offset = Math.round((Date.UTC(y, mo, d) - Date.UTC(1900, 0, 31)) / 86400000);
+    var temp = 0, ly, leap, isLeap = false, lm;
+    for (ly = 1900; ly < 2101 && offset > 0; ly++) { temp = lYearDays(ly); offset -= temp; }
+    if (offset < 0) { offset += temp; ly--; }
+    leap = lLeapMonth(ly);
+    for (lm = 1; lm < 13 && offset > 0; lm++) {
+      if (leap > 0 && lm === leap + 1 && isLeap === false) { --lm; isLeap = true; temp = lLeapDays(ly); }
+      else { temp = lMonthDays(ly, lm); }
+      if (isLeap === true && lm === leap + 1) { isLeap = false; }
+      offset -= temp;
+    }
+    if (offset === 0 && leap > 0 && lm === leap + 1) {
+      if (isLeap) { isLeap = false; } else { isLeap = true; --lm; }
+    }
+    if (offset < 0) { offset += temp; --lm; }
+    _lunarCache.day = key;
+    _lunarCache.label = (isLeap ? '闰' : '') + LUNAR_MONTHS[lm - 1] + '月' + LUNAR_DAYS[offset];
+    return _lunarCache.label;
+  }
+
+  /* ---------- 天气 ---------- */
+  var weatherTimer = null;
+
+  function refreshWeather() {
+    var elMain = document.getElementById('weather-main');
+    var elSub = document.getElementById('weather-sub');
+    elMain.textContent = '刷新中...';
+    elMain.className = 'weather-main loading';
+    elSub.textContent = '';
+
+    var city = currentCity || getCookie(CITY_COOKIE) || CITY_DEFAULT;
+    if (!currentCity && city) currentCity = city;
+
+    /* wttr.in j1 JSON 接口(字段稳定,适合老浏览器) */
+    xhrGet(WEATHER_API + encodeURIComponent(city) + '?format=j1&m', function(err, text) {
+      if (!err && text) {
+        try {
+          var data = JSON.parse(text);
+          var cur = data.current_condition[0];
+          /* 城市名优先用用户设置值(cookie/默认),wttr.in 的 nearest_area 中文解析不稳 */
+          var cityName = city;
+          var tempC = cur.temp_C;
+          var humid = cur.humidity;
+          var descEn = cur.weatherDesc && cur.weatherDesc[0] ? cur.weatherDesc[0].value : '';
+          var windKmph = cur.windspeedKmph;
+          var desc = weatherDescCN(descEn);
+          elMain.textContent = cityName + '  ' + desc + '  ' + tempC + '°C';
+          elMain.className = 'weather-main';
+          elSub.textContent = '湿度 ' + humid + '% · 风速 ' + windKmph + 'km/h';
+          einkRefresh(null);
+          if (typeof fitScreen === 'function') fitScreen();
+          return;
+        } catch (e) { /* JSON 解析失败,走文本接口 */ }
+      }
+      /* 回退:文本接口 */
+      xhrGet(WEATHER_API + encodeURIComponent(city) + '?format=%l+%c+%t+%h+%w&m', function(err2, text2) {
+        if (!err2 && text2) {
+          var clean = text2.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+          elMain.textContent = clean;
+          elMain.className = 'weather-main';
+          elSub.textContent = '';
+          einkRefresh(null);
+          if (typeof fitScreen === 'function') fitScreen();
+        } else {
+          elMain.textContent = city + ' · 天气获取失败';
+          elMain.className = 'weather-main';
+          elSub.textContent = '请检查网络或设置城市';
+          if (typeof fitScreen === 'function') fitScreen();
+        }
+      }, 8000);
+    }, 8000);
+  }
+
+  /* 英文天气描述 → 中文 */
+  function weatherDescCN(en) {
+    en = String(en || '').toLowerCase();
+    var map = {
+      'clear': '晴', 'sunny': '晴', 'partly cloudy': '多云', 'cloudy': '阴',
+      'overcast': '阴', 'mist': '薄雾', 'fog': '雾', 'light drizzle': '小雨',
+      'drizzle': '毛毛雨', 'light rain': '小雨', 'moderate rain': '中雨',
+      'heavy rain': '大雨', 'light snow': '小雪', 'moderate snow': '中雪',
+      'heavy snow': '大雪', 'sleet': '雨夹雪', 'freezing rain': '冻雨',
+      'thundery outbreaks': '雷阵雨', 'patchy rain possible': '零星小雨',
+      'patchy snow possible': '零星小雪', 'light rain shower': '小阵雨',
+      'moderate or heavy rain shower': '阵雨', 'thunderstorm': '雷雨',
+      'haze': '霾', 'smoke': '烟霾', 'dust': '扬尘', 'sand': '沙尘',
+      'blizzard': '暴风雪', 'ice pellets': '冰雹', 'light sleet': '小冻雨',
+      'moderate or heavy sleet': '冻雨',
+      'patchy rain nearby': '局部有雨', 'patchy light rain': '零星小雨',
+      'patchy rain possible': '可能下雨', 'light rain shower': '小阵雨',
+      'moderate or heavy rain shower': '阵雨', 'torrential rain shower': '暴雨',
+      'light rain': '小雨', 'moderate rain': '中雨', 'heavy rain': '大雨',
+      'light drizzle': '毛毛雨', 'drizzle': '细雨', 'freezing drizzle': '冻毛毛雨',
+      'light snow': '小雪', 'moderate snow': '中雪', 'heavy snow': '大雪',
+      'light snow showers': '小阵雪', 'moderate or heavy snow showers': '阵雪',
+      'patchy light snow': '零星小雪', 'patchy moderate snow': '零星中雪',
+      'thundery outbreaks possible': '可能有雷暴', 'moderate or heavy rain with thunder': '雷雨',
+      'light rain with thunder': '雷阵雨', 'overcast': '阴', 'cloudy': '多云',
+      'partly cloudy': '局部多云', 'clear': '晴', 'sunny': '晴', 'mist': '薄雾',
+      'fog': '雾', 'freezing fog': '冻雾', 'light freezing rain': '小冻雨'
+    };
+    for (var k in map) {
+      if (en.indexOf(k) >= 0) return map[k];
+    }
+    return en;
+  }
+
+  /* ---------- 语录 ---------- */
+  var QUOTES = [
+    { text: '宝剑锋从磨砺出,梅花香自苦寒来。', author: '《警世贤文》' },
+    { text: '不积跬步,无以至千里;不积小流,无以成江海。', author: '荀子' },
+    { text: '流水不腐,户枢不蠹。', author: '《吕氏春秋》' },
+    { text: '人生若只如初见,何事秋风悲画扇。', author: '纳兰性德' },
+    { text: '山重水复疑无路,柳暗花明又一村。', author: '陆游' },
+    { text: '沉舟侧畔千帆过,病树前头万木春。', author: '刘禹锡' },
+    { text: '长风破浪会有时,直挂云帆济沧海。', author: '李白' },
+    { text: '纸上得来终觉浅,绝知此事要躬行。', author: '陆游' },
+    { text: '路漫漫其修远兮,吾将上下而求索。', author: '屈原' },
+    { text: '天行健,君子以自强不息。', author: '《周易》' },
+    { text: '地势坤,君子以厚德载物。', author: '《周易》' },
+    { text: '知之者不如好之者,好之者不如乐之者。', author: '孔子' },
+    { text: '学而不思则罔,思而不学则殆。', author: '孔子' },
+    { text: '有志者,事竟成。', author: '《后汉书》' },
+    { text: '业精于勤,荒于嬉;行成于思,毁于随。', author: '韩愈' },
+    { text: '合抱之木,生于毫末;九层之台,起于累土。', author: '老子' },
+    { text: '千里之堤,溃于蚁穴。', author: '《韩非子》' },
+    { text: '工欲善其事,必先利其器。', author: '孔子' },
+    { text: '桃李不言,下自成蹊。', author: '《史记》' },
+    { text: '博观而约取,厚积而薄发。', author: '苏轼' },
+    { text: '非淡泊无以明志,非宁静无以致远。', author: '诸葛亮' },
+    { text: '静以修身,俭以养德。', author: '诸葛亮' },
+    { text: '老骥伏枥,志在千里;烈士暮年,壮心不已。', author: '曹操' },
+    { text: '穷则独善其身,达则兼济天下。', author: '孟子' },
+    { text: '以铜为镜,可以正衣冠;以史为镜,可以知兴替。', author: '李世民' },
+    { text: '会当凌绝顶,一览众山小。', author: '杜甫' },
+    { text: '海内存知己,天涯若比邻。', author: '王勃' },
+    { text: '欲穷千里目,更上一层楼。', author: '王之涣' },
+    { text: '落霞与孤鹜齐飞,秋水共长天一色。', author: '王勃' },
+    { text: '大漠孤烟直,长河落日圆。', author: '王维' },
+    { text: '问渠那得清如许?为有源头活水来。', author: '朱熹' },
+    { text: '人生自古谁无死,留取丹心照汗青。', author: '文天祥' },
+    { text: '但愿人长久,千里共婵娟。', author: '苏轼' },
+    { text: '两情若是久长时,又岂在朝朝暮暮。', author: '秦观' },
+    { text: '采菊东篱下,悠然见南山。', author: '陶渊明' },
+    { text: '少壮不努力,老大徒伤悲。', author: '《长歌行》' },
+    { text: '及时当勉励,岁月不待人。', author: '陶渊明' },
+    { text: '盛年不重来,一日难再晨。', author: '陶渊明' },
+    { text: '莫等闲,白了少年头,空悲切。', author: '岳飞' },
+    { text: '壮志饥餐胡虏肉,笑谈渴饮匈奴血。', author: '岳飞' },
+    { text: '三十功名尘与土,八千里路云和月。', author: '岳飞' },
+    { text: '先天下之忧而忧,后天下之乐而乐。', author: '范仲淹' },
+    { text: '人生得意须尽欢,莫使金樽空对月。', author: '李白' },
+    { text: '天生我材必有用,千金散尽还复来。', author: '李白' },
+    { text: '仰天大笑出门去,我辈岂是蓬蒿人。', author: '李白' },
+    { text: '抽刀断水水更流,举杯消愁愁更愁。', author: '李白' },
+    { text: '今人不见古时月,今月曾经照古人。', author: '张若虚' },
+    { text: '春江潮水连海平,海上明月共潮生。', author: '张若虚' },
+    { text: '随风潜入夜,润物细无声。', author: '杜甫' },
+    { text: '读书破万卷,下笔如有神。', author: '杜甫' },
+    { text: '无边落木萧萧下,不尽长江滚滚来。', author: '杜甫' }
+  ];
+
+  function getQuoteOfDay() {
+    var seed = getCookie(QUOTE_SEED_COOKIE);
+    if (!seed) { seed = Math.floor(Math.random() * QUOTES.length); setCookie(QUOTE_SEED_COOKIE, String(seed)); }
+    var idx = parseInt(seed, 10) || 0;
+    /* 按日期轮换(同一天同一句) */
+    var today = new Date();
+    var dateSeed = Math.floor(today.getTime() / 86400000);
+    idx = (dateSeed + parseInt(seed, 10)) % QUOTES.length;
+    return QUOTES[idx];
+  }
+
+  function updateQuote() {
+    var q = getQuoteOfDay();
+    document.getElementById('quote-body').textContent = q.text;
+    document.getElementById('quote-author').textContent = '- ' + q.author;
+    fitQuote();
+  }
+
+  /* 每日一句自适应字号(长文本自动缩小,防止溢出) */
+  function fitQuote() {
+    var el = document.getElementById('quote-body');
+    var wrap = el.parentNode;
+    if (!el || !wrap) return;
+    var maxH = wrap.clientHeight;
+    if (maxH <= 0) return;
+    var size = 32;
+    el.style.fontSize = size + 'px';
+    /* 逐级降字号直到放下 */
+    while (size > 14 && el.scrollHeight > maxH) {
+      size -= 2;
+      el.style.fontSize = size + 'px';
+    }
+  }
+
+  /* ---------- 设置面板 ---------- */
+  function openSettings() {
+    var panel = document.getElementById('settings-panel');
+    panel.style.display = 'block';
+    document.getElementById('city-input').value = currentCity || getCookie(CITY_COOKIE) || '';
+    document.getElementById('city-input').focus();
+    einkRefresh(null);
+  }
+
+  function closeSettings() {
+    document.getElementById('settings-panel').style.display = 'none';
+  }
+
+  function saveCity() {
+    var input = document.getElementById('city-input');
+    var city = input.value.replace(/^\s+|\s+$/g, '');
+    if (!city) city = CITY_DEFAULT;
+    setCookie(CITY_COOKIE, city);
+    currentCity = city;
+    closeSettings();
+    syncSetCity();
+    refreshWeather();
+  }
+
+  /* 回车保存 */
+  function setupCityInput() {
+    var input = document.getElementById('city-input');
+    if (input.addEventListener) {
+      input.addEventListener('keypress', function(e) {
+        if (e.keyCode === 13 || e.which === 13) saveCity();
+      });
+    }
+    var setInput = document.getElementById('set-city-input');
+    if (setInput && setInput.addEventListener) {
+      setInput.addEventListener('keypress', function(e) {
+        if (e.keyCode === 13 || e.which === 13) {
+          document.getElementById('city-input').value = setInput.value;
+          saveCity();
+        }
+      });
+    }
+  }
+
+  /* ---------- 横竖屏切换 ---------- */
+  function toggleOrient() {
+    var isLand = document.body.className.indexOf('orient-landscape') >= 0;
+    if (isLand) {
+      document.body.className = document.body.className.replace(/orient-landscape/g, '').replace(/\s+/g, ' ').trim();
+      setCookie(ORIENT_COOKIE, 'portrait');
+    } else {
+      document.body.className += ' orient-landscape';
+      setCookie(ORIENT_COOKIE, 'landscape');
+    }
+    if (typeof fitScreen === 'function') fitScreen();
+    einkRefresh(null);
+  }
+
+  /* ---------- 一屏适配:动态缩放 ---------- */
+  function fitScreen() {
+    var rotateWrap = document.getElementById('rotate-wrap');
+    if (!rotateWrap) return;
+
+    var isLand = document.body.className.indexOf('orient-landscape') >= 0;
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+
+    if (!isLand) {
+      /* ===== 竖屏:铺满视口,不缩放(内容 flex 弹性自适应) ===== */
+      rotateWrap.style.position = 'relative';
+      rotateWrap.style.left = 'auto';
+      rotateWrap.style.top = 'auto';
+      rotateWrap.style.width = '100%';
+      rotateWrap.style.height = '100%';
+      rotateWrap.style.webkitTransformOrigin = '0 0';
+      rotateWrap.style.transformOrigin = '0 0';
+      rotateWrap.style.webkitTransform = 'none';
+      rotateWrap.style.transform = 'none';
+    } else {
+      /* ===== 横屏:整体旋转 90°,铺满视口 =====
+       * 布局宽=vh(旋转后成视觉高), 布局高=vw(旋转后成视觉宽)
+       * origin(0,0) rotate(90deg): (x,y)->(-y,x), 盒子跑到 x∈[-vw,0]
+       * 用 translateX(vw) rotate(90deg) 平移到 x∈[0,vw] */
+      rotateWrap.style.position = 'absolute';
+      rotateWrap.style.left = '0px';
+      rotateWrap.style.top = '0px';
+      rotateWrap.style.width = vh + 'px';
+      rotateWrap.style.height = vw + 'px';
+      rotateWrap.style.webkitTransformOrigin = '0 0';
+      rotateWrap.style.transformOrigin = '0 0';
+      rotateWrap.style.webkitTransform = 'translateX(' + vw + 'px) rotate(90deg)';
+      rotateWrap.style.transform = 'translateX(' + vw + 'px) rotate(90deg)';
+    }
+  }
+
+  function initOrient() {
+    var saved = getCookie(ORIENT_COOKIE);
+    if (saved === 'landscape') {
+      document.body.className += ' orient-landscape';
+    }
+  }
+
+  /* ---------- 时钟样式切换 ---------- */
+  function toggleClockStyle() {
+    var isSimple = document.body.className.indexOf('clock-simple') >= 0;
+    if (isSimple) {
+      document.body.className = '';
+      setCookie(CLOCK_STYLE_COOKIE, '');
+    } else {
+      document.body.className = 'clock-simple';
+      setCookie(CLOCK_STYLE_COOKIE, 'simple');
+    }
+    einkRefresh(null);
+  }
+
+  /* ---------- 初始化 ---------- */
+  function init() {
+    /* 时钟样式 */
+    var savedStyle = getCookie(CLOCK_STYLE_COOKIE);
+    if (savedStyle === 'simple') document.body.className = 'clock-simple';
+
+    /* 方向 */
+    initOrient();
+
+    /* 城市 */
+    currentCity = getCookie(CITY_COOKIE) || CITY_DEFAULT;
+
+    /* 时钟 + 日期 */
+    updateClock();
+    setInterval(updateClock, 60000);
+
+    /* 天气 */
+    refreshWeather();
+
+    /* 语录 */
+    updateQuote();
+
+    /* 设置输入 */
+    setupCityInput();
+
+    /* 导航页初始化 */
+    renderList();
+    syncSetCity();
+
+    /* 一屏适配 */
+    fitScreen();
+    if (window.addEventListener) {
+      window.addEventListener('resize', function () { fitScreen(); if (typeof fitQuote === 'function') fitQuote(); });
+    } else {
+      window.onresize = function () { fitScreen(); if (typeof fitQuote === 'function') fitQuote(); };
+    }
+    /* 缩放后再校准每日一句字号 */
+    if (typeof fitQuote === 'function') setTimeout(fitQuote, 50);
+  }
+
+  /* 页面加载后启动 */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  /* ---------- 多页导航 ---------- */
+  var PAGE_NAMES = ['home', 'weread', 'pomo', 'list', 'settings'];
+
+  function switchPage(name) {
+    var pages = ['home', 'weread', 'pomo', 'list', 'settings'];
+    for (var i = 0; i < pages.length; i++) {
+      var pg = document.getElementById('page-' + pages[i]);
+      if (pg) {
+        pg.style.display = '';
+        if (pages[i] === name) pg.className = 'page page-active';
+        else pg.className = 'page';
+      }
+    }
+    var main = document.getElementById('main');
+    if (main) main.style.display = (name === 'home') ? '' : 'none';
+    for (var j = 0; j < pages.length; j++) {
+      var nav = document.getElementById('nav-' + pages[j]);
+      if (nav) {
+        if (pages[j] === name) nav.className = 'nav-item nav-item-active';
+        else nav.className = 'nav-item';
+      }
+    }
+    if (typeof einkRefresh === 'function') einkRefresh(null);
+    if (typeof fitScreen === 'function') fitScreen();
+  }
+
+  /* ---------- 番茄钟 ---------- */
+  var POMO_COOKIE = 'mpxz_pomo';
+  var pomoTotal = 25 * 60;
+  var pomoLeft = pomoTotal;
+  var pomoTimer = null;
+  var pomoRunning = false;
+
+  function pomoStart() {
+    if (pomoRunning) { pausePomo(); return; }
+    pomoRunning = true;
+    document.getElementById('pomo-start-btn').textContent = '暂停';
+    pomoTimer = setInterval(pomoTick, 1000);
+  }
+
+  function pomoTick() {
+    pomoLeft--;
+    if (pomoLeft <= 0) {
+      pomoLeft = 0;
+      pomoDone();
+      return;
+    }
+    renderPomo();
+  }
+
+  function pausePomo() {
+    pomoRunning = false;
+    clearInterval(pomoTimer);
+    document.getElementById('pomo-start-btn').textContent = '继续';
+  }
+
+  function pomoReset() {
+    pomoRunning = false;
+    clearInterval(pomoTimer);
+    pomoLeft = pomoTotal;
+    document.getElementById('pomo-start-btn').textContent = '开始';
+    renderPomo();
+  }
+
+  function pomoDone() {
+    pomoRunning = false;
+    clearInterval(pomoTimer);
+    document.getElementById('pomo-start-btn').textContent = '开始';
+    document.getElementById('pomo-tip').textContent = '专注完成!休息 5 分钟吧';
+    renderPomo();
+  }
+
+  function renderPomo() {
+    var m = Math.floor(pomoLeft / 60);
+    var s = pomoLeft % 60;
+    document.getElementById('pomo-time').textContent =
+      (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  /* ---------- 阅读清单 ---------- */
+  var LIST_COOKIE = 'mpxz_list';
+
+  function getList() {
+    var raw = getCookie(LIST_COOKIE);
+    if (!raw) return [];
+    try {
+      var arr = JSON.parse(raw);
+      return arr && arr.length !== undefined ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function saveList(arr) {
+    setCookie(LIST_COOKIE, JSON.stringify(arr));
+  }
+
+  function renderList() {
+    var box = document.getElementById('list-items');
+    var arr = getList();
+    if (!arr.length) {
+      box.innerHTML = '<div class="list-empty">清单是空的,添加一本想读的书吧</div>';
+      return;
+    }
+    var h = '';
+    for (var i = 0; i < arr.length; i++) {
+      h += '<div class="list-item"><span class="list-item-text">' +
+        escapeHtml(arr[i]) + '</span>' +
+        '<button class="list-item-del" onclick="listDel(' + i + ')">✕</button></div>';
+    }
+    box.innerHTML = h;
+  }
+
+  function listAdd() {
+    var input = document.getElementById('list-input');
+    var val = input.value.replace(/^\s+|\s+$/g, '');
+    if (!val) return;
+    var arr = getList();
+    arr.push(val);
+    saveList(arr);
+    input.value = '';
+    renderList();
+  }
+
+  function listDel(i) {
+    var arr = getList();
+    arr.splice(i, 1);
+    saveList(arr);
+    renderList();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* 设置页城市输入同步 */
+  function syncSetCity() {
+    var el = document.getElementById('set-city-input');
+    if (el) el.value = currentCity || getCookie(CITY_COOKIE) || CITY_DEFAULT;
+  }
+
+</script>
+</body>
+</html>

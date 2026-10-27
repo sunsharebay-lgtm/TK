@@ -1,0 +1,86 @@
+[
+  {
+    "project": "创意空间首页",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "创意空间首页/测试/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "坦克大战",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "坦克大战/测试/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "吞食天地三国",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "吞食天地三国/测试/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "超级玛丽",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "超级玛丽/test/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "墨水屏小站",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "墨水屏小站/测试/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "Mac软件资源库",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "Mac软件资源库/测试/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "粉丝资源",
+    "viewport": "desktop",
+    "ok": true,
+    "screenshot": "粉丝资源/测试/.artifacts/browser-desktop.png"
+  },
+  {
+    "project": "创意空间首页",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "创意空间首页/测试/.artifacts/browser-mobile.png"
+  },
+  {
+    "project": "坦克大战",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "坦克大战/测试/.artifacts/browser-mobile.png"
+  },
+  {
+    "project": "吞食天地三国",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "吞食天地三国/测试/.artifacts/browser-mobile.png"
+  },
+  {
+    "project": "超级玛丽",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "超级玛丽/test/.artifacts/browser-mobile.png"
+  },
+  {
+    "project": "墨水屏小站",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "墨水屏小站/测试/.artifacts/browser-mobile.png"
+  },
+  {
+    "project": "Mac软件资源库",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "Mac软件资源库/测试/.artifacts/browser-mobile.png"
+  },
+  {
+    "project": "粉丝资源",
+    "viewport": "mobile",
+    "ok": true,
+    "screenshot": "粉丝资源/测试/.artifacts/browser-mobile.png"
+  }
+]

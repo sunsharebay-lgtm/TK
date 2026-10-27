@@ -635,24 +635,36 @@
       }
 
       async function copyText(value, button) {
+        if (button && button.disabled) return;
+        if (button) button.disabled = true;
+        let copied = false;
         try {
           await navigator.clipboard.writeText(value);
-          copyStatus.textContent = `已复制：${value}`;
+          copied = true;
         } catch (_) {
           const area = document.createElement('textarea');
           area.value = value;
+          area.setAttribute('readonly', '');
           area.style.position = 'fixed';
           area.style.opacity = '0';
           document.body.appendChild(area);
-          area.select();
-          const ok = document.execCommand('copy');
-          area.remove();
-          copyStatus.textContent = ok ? `已复制：${value}` : '复制失败，请手动复制链接。';
+          try {
+            area.select();
+            copied = document.execCommand('copy') === true;
+          } catch (_) {
+            copied = false;
+          } finally {
+            area.remove();
+          }
         }
+        copyStatus.textContent = copied ? `已复制：${value}` : '复制失败，请手动复制链接。';
         if (button) {
           const original = button.textContent;
-          button.textContent = '已复制';
-          window.setTimeout(() => { button.textContent = original; }, 1400);
+          button.textContent = copied ? '已复制' : '复制失败';
+          window.setTimeout(() => {
+            button.textContent = original;
+            button.disabled = false;
+          }, 1400);
         }
       }
 

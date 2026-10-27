@@ -2,7 +2,9 @@
 /* G3-R7: 统一回归框架——顺序执行全部 CDP 用例（cases/*.pre/end.json），汇总 PASS/FAIL 报告。
  * 用法：node 测试/tools/regress.mjs [--only name1,name2]
  * 依赖：本地 8642 服务（python3 -m http.server 8642 指向网页复刻目录）。 */
-import { spawnSync, execSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -78,6 +80,14 @@ const CASES = [
 const only = process.argv.includes("--only")
   ? process.argv[process.argv.indexOf("--only") + 1].split(",")
   : null;
+if (only && only.some(name => !CASES.some(c => c.name === name))) throw new Error('Unknown regression case in --only');
+const outputRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'three-kingdoms-regress-'));
+const jobs = process.argv.includes('--jobs') ? Number(process.argv[process.argv.indexOf('--jobs') + 1]) : 1;
+if (!Number.isInteger(jobs) || jobs < 1 || jobs > 4) throw new Error('--jobs must be between 1 and 4');
+const selected = CASES.filter(c => !only || only.includes(c.name));
+const children = new Set();
+process.once('SIGTERM', () => { for (const child of children) child.kill(); process.exit(143); });
+process.once('SIGINT', () => { for (const child of children) child.kill(); process.exit(130); });
 
 function okOf(name, result, custom) {
   if (!result) return false;
@@ -87,27 +97,33 @@ function okOf(name, result, custom) {
   if (custom === "equip8") {
     return result.saveLoadMatch === true && Array.isArray(result.slots) && result.slots.every(s => s.ok !== false);
   }
-  if (result.allOk === true) return true;
+  if ('allOk' in result) return result.allOk === true && (!Array.isArray(result.fails) || result.fails.length === 0);
   if (Array.isArray(result.fails) && result.fails.length === 0) return true;
   return false;
 }
 
 let pass = 0, fail = 0;
 const rows = [];
-for (const c of CASES) {
-  if (only && !only.includes(c.name)) continue;
+async function runCase(c) {
   const args = [
     DRIVER, "--url", c.url, "--duration", String(c.dur),
     "--pre-eval-file", path.join(__dirname, c.pre),
     "--eval-file", path.join(__dirname, c.end),
-    "--out", "/tmp/regress-" + c.name,
+    "--out", path.join(outputRoot, c.name),
   ];
   if (c.keys) args.push("--keys", c.keys);
   if (c.keysOnce) args.push("--keys-once");
   if (c.mid) args.push("--mid-eval-file", path.join(__dirname, c.mid), "--mid-at", String(c.midAt || 3000));
-  /* 每用例前清掉残留 9333（cdp-driver 自带的 pkill 因 execSync 未引入而失效） */
-  try { execSync("pkill -f 'remote-debugging-port=9333' 2>/dev/null"); } catch { /* 无残留 */ }
-  const r = spawnSync("node", args, { encoding: "utf8", timeout: 400000 });
+  const r = await new Promise(resolve => {
+    const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    children.add(child);
+    let stdout = '', stderr = '';
+    child.stdout.on('data', text => { stdout += text; });
+    child.stderr.on('data', text => { stderr += text; });
+    const timer = setTimeout(() => child.kill(), 120000);
+    child.once('error', error => { stderr += error.message; });
+    child.once('close', status => { clearTimeout(timer); children.delete(child); resolve({ stdout, stderr, status }); });
+  });
   const raw = r.stdout || "";
   let data = null;
   const sIdx = raw.indexOf("{");
@@ -121,15 +137,29 @@ for (const c of CASES) {
   if (endEval && !String(endEval).startsWith("EXC")) {
     try { result = JSON.parse(endEval); } catch { result = null; }
   } else if (String(endEval).startsWith("EXC")) { result = { __exc: endEval }; }
-  const ok = okOf(c.name, result, c.custom) && ex.length === 0 && cls.length === 0;
+  const network = (data?.badResponses || []).filter(x => !/favicon\.ico/.test(x.url));
+  const loadingFailures = (data?.failures || []).filter(x => x.errorText !== 'net::ERR_ABORTED');
+  const ok = r.status === 0 && okOf(c.name, result, c.custom) && ex.length === 0 && cls.length === 0 && network.length === 0 && loadingFailures.length === 0;
   ok ? pass++ : fail++;
-  rows.push({ name: c.name, ok, ex, cls, result: result ? JSON.stringify(result).slice(0, 480) : endEval });
+  rows.push({ name: c.name, ok, ex, cls, network, loadingFailures, stderr: r.stderr, result: result || endEval });
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${c.name} (${rows.length}/${selected.length})`);
+  if (!ok) console.log(JSON.stringify(rows[rows.length - 1]));
 }
+let next = 0;
+await Promise.all(Array.from({ length: jobs }, async () => {
+  while (next < selected.length) await runCase(selected[next++]);
+}));
 
 console.log("\n================ 回归汇总 ================");
 for (const row of rows) {
   console.log(`${row.ok ? "PASS" : "FAIL"}  ${row.name}  exceptions=${row.ex ? row.ex.length : 0} console=${row.cls.length ? JSON.stringify(row.cls) : 0}`);
-  if (!row.ok) console.log(`      result: ${row.result}`);
+  if (!row.ok) console.log(`      details: ${JSON.stringify(row)}`);
 }
 console.log(`\n通过 ${pass}/${rows.length}`);
+if (process.argv.includes('--report')) {
+  const report = process.argv[process.argv.indexOf('--report') + 1];
+  fs.mkdirSync(path.dirname(report), { recursive: true });
+  fs.writeFileSync(report, JSON.stringify({ pass, fail, rows }, null, 2) + '\n');
+}
+fs.rmSync(outputRoot, { recursive: true, force: true });
 process.exit(fail ? 1 : 0);

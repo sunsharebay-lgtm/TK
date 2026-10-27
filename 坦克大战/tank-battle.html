@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0e17">
 <link rel="icon" href="data:,">
 <link rel="preload" href="assets/blender/tank-sprites-v2.png" as="image" type="image/png">
-<title>钢铁防线 · 坦克大战 v1.6.11</title>
+<title>钢铁防线 · 坦克大战 v1.6.12</title>
 <style>
 /* ============================================================
    钢铁防线 — 现代化坦克大战
@@ -490,7 +490,7 @@ kbd{
   <div class="tbtn" id="tPause">暂停</div>
 </div>
 
-<div id="footer">钢铁防线 v1.6.11 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
+<div id="footer">钢铁防线 v1.6.12 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
 
 <output id="diagnostics" hidden></output>
 
@@ -499,7 +499,7 @@ kbd{
 /* ============================================================
    P1 · 常量 / 工具 / 输入
    ============================================================ */
-const GAME_VERSION = "1.7.0";
+const GAME_VERSION = "1.6.12";
 // 每个周目走 6 关，每关都有独特「关卡特性」，让手感差异明显：
 // 序章(标准) → 冰原(滑行) → 沙漠(减速) → 熔岩(灼烧) → 密林(隐蔽) → 最终防线(浴血)。
 // 保留 16 张地图作为素材，其余地图可在测试模式与地狱绝境中使用。
@@ -773,8 +773,22 @@ const Input = {
       if(!textEntry && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space","Enter","KeyP","Tab","Slash"].includes(k)) e.preventDefault();
     }, {passive:false});
     addEventListener("keyup", e=>{ this.keys[e.code] = 0; });
-    addEventListener("blur", ()=>{ this.keys = Object.create(null); });
+    addEventListener("blur", ()=>this.clear());
+    document.addEventListener("visibilitychange", ()=>{ if(document.hidden)this.clear(); });
     this.initTouch();
+  },
+
+  clear(){
+    this.keys = Object.create(null);
+    this.endFrame();
+    this.releaseTouch?.();
+    this.touch.active=false; this.touch.dx=0; this.touch.dy=0; this.touch.fire=0;
+    for(const p of this.pads) p.gpUp=p.gpDn=p.gpLf=p.gpRt=p.gpFire=0;
+    this._prevGP=[{},{}]; this._uiHold={up:0,dn:0,lf:0,rt:0};
+    const nub=document.getElementById("tNub");
+    if(nub)nub.style.transform="";
+    const fire=document.getElementById("tFire");
+    if(fire)fire.classList.remove("hit");
   },
 
   down(k){ return !!this.keys[k]; },
@@ -794,6 +808,7 @@ const Input = {
     const start = (e)=>{
       const t = e.changedTouches ? e.changedTouches[0] : e;
       pid = t.identifier !== undefined ? t.identifier : "m";
+      if(e.pointerType === "mouse") padEl.setPointerCapture?.(e.pointerId);
       if(PadUI.arranging){
         PadUI.startArrange("tPad", t.clientX, t.clientY);
         e.preventDefault();
@@ -827,6 +842,7 @@ const Input = {
       pid = null; nub.style.transform = "";
       this.touch.active=false; this.touch.dx=0; this.touch.dy=0;
     };
+    this.releaseTouch = end;
     padEl.addEventListener("touchstart", start, {passive:false});
     padEl.addEventListener("touchmove",  move,  {passive:false});
     padEl.addEventListener("touchend",   end);
@@ -840,6 +856,7 @@ const Input = {
 
     const bind = (el, on, off)=>{
       const begin = e=>{
+        if(e.pointerType === "mouse") el.setPointerCapture?.(e.pointerId);
         // 摆位模式下：可拖动控件改为拖动定位，不再触发功能
         if(PadUI.arranging && PadUI.isDraggable(el)){
           const t = e.changedTouches ? e.changedTouches[0] : e;
@@ -886,15 +903,15 @@ const Input = {
   // 手柄
   pollGamepads(dt){
     this.ui = { up:0, dn:0, lf:0, rt:0, ok:0, back:0, pause:0 };
-    if(!navigator.getGamepads) return;
-    const gps = navigator.getGamepads();
+    let gps = [];
+    try{ if(navigator.getGamepads)gps = navigator.getGamepads(); }catch(e){}
     for(let i=0;i<2;i++){
       const gp = gps[i];
       const p  = this.pads[i];
       p.gpUp=p.gpDn=p.gpLf=p.gpRt=0; p.gpFire=0;
       p.gpUpPressed=p.gpDnPressed=p.gpLfPressed=p.gpRtPressed=0;
-      p.gpBackPressed=p.gpStartPressed=0;
-      if(!gp) continue;
+      p.gpFirePressed=p.gpOkPressed=p.gpBackPressed=p.gpStartPressed=0;
+      if(!gp){ this._prevGP[i] = {}; continue; }
       const ax = gp.axes[0]||0, ay = gp.axes[1]||0, DZ=0.4;
       const b = (n)=> gp.buttons[n] && gp.buttons[n].pressed;
       p.gpUp = (ay<-DZ || b(12))?1:0;

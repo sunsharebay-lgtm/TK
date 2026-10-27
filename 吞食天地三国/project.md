@@ -53,3 +53,60 @@
 - `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/mapscene.js`：`18ade9fe3c2d5b390316e8dc89dd42671629aae6d73afae840e430dcc2319085`
 - `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/core.js`：`ba5d644c582997f74f0884bfaae6d6af1baccf7619dbd449f15cbf3fcd42a4cb`
 - `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/preview.js`：`6ef2e364b3f63d3272facd7d400a18148ce3c2b794976153cb573377aca9c32c`
+
+## 2026-10-26 · 全项目审查修复（本地，待统一发布）
+
+- 修复当前网页复刻窗口失焦/切后台后方向键粘连，多个键盘别名与触屏输入独立释放。
+- 修复存档只保留当前队伍导致离队武将永久成长/装备丢失；序列化全部已创建武将但不改变队伍成员。
+- 持续状态、剩余地图步数/回合、增益与 TP 纳入快照；旧快照缺失字段使用默认值。
+- 新增直接加载当前引擎与真实数据库的回归，明确原 327/78 项测试属于历史单文件版本。
+- 读档先校验结构，在独立状态中恢复；地图请求失败回滚原队伍/变量/地图/场景，避免半次读档覆盖当前进度。存储写入失败保留原记录与计数，保存菜单提示失败。
+- 修复现场预览 URL 被移到默认坐标、选择器现场条目被当成新游戏的两条路径；普通预览节点构建不再污染当前状态，失败后恢复原存档命名空间。
+
+### 本轮 QA
+
+- `node 测试/current_engine_test.js`：修复前复现失焦方向仍按下、离队武将成长 35 变为 undefined；修复后 7 组行为全部通过。
+- 测试覆盖别名键释放、离队武将与装备、持续状态剩余步数、旧档字段兼容、调试存档与正常存档隔离。
+- `node 测试/snapshot_recovery_test.js`：8 组失败保护与现场恢复通过，最初 5 个问题在修复前均已复现；包含网络失败、坏档、配额不足、禁用存储和保存菜单反馈。
+- `node 测试/tools/regress.mjs --only persist`：1/1 通过，exceptions=0、console=0。该用例现在每次读档后重新取得当前队伍引用，并新增读档成功断言；原 v2/v1 数值、天赋与称号断言完整保留。
+- `node 测试/tools/regress.mjs --only storage,lineup,save-slot,title-continue,preview-center,grow --jobs 2`：6/6 通过，全部 exceptions=0、console=0。仓库/编成用例在读档后重取当前队伍，保留原断言并增加保存成功和完整编成顺序校验；成长用例从当前队伍读取恢复后的武将。
+- `node --check 网页复刻/吞食天地Ⅱ同人复刻-网页版/js/core.js` 与 `js/data.js` 语法检查通过。
+- 浏览器全流程结果由创意空间总协调另行记录；本组测试不声称验证全部章节剧情。
+
+- 修改前源码保留在 `历史版本/2026-10-26-review-before/`，相对目录不变。
+- 本轮未创建版本标签，尚未代表线上发布。
+
+### 本轮源文件 SHA-256
+
+- `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/core.js`：`449af74fd0c8ed7f34f5a33c064d1ba8295b008ee8f64b0b168df185701f4e86`
+- `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/data.js`：`f0937981761660f8bb9557d9e6e37e01ea0a8675d24d48745227a4ea70653cfd`
+- `测试/current_engine_test.js`：`e22ff2add6bcb7e60f24f55c777f0ac3f582fff5a6998710442ee7fc137197a8`
+- `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/menus.js`：`8d661db03e5cc25feaadb4dbe4610fa1967acb7c948b85b80d0e5ff5309c1f17`
+- `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/preview.js`：`8cc0a5d80126ebd172e58696b390260c910635d6f58e4e17962d4201021cb481`
+- `测试/snapshot_recovery_test.js`：`62d5791c7a8ffeb10839c5a663aaca72d93725188db08028877ae2e59be80573`
+- `测试/tools/cases/persist-core.end.json`：`4ad57d50a62c216ca23745c84509a0217d917befcb1c75a54a9859cf11eca3c5`
+- `测试/tools/cases/storage.end.json`：`ff786c392a5e33d5355cef0928a61757b1413878dbffb1679495e55c6c8cb887`
+- `测试/tools/cases/lineup.end.json`：`cfb2d66699388e7b7753f1bf54e8d9764d687a6ba2ced9182e0b6289c75fba9b`
+- `测试/tools/cases/grow-item.end.json`：`ee81bddec7abb1174d764f25f27829d9cb69655025606b12b8ee87d8cbf8d78c`
+
+### 2026-10-26 浏览器工具与全量复核
+
+- 62 场景全量首轮 59 通过；persist/storage/lineup 因旧用例持有读档前队伍对象而失败，修复用例引用后专项通过，保留并加强原数值/仓库/编成断言。
+- 保存槽、成长、返回标题、试玩中心等受影响流程另有 6/6 专项通过；现行引擎 7/7，失败恢复 8/8。
+- 驱动修复固定端口/全局 pkill、未决 await 提前退出、漏记网络失败；支持 1～4 并发、独立临时浏览器和 JSON 报告。实际使用 2 并发。
+- audio-check 原用例错误地把胜利 ME 当 SE 播放，额外触发三次 404；已按真实战斗 playMe 调用，原音频存在性断言保留。
+- Python http.server 在并发请求下出现连接重置，改用共享 Node 静态服务后消除。上述工具故障未当成游戏缺陷计数。
+- 62 场景覆盖现有用例，不等于人工通关全部 553 张地图和后续剧情。
+
+- `测试/tools/cdp-driver.mjs`：`039d28f4a8ddaa3fbb810138e1a6581b359efa631df0acbfc794dcba88d3fdf4`
+- `测试/tools/regress.mjs`：`f387a6e5824171d47a517f3f5d01604bb41045a34290d8c1ee80d7266958da31`
+- `测试/tools/cases/audio-check.pre.json`：`7afc258a5b6b17fb31e57e937039fc3bb5be90e174355b9c388b92d1a18366bf`
+- `测试/tools/cases/audio-check.end.json`：`fbdd52bf43bdfe8d89024cee6681b2e7381cd1a1c5e96189abe0c9146fd21411`
+
+## 2026-10-27 · 统一补丁发布 v0.3.1
+
+- 交付：现行引擎输入、存档完整性/失败保护与现场恢复。标签：`game/three-kingdoms/v0.3.1`。
+- 本轮发布使用已验收恢复快照，排除共享工作区中其他对话正在继续的修改；历史章节中的“未发布”指当时状态。
+- 发布前在干净检出中执行统一门禁，部署后按预期提交号验收。发布记录：`../docs/发布/2026-10-27/project.md`。
+
+- 发布文件 `网页复刻/吞食天地Ⅱ同人复刻-网页版/index.html` SHA-256：`e794e1f4dd7e71d9a23cce182366ea0013f8275d9c405bdc55a411f02b6fccbd`。

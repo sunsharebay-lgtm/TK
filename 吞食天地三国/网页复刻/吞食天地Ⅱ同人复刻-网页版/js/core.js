@@ -17,7 +17,7 @@ T.fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
 /* ---------------- 输入 ---------------- */
 T.Input = {
-  _down: {}, _prev: {}, _repTimer: {}, _repWaited: {},
+  _down: {}, _prev: {}, _repTimer: {}, _repWaited: {}, _keys: {}, _touch: {},
   _ignoreOkUntilRelease: false,
   KEYMAP: {
     ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down",
@@ -32,23 +32,37 @@ T.Input = {
   init(canvas) {
     window.addEventListener("keydown", e => {
       const k = this.KEYMAP[e.code];
-      if (k) { e.preventDefault(); if (!this._down[k]) this._down[k] = true; }
+      if (k) { e.preventDefault(); this._keys[e.code] = true; this._down[k] = true; }
     });
     window.addEventListener("keyup", e => {
       const k = this.KEYMAP[e.code];
-      if (k) { e.preventDefault(); this._down[k] = false; }
+      if (k) {
+        e.preventDefault(); delete this._keys[e.code];
+        this._down[k] = !!this._touch[k] || Object.keys(this._keys).some(code => this.KEYMAP[code] === k);
+      }
     });
+    window.addEventListener("blur", () => this.clear());
+    document.addEventListener("visibilitychange", () => { if (document.hidden) this.clear(); });
     // 触屏按钮
     document.querySelectorAll(".pbtn").forEach(el => {
       const k = el.dataset.k;
-      const on = ev => { ev.preventDefault(); el.style.background = "rgba(255,255,255,.4)"; this._down[k] = true; };
-      const off = ev => { ev.preventDefault(); el.style.background = ""; this._down[k] = false; };
+      const on = ev => { ev.preventDefault(); el.style.background = "rgba(255,255,255,.4)"; this._touch[k] = true; this._down[k] = true; };
+      const off = ev => {
+        ev.preventDefault(); el.style.background = ""; delete this._touch[k];
+        this._down[k] = Object.keys(this._keys).some(code => this.KEYMAP[code] === k);
+      };
       el.addEventListener("pointerdown", on);
       el.addEventListener("pointerup", off);
       el.addEventListener("pointerleave", off);
       el.addEventListener("pointercancel", off);
     });
     if ("ontouchstart" in window) document.getElementById("pad").style.display = "flex";
+  },
+  clear() {
+    this._down = {}; this._prev = {}; this._keys = {}; this._touch = {};
+    this._repTimer = {}; this._repWaited = {};
+    this._ignoreOkUntilRelease = false; this._autoOk = false;
+    document.querySelectorAll(".pbtn").forEach(el => { el.style.background = ""; });
   },
   update() {
     this._prev = Object.assign({}, this._down);

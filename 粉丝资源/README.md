@@ -18,3 +18,11 @@
 
 标签只是版本记录；不要在本项目对话中直接宣称已经部署。提交完成后通知创意空间，由创意空间推送 `main`，等待 Pages 线上验收通过。
 - 2026-09-18 新增 Codex 生图执行规范资料页。
+
+## 资料页复制与回归
+
+所有资料页使用本项目 `scripts/copy.js`：普通模板按钮放在 `.template-block` 内，源文字用 `.template-text`；跨块复制用 `data-copy-target` 指向唯一元素 ID。不要直接查询整页第一个 `.template-text`，文件名或说明也可能使用这个样式。新增/修改复制内容后运行 `node 测试/clipboard_test.js` 与 `node 测试/resources_test.js`，确认复制内容和失败提示均正确。
+
+迁移前的 `资源/Mac软件资源库/` 仅保留兼容跳转到根目录平级的 `Mac软件资源库/` 项目，避免旧分享和书签 404；它不占资源编号、不保存软件数据。回归命令：`node 测试/legacy_routes_test.js`。
+
+本轮补丁发布：`content/fan-resources/v0.7.1`（2026-10-27），内容与验收见 [统一发布记录](../docs/发布/2026-10-27/project.md)。

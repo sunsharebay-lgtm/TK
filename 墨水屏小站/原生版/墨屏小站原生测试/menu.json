@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "name": "Moping Station",
+      "priority": -10,
+      "items": [
+        {
+          "name": "Launch native home",
+          "action": "/mnt/us/extensions/moping-station-native-test/bin/start.sh",
+          "params": "",
+          "exitmenu": true,
+          "refresh": false,
+          "status": false,
+          "internal": "status Starting Moping Station"
+        }
+      ]
+    }
+  ]
+}

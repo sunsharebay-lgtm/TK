@@ -1,0 +1,632 @@
+{
+  "date": "2026-10-26",
+  "timezone": "America/Los_Angeles",
+  "initialPass": 59,
+  "initialFail": 3,
+  "retestPass": 3,
+  "retestFail": 0,
+  "pass": 62,
+  "fail": 0,
+  "rows": [
+    {
+      "name": "inn-core",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"goldDelta\":-8,\"hp\":[216,216],\"mp\":[20,20],\"paid\":true,\"healed\":true,\"innPrice\":[4,8,20],\"price\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "formation",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"wired\":true,\"enemyDelta\":[6,8,0,0,0],\"enemyLog\":[\"关羽 受到 62 点损伤\",\"兵士的攻击！\",\"朱灵 受到 36 点损伤\",\"兵士的攻击！\",\"回合 2\",\"敌方摆出了鹤翼阵！\"],\"enemyHekiyoku\":true,\"actorDelta\":[35,-10,0,-38,0],\"actorExpected\":[70,10,200,152,185],\"isolation\":true,\"partyBeishui\":true,\"partyCElogs\":[\"摆出了鹤翼阵！\"],\"partyCE\":true,\"msgLog\":[\"摆出了散开阵！\",\"刘备布下散开阵！\"],\"skillMsg\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "recruit-level",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"party\":[2,3],\"lead\":20,\"recruit\":20,\"hp\":1730,\"mhp\":1730,\"mp\":101,\"mmp\":101,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "persist",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"v2Loaded\":true,\"v2\":{\"formation\":4,\"sur\":true,\"wp\":3,\"pvpl\":2,\"pvpc\":1,\"talents\":[102],\"chengHao\":[7],\"ver\":2},\"v2Roundtrip\":true,\"v1Loaded\":true,\"v1\":{\"formation\":-1,\"talents\":[],\"chengHao\":[],\"sur\":[],\"wp\":0},\"v1Compat\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "save-slot",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"selected\":0,\"has0\":true,\"has1\":false,\"version\":2,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "grow",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"snakeQty\":0,\"mhpDelta\":5,\"menuGrow\":true,\"battleDelta\":10,\"battleGrow\":true,\"persist\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "troop-events",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"before\":4,\"after\":3,\"executed\":true,\"turnTrigger\":true,\"after2\":3,\"onceOnly\":true,\"revived\":4,\"appearRevive\":true,\"var99\":777,\"varScript\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "audio-check",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"victoryKey\":\"me/Tstd_Win\",\"missing\":[],\"allAudio\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "menu-tour",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"saveExists\":true,\"saveVer\":2,\"partyNames\":[\"刘备\",\"关羽\"],\"uiSaveWired\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "ch1-victory",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"phase\":\"ended\",\"victoryPhase\":true,\"gold\":28,\"expSum\":240,\"winLog\":true,\"victoryRewarded\":true,\"lastBattle\":\"win\",\"lastBattleWin\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chapter-final",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"chapter\":true,\"var1\":45,\"log\":[\"朱灵 升级了！(Lv13)\",\"朱灵 升级了！(Lv14)\",\"朱灵 升级了！(Lv15)\"],\"bossPage\":{\"conditions\":{\"actorId\":1,\"actorValid\":false,\"itemId\":1,\"itemValid\":false,\"selfSwitchCh\":\"A\",\"selfSwitchValid\":false,\"switch1Id\":1,\"switch1Valid\":false,\"switch2Id\":1,\"switch2Valid\":false,\"variableId\":1,\"variableValid\":true,\"variableValue\":45},\"directionFix\":false,\"image\":{\"characterIndex\":0,\"characterName\":\"\",\"direction\":2,\"pattern\":0,\"tileId\":0},\"list\":[{\"code\":0,\"indent\":0,\"parameters\":[]}],\"moveFrequency\":3,\"moveRoute\":{\"list\":[{\"code\":0,\"parameters\":[]}],\"repeat\":true,\"skippable\":false,\"wait\":false},\"moveSpeed\":3,\"moveType\":0,\"priorityType\":0,\"stepAnime\":false,\"through\":false,\"trigger\":0,\"walkAnime\":true},\"exitPage\":{\"conditions\":{\"actorId\":1,\"actorValid\":false,\"itemId\":1,\"itemValid\":false,\"selfSwitchCh\":\"A\",\"selfSwitchValid\":false,\"switch1Id\":1,\"switch1Valid\":false,\"switch2Id\":1,\"switch2Valid\":false,\"variableId\":1,\"variableValid\":false,\"variableValue\":0},\"directionFix\":false,\"image\":{\"characterIndex\":0,\"characterName\":\"\",\"direction\":2,\"pattern\":0,\"tileId\":0},\"list\":[{\"code\":250,\"indent\":0,\"parameters\":[{\"name\":\"Tstd_Move\",\"volume\":90,\"pitch\":100,\"pan\":0}]},{\"code\":201,\"indent\":0,\"parameters\":[0,23,130,84,6,0]},{\"code\":0,\"indent\":0,\"parameters\":[]}],\"moveFrequency\":3,\"moveRoute\":{\"list\":[{\"code\":0,\"parameters\":[]}],\"repeat\":true,\"skippable\":false,\"wait\":false},\"moveSpeed\":3,\"moveType\":0,\"priorityType\":0,\"stepAnime\":false,\"through\":false,\"trigger\":1,\"walkAnime\":true},\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "storage",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Storage\",\"onStorage\":true,\"bag\":0,\"sto\":2,\"deposit\":true,\"withdraw\":true,\"saveOk\":true,\"loadOk\":true,\"persist\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "shop",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"price\":1000,\"gold0\":2500,\"qty0\":0,\"buy\":true,\"poor\":{\"gold\":0,\"qty\":1},\"poorReject\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "shop-sell",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"modeBefore\":\"buy\",\"price\":225,\"gold0\":100,\"count0\":2,\"mode\":\"sell\",\"goldNow\":325,\"countNow\":1,\"goldDelta\":225,\"message\":\"卖出「铜剑」×1，获得 225金\",\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "skill-menu",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Skill\",\"onSkill\":true,\"healSkill\":\"赤心计\",\"hpDelta\":-218,\"mpDelta\":3,\"hpNow\":630,\"mpNow\":57,\"healed\":true,\"mpCost\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "title-continue",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"titleBefore\":\"Scene_Title\",\"scene\":\"Scene_Map\",\"backToMap\":true,\"gold\":77,\"gold77\":true,\"snake\":1,\"itemLoaded\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "skill-target",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":true,\"afterSelect\":\"target\",\"targets\":[\"刘备\",\"陈登\"],\"entersTarget\":true,\"listsChenDeng\":true,\"afterConfirm\":\"list\",\"healerHp\":848,\"targetHp\":630,\"mp\":57,\"returnsList\":true,\"healsSelectedTarget\":true,\"doesNotHealLiuBei\":true,\"paysOnce\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "item-menu",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"names\":[\"赤心丹\",\"铜剑\",\"皮帽\"],\"hasWeapon\":true,\"hasArmor\":true,\"mode\":\"list\",\"actionMode\":\"action\",\"actions\":[\"丢弃 1 个\",\"取消\"],\"weaponCount\":0,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "revival-target",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"actionMode\":\"action\",\"actions\":[\"使用\",\"丢弃 1 个\",\"取消\"],\"deadTargets\":[\"关羽\"],\"targetCount\":1,\"targetMode\":\"target\",\"targetName\":\"关羽\",\"revived\":true,\"itemCount\":0,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "equip-smoke",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Equip\",\"onEquip\":true,\"idx\":\"0->0\",\"errs\":[],\"noCrash\":true,\"idxMoved\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "lineup",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Lineup\",\"onLineup\":true,\"before\":[2,3,4,5,12,14],\"after\":[14,3,4,5,12,2],\"first\":\"诸葛亮\",\"swap\":true,\"hasSave6\":false,\"saveOk\":true,\"hasSave6b\":true,\"loadRet\":true,\"afterLoad\":[14,3,4,5,12,2],\"restored0\":14,\"persistOrder\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "battle-order",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"speedSort\":true,\"speedOrder\":\"刘备:214|关羽:177|张飞:167|朱灵:148|山贼:43|山贼:41|山贼:40\",\"crit\":0.03,\"critClamp\":true,\"agiBoost\":148,\"formationAgi\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "defeat-recover",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"hasEsc\":true,\"escVisible\":true,\"hidden\":true,\"escHidden\":true,\"afterPhase\":\"defeat\",\"defeatTrigger\":true,\"allDeadAfter\":false,\"revived\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "tactic-formula",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"buff0\":1,\"buff1\":0,\"buffLifecycle\":true,\"tactic\":{\"expect\":531,\"real\":531,\"varr\":0.1,\"lo\":478,\"hi\":584,\"bound\":[478,584]},\"tacticFormula\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "battle-item",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"sawItem\":true,\"itemListShown\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "battle-scope",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"aoe\":{\"hit\":[true,true,true,true,true],\"sum0\":4309,\"sum1\":4257},\"aoeAll\":true,\"heal\":{\"gain\":199,\"expect\":594,\"bound\":[534,653],\"hpNow\":241,\"mhp\":241},\"healFormula\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "battle-bar",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"refs\":[641,241],\"rates\":[0.84399375975039,0.5850622406639004],\"expected\":[0.84399375975039,0.5850622406639004],\"enemyRefFrozen\":true,\"partyRefFrozen\":true,\"enemyDamageOnly\":true,\"partyDamageOnly\":true,\"totalActorForward\":true,\"totalEnemyForward\":true,\"jilingRegen\":0,\"jilingRegenCap\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "total-assault-speed",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"normal\":{\"approach\":24,\"return\":14},\"total\":{\"approach\":12,\"return\":7},\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "enemy-retaliation",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"normalTarget\":\"张飞\",\"normalTargetIsActor\":true,\"hpLoss\":38,\"normalEnemyHits\":true,\"totalTarget\":\"刘备\",\"totalTargetIsActor\":true,\"totalHpLoss\":37,\"totalEnemyHits\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "battle-rules",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"atk\":[25,35],\"power\":[95,251],\"mmp\":[20,182],\"cost\":16,\"historicalBase\":true,\"equipmentAddsStrength\":true,\"levelTroopRaisesDamage\":true,\"levelRaisesMpCap\":true,\"costTwoThirds\":true,\"goldMessage\":\"获得了金钱 100金！\",\"goldFeedback\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "world-encounter",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"list\":[3,4,5],\"step\":40,\"inBattle\":true,\"troop\":[1,2,3],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "enemy-difficulty",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"activeHeal\":137,\"activeHealReduced\":true,\"fullHeal\":641,\"completeHeal\":true,\"passiveHeal\":0,\"noPassiveHeal\":true,\"healTarget\":true,\"mpConsumed\":true,\"resourceFallback\":{\"skillId\":1,\"rating\":5,\"conditionType\":0},\"mpExhaustedAttack\":true,\"tacticRates\":[0.18333333333333335,0.36],\"intelligenceRaisesRate\":true,\"effectByInt\":[16.666666666666668,66.66666666666667],\"intelligenceRaisesEffect\":true,\"expRate\":1.25,\"expBoost\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chest-open",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"map\":30,\"event\":8,\"opened\":true,\"image\":\"$baoxiang\",\"pageCommands\":[0],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "training-level",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"lines\":[\"对不起，您的队伍等级已经很高了，\",\"请到其他训练场去吧！\"],\"level\":10,\"highMessage\":true,\"badTarget\":false,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "xuzhou-return",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"map\":27,\"var1\":50,\"x\":20,\"y\":32,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chapter-route",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"map\":23,\"var1\":30,\"battle\":true,\"troop\":17,\"guide\":true,\"caveBlocked\":true,\"caveOpen\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "village-letter",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"map\":29,\"villagers\":2,\"names\":[\"郑家村民\",\"村中老人\"],\"positions\":[[10,12],[12,12]],\"hasLetterGuide\":true,\"zhengResidence\":\"郑玄居\",\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "zheng-xuan",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"map\":170,\"var1\":70,\"hasLetter\":true,\"eventPage\":true,\"message\":[\"希望这封信能起作用。\",\"\\\\C[6]玩家\\\\C[0] 获得了 郑玄的信\"],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chapter2-route",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"used\":true,\"stage\":85,\"hasLetter\":false,\"actors\":[2,8],\"msgs\":[\"失去了 郑玄的信×1\",\"哦，是吾师郑玄的信吗？\",\"让我看看……\",\"嗯，言之有理！我若杀了你，\",\"只会让曹操高兴。\",\"联手干吧！\",\"和我军猛将颜良一起去攻打白马坡。\",\"\\\\C[6]玩家\\\\C[0] 颜良加入队伍\",\"颜良加入队伍。\"],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chapter-items",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"count\":9,\"rows\":[{\"ce\":20,\"after\":175,\"expected\":175,\"remaining\":[0],\"actors\":[2],\"msgs\":4},{\"ce\":29,\"after\":550,\"expected\":550,\"remaining\":[0],\"actors\":[2],\"msgs\":1},{\"ce\":30,\"after\":600,\"expected\":600,\"remaining\":[0,0],\"actors\":[2,14],\"msgs\":18},{\"ce\":31,\"after\":750,\"expected\":750,\"remaining\":[0],\"actors\":[2,3],\"msgs\":3},{\"ce\":32,\"after\":920,\"expected\":920,\"remaining\":[0],\"actors\":[2],\"msgs\":1},{\"ce\":34,\"after\":1055,\"expected\":1055,\"remaining\":[0],\"actors\":[2],\"msgs\":2},{\"ce\":37,\"after\":1260,\"expected\":1260,\"remaining\":[0],\"actors\":[2],\"msgs\":1},{\"ce\":42,\"after\":1430,\"expected\":1430,\"remaining\":[0],\"actors\":[2,14],\"msgs\":3},{\"ce\":44,\"after\":1560,\"expected\":1560,\"remaining\":[0],\"actors\":[2],\"msgs\":8}],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chapter-event-api",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"bonus\":{\"4\":10,\"5\":10,\"6\":10,\"7\":10},\"chapter\":\"北伐灭曹魏\",\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "chapter-catalog",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"actual\":[[1,5,\"灭袁术\"],[2,80,\"河北鏖战与千里走单骑\"],[3,260,\"荆州新野与三顾茅庐\"],[4,470,\"赤壁之战与平定荆州\"],[5,830,\"西蜀入川\"],[6,1165,\"汉中争夺与姜维归汉\"],[7,1440,\"北伐灭曹魏\"],[8,1605,\"荆州终局与伐吴\"],[9,1655,\"二周目特别篇：秦皇陵\"]],\"samples\":[[23,\"大地图一\"],[176,\"宫殿\"],[216,\"宫殿\"],[288,\"赤壁之战\"],[133,\"成都城\"],[112,\"汉中城\"],[519,\"宫殿\"],[199,\"宫殿\"],[553,\"秦皇陵五层\"]],\"byStage\":[1,2,3,4,5,6,7,8,9],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "preview-center",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"enabled\":true,\"map\":true,\"stage\":true,\"party\":true,\"levels\":true,\"node\":true,\"debugSave\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "boat-route",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"inVehicle\":true,\"stage\":75,\"map\":23,\"player\":{\"x\":114,\"y\":69},\"vehicle\":{\"mapId\":23,\"x\":114,\"y\":69},\"boatEvent\":3,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "boat-encounter",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"battle\":true,\"pending\":false,\"troop\":10,\"names\":[\"海贼\",\"海贼\",\"海贼\",\"海贼\",\"海贼\"],\"water\":true,\"waterPass\":true,\"mountainPass\":false,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "item-target",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Item\",\"leader\":216,\"guan\":241,\"guanMax\":241,\"item\":0,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "title-return",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Title\",\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "boat-cutscene",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"stage\":80,\"map\":23,\"player\":{\"x\":50,\"y\":62,\"vehicle\":false},\"vehicle\":{\"mapId\":22,\"x\":0,\"y\":12},\"water\":false,\"passable\":true,\"battle\":false,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "map-item",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_WorldMap\",\"ready\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "battle-aoe",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"healToggle\":true,\"damageToggle\":true,\"totalHeal\":780,\"singleHeal\":625,\"totalDamage\":375,\"singleDamage\":250,\"healRatio\":1.248,\"damageRatio\":1.5,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "equipment-unique",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"count\":0,\"first\":true,\"second\":false,\"owner\":19,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "equipment-stack",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"first\":true,\"second\":true,\"afterEquip\":0,\"afterReturn\":2,\"owners\":[0,0],\"max\":99,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "damage-popup",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"popup\":{\"x\":536,\"y\":54,\"text\":\"-25\",\"t\":46,\"color\":\"#ff7070\"},\"enemy\":[520,64],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "menu-nav",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Skill\",\"onSkill\":true,\"afterPgDn\":1,\"pgdnSwitch\":true,\"afterPgUp\":0,\"pgupSwitch\":true,\"slot1\":2,\"saveSlot1\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "menu-context",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"scene\":\"Scene_Menu\",\"panels\":[\"物品\",\"技能\",\"装备\",\"编成\",\"状态\",\"存档\",\"返回标题\"],\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "action-cond",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"hasFn\":true,\"type2Full\":false,\"type2FullFalse\":true,\"type2Low\":true,\"type2LowTrue\":true,\"type3Full\":false,\"type3FullFalse\":true,\"type3Low\":true,\"type3LowTrue\":true,\"legacy\":true,\"legacyAlways\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "step-state",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"hasActor\":true,\"steps16\":256,\"steps16is256\":true,\"hasState0\":true,\"stateAdded\":true,\"hasAfter100\":true,\"stillAfter100\":true,\"cnt100\":156,\"hasAfter256\":false,\"removedAt256\":true,\"hasAfterWalk5\":true,\"keptAfterWalk5\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "state-timing",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"hasActor\":true,\"timing9\":2,\"timing9is2\":true,\"range9\":[3,5],\"on0\":true,\"added\":true,\"beforeMin\":true,\"keptBeforeMin\":true,\"afterMax\":false,\"removedByMaxTurns\":true,\"timing2\":2,\"timing2is2\":true,\"guardGone\":true,\"guard1Turn\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "drop-rate",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"always\":2000,\"rare\":94,\"denom1Always\":true,\"denom20Rare\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "fast-attack",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"fast\":10364,\"slow\":667,\"fastFirst\":true,\"fastAlwaysFirst\":true,\"f2\":932,\"s2\":119,\"normOrder\":true,\"normalSpeedOrder\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "multi-actions",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"orderLen\":5,\"enemyTimes\":2,\"singleTimes\":1,\"partyTimes\":2,\"doubleAttackEnemy\":true,\"singleOnce\":true,\"partyOnce\":true,\"allOk\":true,\"fails\":[]}"
+    },
+    {
+      "name": "equip-8slot",
+      "ok": true,
+      "ex": [],
+      "cls": [],
+      "network": [],
+      "loadingFailures": [],
+      "stderr": "",
+      "result": "{\"slots\":[{\"slot\":1,\"name\":\"武器\",\"ok\":true,\"msgs\":[],\"delta\":\"10,0,0,0,0\",\"exp\":\"10,0,0,0,0\"},{\"slot\":2,\"name\":\"盾牌\",\"ok\":true,\"msgs\":[],\"delta\":\"0,0,0,0,0\",\"exp\":\"0,0,0,0,0\"},{\"slot\":3,\"name\":\"头部\",\"ok\":true,\"msgs\":[],\"delta\":\"0,0,0,0,0\",\"exp\":\"0,0,0,0,0\"},{\"slot\":4,\"name\":\"身体\",\"ok\":true,\"msgs\":[],\"delta\":\"0,0,0,0,0\",\"exp\":\"0,0,0,0,0\"},{\"slot\":5,\"name\":\"坐骑\",\"ok\":true,\"msgs\":[],\"delta\":\"0,0,0,0,5\",\"exp\":\"0,0,0,0,5\"},{\"slot\":6,\"name\":\"副将\",\"ok\":true,\"msgs\":[],\"delta\":\"0,0,0,0,0\",\"exp\":\"0,0,0,0,0\"},{\"slot\":7,\"name\":\"饰品\",\"ok\":true,\"msgs\":[],\"delta\":\"0,10,0,0,0\",\"exp\":\"0,10,0,0,0\"}],\"saveLoadMatch\":true}"
+    }
+  ]
+}

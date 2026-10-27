@@ -11,11 +11,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -26,11 +27,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install image validation dependency
+        run: python -m pip install 'Pillow>=11,<14'
+
       - name: Generate game version catalog
         run: node 创意空间首页/scripts/generate-game-catalog.cjs
 
+      - name: Check all projects before deployment
+        env:
+          TEST_PYTHON: python
+        run: node scripts/check-all.cjs
+
       - name: Write deployment metadata
         run: node 创意空间首页/scripts/write-deployment-meta.cjs
+
+      - name: Build and check site artifact
+        run: |
+          node scripts/build-site.cjs
+          node 创意空间首页/测试/site_package_test.cjs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -38,7 +62,7 @@ jobs:
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: .site
 
       - name: Deploy to Pages
         id: deployment
