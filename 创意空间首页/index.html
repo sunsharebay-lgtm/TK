@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070b12">
   <meta name="description" content="创意空间：从这里进入坦克大战、吞食天地三国等创意项目。">
-  <title>创意空间 · 游戏中心</title>
+  <title>创意空间 · 创意中心</title>
   <style>
     :root {
       color-scheme: dark;
@@ -23,6 +23,7 @@
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
 
     html { min-height: 100%; background: var(--bg); }
 
@@ -461,7 +462,8 @@
     }
 
     .resource-card {
-      display: flex;
+      display: grid;
+      grid-template-columns: 24px max-content minmax(0, 1fr) auto;
       align-items: center;
       gap: 14px;
       min-height: 44px;
@@ -502,15 +504,25 @@
     }
 
     .resource-title {
+      min-width: 0;
+      max-width: 100%;
+      flex-shrink: 0;
       margin: 0;
       font-size: 15px;
       line-height: 1.4;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
       letter-spacing: 0;
     }
 
+    .resource-title a { color: var(--ink); text-decoration: none; }
+    .resource-title a:hover { color: var(--cyan); }
+    .resource-card a:focus-visible,
+    .qr-link:focus-visible,
+    .resource-retry:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
     .resource-summary {
       min-width: 0;
+      flex: 1;
       overflow: hidden;
       color: var(--muted);
       font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -525,9 +537,12 @@
       color: var(--cyan);
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: .05em;
+      letter-spacing: 0;
       text-decoration: none;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
     }
 
     .resource-open:hover,
@@ -536,12 +551,22 @@
     }
 
     .resource-empty {
+      margin: 0 0 8px;
       padding: 18px;
       border: 1px dashed rgba(141, 160, 185, .28);
       color: var(--muted);
       text-align: center;
       font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
       font-size: 13px;
+    }
+
+    .resource-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .resource-heading > a { color: var(--cyan); font-size: 12px; white-space: nowrap; }
+    .catalog-status { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .resource-retry {
+      min-height: 36px; margin-bottom: 8px; padding: 4px 12px;
+      border: 1px solid var(--line); border-radius: 4px;
+      background: var(--panel); color: var(--cyan); font: inherit; font-size: 12px; cursor: pointer;
     }
 
     .footer {
@@ -574,8 +599,9 @@
       .sponsor-copy { font-size: 12px; }
       .games { grid-template-columns: 1fr; }
       .resources { gap: 6px; }
-      .resource-card { align-items: flex-start; flex-direction: column; gap: 6px; padding: 10px 12px; }
-      .resource-main { width: 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
+      .resource-card { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 4px 8px; padding: 8px 12px; }
+      .resource-open { grid-column: 3; grid-row: 1; }
+      .resource-main { grid-column: 1 / -1; grid-row: 2; width: 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
       .resource-title { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
       .resource-summary { white-space: normal; }
       .footer { align-items: flex-start; flex-direction: column; }
@@ -689,8 +715,10 @@
       height: 46px;
       flex: 0 0 auto;
       border-radius: 4px;
-      object-fit: cover;
+      object-fit: contain;
     }
+
+    .qr-link { display: block; flex: 0 0 46px; line-height: 0; }
 
     .entry-copy {
       display: flex;
@@ -750,7 +778,7 @@
 <body>
   <main class="shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="返回创意空间 · 游戏中心">
+      <a class="brand" href="./" aria-label="返回创意空间 · 创意中心">
         <span class="brand-mark">创</span>
         <span>创意空间 // CREATIVE SPACE</span>
       </a>
@@ -773,7 +801,7 @@
         <h1 id="page-title">选择<br><span>你的战场</span></h1>
         <p class="hero-copy">从这里进入正在持续更新的网页游戏、实用工具与资源库。无需下载，打开浏览器，选一个创意就能开始。</p>
       </div>
-      <aside class="hero-readout" aria-label="游戏库状态">
+      <aside class="hero-readout" aria-label="创意库状态">
         <span class="readout-label">当前可用创意</span>
         <strong class="readout-number">05</strong>
         <span class="readout-note">5 个创意在线，更多板块持续装载。</span>
@@ -794,6 +822,7 @@
         <h2 id="games-title">创意库 / Creative Catalog</h2>
         <p>选择一张卡片进入创意</p>
       </div>
+      <p class="catalog-status" id="catalog-status" role="status" hidden></p>
       <div class="games">
         <a class="game-card" href="../坦克大战/tank-battle.html">
           <div>
@@ -839,13 +868,17 @@
     </section>
 
     <section class="resources-section" aria-labelledby="resources-title">
-      <div class="section-heading">
-        <h2 id="resources-title">粉丝资源 / Fan Resources</h2>
-        <p>最新更新 / LATEST UPDATES</p>
+      <div class="section-heading resource-heading">
+        <div>
+          <h2 id="resources-title">粉丝资源 / Fan Resources</h2>
+          <p>最新更新 / LATEST UPDATES</p>
+        </div>
+        <a href="../粉丝资源/">全部资料</a>
       </div>
-      <div class="resources" id="resources-grid">
-        <div class="resource-empty">资源整理中，敬请期待。</div>
-      </div>
+      <p class="resource-empty" id="resources-status" role="status">正在加载资料…</p>
+      <button class="resource-retry" id="resources-retry" type="button" hidden>重试</button>
+      <div class="resources" id="resources-grid" aria-busy="true"></div>
+      <noscript><p>JavaScript 未启用，请访问<a href="../粉丝资源/">粉丝资源中心</a>。</p></noscript>
     </section>
 
     <section class="blogger-section" aria-label="关于博主">
@@ -862,7 +895,9 @@
       <div class="community-strip">
         <div class="community-note"><p>玩过游戏后有什么创意灵感、功能建议、Bug 反馈，或者想一起共创更多有趣的项目？欢迎加入社群交流，你的每一个想法都可能成为下一个创意！</p></div>
         <div class="community-entry">
-          <img src="qq-group-qrcode.jpg" alt="QQ兴趣群二维码">
+          <a class="qr-link" href="qq-group-qrcode.jpg" target="_blank" rel="noopener noreferrer" aria-label="查看QQ兴趣群二维码大图" title="查看二维码大图">
+            <img src="qq-group-qrcode.jpg" alt="QQ兴趣群二维码" width="46" height="46" loading="lazy">
+          </a>
           <div class="entry-copy">
             <span class="entry-label">QQ 兴趣群组 · AI 自留地</span>
             <span class="qq-number-value" title="点击选中，Ctrl+C 复制">1103418249</span>
@@ -883,6 +918,49 @@
     </footer>
   </main>
   <script>
+    async function fetchJson(url) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function hasText(value) {
+      return typeof value === 'string' && value.trim().length > 0;
+    }
+
+    function resolveLocalUrl(value, base, relativeTo = base) {
+      if (!hasText(value)) return null;
+      try {
+        const target = new URL(value, relativeTo);
+        if (target.origin !== base.origin || target.protocol !== base.protocol ||
+            !target.pathname.startsWith(base.pathname) || target.username || target.password) return null;
+        return target.href;
+      } catch (_) { return null; }
+    }
+
+    function resolveCatalogUrl(game) {
+      if (!hasText(game.url)) return null;
+      if (game.external !== undefined && typeof game.external !== 'boolean') return null;
+      const absoluteLink = /^https?:\/\//i.test(game.url);
+      if (!game.external && !(game.external === undefined && absoluteLink)) {
+        return resolveLocalUrl(game.url, new URL('../', document.baseURI), document.baseURI);
+      }
+      try {
+        const target = new URL(game.url);
+        return /^https?:$/.test(target.protocol) && !target.username && !target.password ? target.href : null;
+      } catch (_) { return null; }
+    }
+
+    function resolveResourceUrl(value) {
+      return resolveLocalUrl(value, new URL('../粉丝资源/', document.baseURI));
+    }
+
     (async function syncGameCatalog() {
       const cards = Array.from(document.querySelectorAll('.game-card'));
       const liveCount = cards.filter((card) => card.querySelector('.live')).length;
@@ -894,26 +972,33 @@
       };
       setCount(liveCount);
 
-      let catalog = null;
-      try {
-        const response = await fetch('./game-catalog.json', { cache: 'no-store' });
-        if (response.ok) catalog = await response.json();
-      } catch (_) {
-        // Keep embedded fallback versions when the catalog is unavailable.
-      }
-
-      const games = catalog && Array.isArray(catalog.games) ? catalog.games : null;
       const grid = document.querySelector('.games');
-      if (!games || !games.length || !grid) return;
-
-      setCount(games.length);
-      grid.replaceChildren(...games.map((game, index) => buildGameCard(game, index)));
+      const status = document.querySelector('#catalog-status');
+      if (!grid) return;
+      try {
+        const catalog = await fetchJson('./game-catalog.json');
+        if (!catalog || !Array.isArray(catalog.games)) throw new Error('Invalid catalog');
+        const ids = new Set();
+        const games = catalog.games.filter(game => {
+          if (!game || !hasText(game.id) || !hasText(game.title) || !resolveCatalogUrl(game) || ids.has(game.id)) return false;
+          ids.add(game.id);
+          return true;
+        });
+        if (!games.length) throw new Error('No valid catalog entries');
+        grid.replaceChildren(...games.map((game, index) => buildGameCard(game, index)));
+        setCount(games.length);
+      } catch (_) {
+        if (status) {
+          status.textContent = '版本信息暂时无法加载，以下为备用入口。';
+          status.hidden = false;
+        }
+      }
     }());
 
     function buildGameCard(game, index) {
       const card = document.createElement('a');
       card.className = 'game-card';
-      card.href = game.url;
+      card.href = resolveCatalogUrl(game);
       if (game.external) {
         card.target = '_blank';
         card.rel = 'noopener noreferrer';
@@ -931,6 +1016,7 @@
       metaText.appendChild(document.createTextNode(`${game.catalogLabel || 'GAME'} ${String(index + 1).padStart(3, '0')} · `));
       const version = document.createElement('span');
       version.className = 'game-version';
+      version.setAttribute('data-game-version', game.id);
       version.textContent = `${game.version || ''} ${game.status || ''}`.trim();
       metaText.appendChild(version);
       meta.appendChild(metaText);
@@ -967,21 +1053,38 @@
 
     (async function syncFanResources() {
       const grid = document.querySelector('#resources-grid');
-      if (!grid) return;
+      const status = document.querySelector('#resources-status');
+      const retry = document.querySelector('#resources-retry');
+      if (!grid || !status || !retry || retry.disabled) return;
+      retry.onclick = syncFanResources;
+      retry.disabled = true;
+      retry.hidden = true;
+      grid.setAttribute('aria-busy', 'true');
+      status.hidden = false;
+      status.textContent = '正在加载资料…';
 
-      let data = null;
       try {
-        const response = await fetch('../粉丝资源/resources.json', { cache: 'no-store' });
-        if (response.ok) data = await response.json();
+        const data = await fetchJson('../粉丝资源/resources.json');
+        if (!data || !Array.isArray(data.resources)) throw new Error('Invalid resources');
+        const ids = new Set(), numbers = new Set();
+        const items = data.resources.filter(item => {
+          if (!item || !hasText(item.id) || !hasText(item.title) || !hasText(item.number) ||
+              !/^\d{2,}$/.test(item.number) || !resolveResourceUrl(item.detailUrl) ||
+              ids.has(item.id) || numbers.has(item.number)) return false;
+          ids.add(item.id); numbers.add(item.number);
+          return true;
+        });
+        if (data.resources.length && !items.length) throw new Error('No valid resources');
+        grid.replaceChildren(...items.map(buildResourceCard));
+        status.textContent = items.length ? '' : '暂无已发布资料。';
+        status.hidden = items.length > 0;
       } catch (_) {
-        // Keep the embedded empty state when the resource file is unavailable.
+        status.textContent = '资料暂时无法加载，请重试或访问全部资料。';
+        retry.hidden = false;
+      } finally {
+        grid.setAttribute('aria-busy', 'false');
+        retry.disabled = false;
       }
-
-      const resources = data && Array.isArray(data.resources) ? data.resources : null;
-      if (!resources) return;
-
-      const items = resources.filter((item) => item && item.detailUrl);
-      if (items.length) grid.replaceChildren(...items.map(buildResourceCard));
     }());
 
     function buildResourceCard(item) {
@@ -1001,7 +1104,10 @@
       if (item.title) {
         const title = document.createElement('h3');
         title.className = 'resource-title';
-        title.textContent = item.title;
+        const titleLink = document.createElement('a');
+        titleLink.href = resolveResourceUrl(item.detailUrl);
+        titleLink.textContent = item.title;
+        title.appendChild(titleLink);
         main.appendChild(title);
       }
 
@@ -1016,7 +1122,8 @@
       if (item.detailUrl) {
         const open = document.createElement('a');
         open.className = 'resource-open';
-        open.href = '../粉丝资源/' + item.detailUrl.replace(/^\.\//, '');
+        open.href = resolveResourceUrl(item.detailUrl);
+        open.setAttribute('aria-label', `查看资料 ${item.number}：${item.title}`);
         open.textContent = '查看完整资料 ↗';
         card.appendChild(open);
       }
@@ -1024,42 +1131,6 @@
       return card;
     }
 
-    function copyText(button, value) {
-      const done = () => {
-        const original = button.textContent;
-        button.textContent = '已复制';
-        button.classList.add('copied');
-        button.disabled = true;
-        setTimeout(() => {
-          button.textContent = original;
-          button.classList.remove('copied');
-          button.disabled = false;
-        }, 1500);
-      };
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(value).then(done).catch(() => legacyCopy(value, done));
-      } else {
-        legacyCopy(value, done);
-      }
-    }
-
-    function legacyCopy(value, done) {
-      const textarea = document.createElement('textarea');
-      textarea.value = value;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        done();
-      } catch (_) {
-        // Clipboard is unavailable; the text remains user-selectable.
-      }
-      textarea.remove();
-    }
   </script>
 </body>
 </html>

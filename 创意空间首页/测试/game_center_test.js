@@ -23,7 +23,7 @@ assert.match(portal, /data-game-version=["']super-mario["']>v0\.1\.0 开发版<\
 assert.match(portal, /data-game-version=["']idle-screen["']/, '墨水屏小站游戏卡应绑定版本标识');
 assert.match(portal, /RESOURCE 005/, 'Mac 软件资源库应作为第五张独立资源库卡片展示');
 assert.match(portal, /data-game-version=["']mac-software-resource-library["']/, 'Mac 软件资源库卡应绑定独立版本标识');
-assert.match(portal, /fetch\(['"]\.\/game-catalog\.json['"],\s*\{\s*cache:\s*['"]no-store['"]\s*\}\)/, '首页应从游戏目录动态读取版本');
+assert.match(portal, /fetchJson\(['"]\.\/game-catalog\.json['"]\)/, '首页应从游戏目录动态读取版本');
 assert.match(portal, /setCount\(games\.length\)/, '首页应把游戏数量与目录中的创意数量联动');
 assert.match(portal, /grid\.replaceChildren/, '首页应从目录动态渲染游戏卡片');
 assert.ok(fs.existsSync(path.join(root, '..', '坦克大战', 'tank-battle.html')), '坦克大战新入口文件必须存在');
@@ -35,18 +35,19 @@ assert.match(portal, /href=["']https:\/\/llapi\.org\/?["'][^>]*target=["']_blank
 assert.match(portal, /博主自用推荐！好的灵感需要低价稳定的 Token 支持，API 中转服务选它就对了。<a class=["']sponsor-direct["'][^>]*>点击直达<\/a>/, '赞助文案后应显示点击直达');
 assert.match(portal, /class=["']sponsor-direct["'][^>]*href=["']https:\/\/llapi\.org\/?["'][^>]*target=["']_blank["']/, '点击直达应链接到 llapi.org 并新窗口打开');
 assert.match(portal, /关于博主 \/ About Me/, '首页应显示博主介绍模块');
+assert.match(portal, /href="https:\/\/space\.bilibili\.com\/2053159491"/, 'B站入口必须保持已核实的个人空间地址');
 assert.match(portal, /AI 博主，对 AI 和互联网的事、科技圈的事都挺感兴趣/, '首页应显示博主介绍文案');
 assert.match(portal, /QQ 兴趣群组/, '首页应显示 QQ 兴趣群组入口');
 assert.match(portal, /1103418249/, '首页应显示 QQ 群号方便复制');
 assert.ok(fs.existsSync(path.join(root, 'qq-group-qrcode.jpg')), 'QQ 群二维码图片必须存在');
 assert.match(portal, /src=["']qq-group-qrcode\.jpg["']/, '首页应引用 QQ 群二维码图片');
+assert.match(portal, /class="qr-link" href="qq-group-qrcode\.jpg"/, 'QQ二维码缩略图应能打开原图');
 assert.match(portal, /href=["']https:\/\/t\.me\/\+uBlnbTJGnXRkMWFk["']/, '首页应提供 Telegram 群组链接');
 assert.match(portal, /玩过游戏后有什么创意灵感、功能建议、Bug 反馈，或者想一起共创更多有趣的项目/, '首页应说明加入社群的理由');
 assert.match(portal, /粉丝资源\s*\/\s*Fan Resources/, '首页应显示粉丝资源区块');
-assert.match(portal, /fetch\(['"]\.\.\/粉丝资源\/resources\.json['"],\s*\{\s*cache:\s*['"]no-store['"]\s*\}\)/, '首页应从粉丝资源项目读取资源数据');
+assert.match(portal, /fetchJson\(['"]\.\.\/粉丝资源\/resources\.json['"]\)/, '首页应从粉丝资源项目读取资源数据');
 assert.match(portal, /buildResourceCard/, '首页应使用资源数据构建资源卡片');
-assert.match(portal, /\.\.\/粉丝资源\/['"]\s*\+\s*item\.detailUrl/, '首页资源卡应拼接粉丝资源详情页前缀');
-assert.match(portal, /navigator\.clipboard|execCommand\(['"]copy['"]\)/, '首页应支持复制文字资源');
+assert.match(portal, /new URL\(['"]\.\.\/粉丝资源\/['"], document.baseURI\)/, '资源详情页应以粉丝资源项目为基准解析');
 assert.match(portal, /resource-empty/, '首页应保留粉丝资源为空时的回退状态');
 assert.match(portal, /detailUrl/, '首页资源卡应支持跳转到独立资料页');
 assert.match(portal, /查看完整资料/, '首页资源卡应提供查看完整资料入口');
@@ -56,3 +57,4 @@ assert.match(portal, /resource-open/, '首页资源卡应保留小号跳转入�
 assert.match(portal, /resource-number/, '首页资源卡应显示固定编号');
 
 console.log('Game center entry checks passed.');
+require('./homepage_behavior_test');
