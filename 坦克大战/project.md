@@ -82,3 +82,5 @@
 - 发布前在干净检出中执行统一门禁，部署后按预期提交号验收。发布记录：`../docs/发布/2026-10-27/project.md`。
 
 - 发布文件 `tank-battle.html` SHA-256：`f69bc26ef8a8e778c64630d1de65e7bb15c013339b6cf4c77f04c206ec19b6a6`。
+
+- 2026-10-27 发布验收完成：`game/tank-battle/v1.6.12` 已推送，main首轮部署 `41a4193` 的 [Actions 40521986517](https://github.com/sunsharebay-lgtm/TK/actions/runs/40521986517) 成功；全站37组Linux检查及线上入口/数据/脚本验证通过。
