@@ -5,9 +5,11 @@ const LVD=[];
 function Builder(cols){
   const R=CFG.ROWS;
   const g=new Uint8Array(cols*R);
-  const sp=[],warps=[];
+  const sp=[],warps=[],signs=[];
   const o={
-    cols,g,spawns:sp,warps,flagCol:0,castleCol:0,cpCol:0,
+    cols,g,spawns:sp,warps,signs,flagCol:0,castleCol:0,cpCol:0,
+    sign(c,text){signs.push({x:c*PX,text});},
+    medal(c,r,id){o.spawn('medal',c*PX,r*PX,{id});},
     set(c,r,t){ if(c>=0&&c<cols&&r>=0&&r<R)g[r*cols+c]=t; },
     get(c,r){ return g[r*cols+c]; },
     rect(c0,c1,r0,r1,t){ for(let c=c0;c<=c1;c++)for(let r=r0;r<=r1;r++)o.set(c,r,t); },
@@ -20,7 +22,7 @@ function Builder(cols){
       const top=SR-h;
       o.set(c,top,TL.PIPE_TL); o.set(c+1,top,TL.PIPE_TR);
       for(let r=top+1;r<SR;r++){ o.set(c,r,TL.PIPE_BL); o.set(c+1,r,TL.PIPE_BR); }
-      if(opt.plant)sp.push({t:'plant',x:(c+1)*PX,y:top*PX});
+      if(opt.plant)sp.push({t:'plant',x:(c+1)*PX-7,y:top*PX});
       if(opt.warp)warps.push({a:opt.a||0,col:c,row:top,dest:opt.warp});
       return o;
     },
@@ -52,7 +54,7 @@ function Builder(cols){
 function areaOf(b){
   return { grid:b.g, cols:b.cols, rows:CFG.ROWS, spawns:b.spawns,
            flagCol:b.flagCol, castleCol:b.castleCol, cpX:b.cpCol*PX,
-           warps:b.warps };
+           warps:b.warps,signs:b.signs };
 }
 
 LVD.push({
@@ -60,10 +62,15 @@ LVD.push({
   build(){
     const b=Builder(214);
     b.ground(0,68); b.ground(71,213);
+    b.sign(5,'← → 移动 · 长按跳跃更高');
+    b.sign(13,'顶问号砖，接住蘑菇！');
+    b.sign(65,'冲刺 + 跳跃，越过缺口 →');
+    b.sign(101,'这根水管藏着奖励 · 按 ↓');
+    b.set(10,9,TL.Q_POWER);
     b.set(16,9,TL.Q_COIN);
     b.row(20,20,9,TL.BRICK); b.set(21,9,TL.Q_POWER); b.row(22,22,9,TL.BRICK);
     b.set(21,5,TL.Q_COIN);
-    b.spawn('goomba',23*PX,12*PX);
+    b.spawn('goomba',26*PX,12*PX);
     b.pipe(28,2,{});
     b.spawn('goomba',34*PX,12*PX); b.spawn('goomba',36*PX,12*PX);
     b.pipe(39,3,{});
@@ -78,11 +85,15 @@ LVD.push({
     b.spawn('goomba',93*PX,12*PX); b.spawn('goomba',95*PX,12*PX);
     b.set(91,9,TL.BRICK_COIN);
     b.spawn('koopa',99*PX,11*PX);
-    b.pipe(104,2,{warp:{a:1,x:3.5*PX,y:-24}});
+    b.pipe(104,2,{warp:{a:1,x:3.5*PX,y:40,mode:'drop'}});
     b.pipe(112,2,{});
     b.spawn('goomba',117*PX,12*PX); b.spawn('goomba',119*PX,12*PX);
     b.pipe(124,3,{plant:true});
     b.checkpoint(90);
+    b.set(94,9,TL.Q_POWER);
+    b.set(155,9,TL.Q_POWER);
+    b.coinArc(69,11,4);
+    b.medal(38,7,0);b.medal(86,3,1);b.medal(150,9,2);
     b.stairsUp(130,4); b.stairsDown(136,4);
     b.spawn('goomba',146*PX,12*PX); b.spawn('goomba',148*PX,12*PX);
     b.pipe(152,2,{});
@@ -111,6 +122,10 @@ LVD.push({
     const b=Builder(196);
     b.ceiling(); b.ground(0,195);
     b.wallCol(0);
+    b.sign(6,'地下探险 · 找找高处的路线');
+    b.sign(72,'金色平台会移动，等它靠近');
+    b.medal(28,4,0);b.medal(98,6,1);b.medal(142,6,2);
+    b.set(94,9,TL.Q_POWER);
     b.set(16,9,TL.Q_POWER);
     b.coins(20,24,9);
     b.rect(26,29,6,6,TL.BRICK);
@@ -157,40 +172,45 @@ LVD.push({
   build(){
     const b=Builder(206);
     b.ground(0,24);
+    b.sign(6,'云台练习 · 落稳后再起跳');
+    b.set(12,9,TL.Q_POWER);
+    b.medal(50,5,0);b.medal(99,5,1);b.medal(153,7,2);
     b.ground(28,33);
-    b.plat(35,37,9);
+    b.plat(35,38,9);
     b.ground(40,45);
     b.spawn('goomba',43*PX,12*PX); b.spawn('goomba',45*PX,12*PX);
-    b.plat(48,51,7);
+    b.plat(48,53,9);
     b.coins(48,51,5);
     b.ground(55,69);
     b.pipe(62,4,{plant:true});
     b.spawn('para',73*PX,6*PX);
     b.ground(70,75);
     b.rect(72,73,9,9,TL.BRICK); b.set(72,9,TL.Q_STAR);
-    b.plat(78,80,8);
+    b.plat(78,81,9);
     b.ground(84,88);
-    b.spawn('goomba',86*PX,12*PX);
-    b.checkpoint(86);
-    b.plat(91,94,9);
+    b.checkpoint(84);
+    b.set(85,9,TL.Q_POWER);
+    b.plat(91,95,9);
     b.plat(97,100,7);
     b.coins(97,100,5);
     b.ground(103,107);
     b.spawn('koopa',105*PX,11*PX);
     b.rect(109,120,13,13,0);
     for(let c=109;c<=120;c++){ b.set(c,SR,0); b.set(c,SR+1,0); }
-    b.spawn('mover',108*PX,9*PX,{axis:'x',range:11*PX+16,speed:.85,w:48});
+    b.spawn('mover',114*PX,9*PX,{axis:'x',range:6*PX,speed:.65,w:48});
     b.plat(109,121,11);
     b.coins(112,116,6);
     b.ground(123,134);
     b.spawn('para',126*PX,6*PX);
     b.pipe(131,3,{plant:true});
-    b.plat(136,139,8);
+    b.plat(136,140,9);
+    b.plat(135,141,12); // A recovery route below the high cloud path.
     b.ground(142,148);
     b.spawn('goomba',145*PX,12*PX); b.spawn('goomba',147*PX,12*PX);
-    b.plat(151,154,9);
+    b.plat(151,155,9);
     b.ground(157,162);
     b.spawn('koopa',160*PX,11*PX);
+    b.plat(165,169,10);
     b.rect(165,168,6,6,TL.BRICK); b.set(167,6,TL.Q_POWER);
     b.ground(171,205);
     b.spawn('goomba',176*PX,12*PX);
@@ -209,17 +229,21 @@ LVD.push({
     b.lava(90,94); b.ground(95,127);
     b.lava(128,132); b.ground(133,185);
     b.wallCol(0);
+    b.sign(6,'熔岩城堡 · 看准火棒的空隙');
+    b.sign(26,'前方熔岩！冲刺后长按跳跃');
+    b.medal(32,8,0);b.medal(108,4,1);b.medal(130,6,2);
     b.set(14,9,TL.Q_POWER);
-    b.pillar(44,4); b.spawn('firebar',44*PX+8,(SR-4)*PX,{n:5,r:36,speed:.055});
+    b.pillar(44,3); b.spawn('firebar',44*PX+8,(SR-3)*PX+8,{n:4,r:28,speed:.028});
     b.spawn('koopa',50*PX,11*PX);
-    b.pillar(76,4); b.spawn('firebar',76*PX+8,(SR-4)*PX,{n:6,r:40,speed:-.06});
+    b.pillar(76,3); b.spawn('firebar',76*PX+8,(SR-3)*PX+8,{n:5,r:32,speed:-.032,phase:Math.PI});
     b.spawn('goomba',68*PX,12*PX); b.spawn('goomba',70*PX,12*PX);
     b.rect(66,66,9,9,TL.BRICK); b.set(66,9,TL.Q_STAR);
     b.plat(91,93,9);
     b.checkpoint(97);
+    b.set(98,9,TL.Q_POWER);
     b.spawn('koopa',102*PX,11*PX);
     b.rect(106,110,6,6,TL.BRICK); b.coins(106,110,5);
-    b.pillar(112,4); b.spawn('firebar',112*PX+8,(SR-4)*PX,{n:5,r:36,speed:.075});
+    b.pillar(112,3); b.spawn('firebar',112*PX+8,(SR-3)*PX+8,{n:5,r:32,speed:.035});
     b.spawn('para',120*PX,6*PX);
     b.plat(129,131,8);
     b.spawn('goomba',138*PX,12*PX);

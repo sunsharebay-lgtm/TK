@@ -96,14 +96,12 @@ class Foe{
   }
   physics(G){
     this.vy=Math.min(this.vy+.42,CFG.MAX_FALL);
-    moveAndCollide(this,G.area());
-    if(this.hitWallL)this.vx=Math.abs(this.vx);
-    if(this.hitWallR)this.vx=-Math.abs(this.vx);
+    moveAndCollide(this,G.area(),{bounceX:true});
     if(this.y>CFG.ROWS*16+40)this.remove=true;
   }
   stompScore(chain){
     const tbl=[100,200,400,500,800,1000,2000,4000,8000];
-    if(chain>=tbl.length){ G.addLife(); return '1UP'; }
+    if(chain>=tbl.length){ G.addLife(); return 0; }
     return tbl[chain];
   }
   flipDie(G,vxDir,score){
@@ -111,13 +109,12 @@ class Foe{
     this.dead=true;this.flip=true;
     this.vy=-4.6;this.vx=(vxDir||0)||1.2;
     A.sfx('kick');
-    if(score!=null)G.popScore(this.x,this.y,String(score));
+    if(score!=null)G.addScore(score,this.x,this.y);
   }
   onStomp(G){ this.flipDie(G,G.player.face,100); return true; }
   onTouch(G,p){ p.hurt(); }
   onFire(G){
     this.flipDie(G,G.player.face,200);
-    G.popScore(this.x,this.y,'200');
   }
   draw(){}
 }
@@ -160,11 +157,13 @@ class Koopa extends Foe{
   }
   kick(dir){
     this.state='shell';this.moveShell=true;this.shellT=0;
+    this.kickGrace=12;this.chain=0;
     this.vx=dir*CFG.SHELL_SPEED;
     A.sfx('kick');
   }
   update(G){
     if(!this.baseUpdate(G))return;
+    if(this.kickGrace>0)this.kickGrace--;
     if(this.state==='shell'){
       if(this.moveShell){
         this.physics(G);
@@ -218,7 +217,7 @@ class Koopa extends Foe{
   onTouch(G,p){
     if(this.state==='shell'){
       if(this.moveShell){
-        p.hurt();
+        if(!this.kickGrace)p.hurt();
       }else{
         const dir=p.x+p.w/2<this.x+this.w/2?1:-1;
         this.kick(dir);
@@ -267,6 +266,7 @@ class Plant extends Foe{
     this.active=true;this.noGrav=true;
   }
   update(G){
+    if(this.flip){ this.baseUpdate(G); return; }
     this.animT++;
     const p=G.player;
     const near=Math.abs(p.x+p.w/2-(this.x+7))<44;
@@ -287,7 +287,7 @@ class Plant extends Foe{
   }
   onStomp(G){ return null; }
   onTouch(G,p){ if(this.emerge>.25)p.hurt(); }
-  onFire(G){ this.dead=true;this.flip=true;this.vy=-4;this.vx=1;A.sfx('kick');G.addScore(200,this.x,this.y); }
+  onFire(G){ this.flipDie(G,1,200); }
   draw(ctx,f){
     if(this.emerge<=0)return;
     ctx.drawImage(Math.floor(f/12)%2?ART.F.plantB:ART.F.plantA,this.x-1,this.y-1,16,23);
@@ -409,6 +409,7 @@ class StaticCoin{
   }
   update(G){
     const p=G.player;
+    if(p.dead||p.pipeT||p.flagPhase||this.remove)return;
     if(U.aabb(p,{x:this.x,y:this.y,w:12,h:13})){
       G.getCoin(this.x,this.y);
       this.remove=true;
@@ -420,13 +421,32 @@ class StaticCoin{
   }
 }
 
+class StarCoin extends StaticCoin{
+  constructor(x,y,id){super(x,y);this.type='medal';this.w=18;this.h=18;this.id=id;}
+  update(G){
+    const p=G.player;
+    if(!this.remove&&!p.dead&&!p.pipeT&&!p.flagPhase&&U.aabb(p,this)){
+      this.remove=true;G.starMask|=1<<this.id;
+      G.addScore(1000,this.x,this.y);A.sfx('power');
+      G.notify('星币 '+G.starMask.toString(2).replace(/0/g,'').length+' / 3 · 高处也有惊喜');
+      for(let i=0;i<6;i++)G.sparkle(this.x+U.rand(0,18),this.y+U.rand(0,18),'#ffe09a');
+    }
+  }
+  draw(ctx,f){
+    const y=this.y+Math.sin(f*.05)*2;
+    ctx.fillStyle='#ffcb45';ctx.beginPath();ctx.arc(this.x+9,y+9,10,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff4b7';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.drawImage(ART.I.star,this.x+3,y+3,12,12);
+  }
+}
+
 class Mover{
   constructor(x,y,o){
     this.type='mover';
     this.x=x;this.y=y;this.w=o.w||44;this.h=8;
     this.axis=o.axis||'x';this.range=o.range||64;
     this.speed=o.speed||.6;
-    this.phase=Math.random()*6.28;
+    this.phase=o.phase||0;
     this.bx=x;this.by=y;
     this.dx=0;this.dy=0;
     this.remove=false;
@@ -568,13 +588,13 @@ class FireBar{
     this.cx=cx;this.cy=cy;
     this.n=o.n||5;this.r=o.r||38;
     this.speed=o.speed||.05;
-    this.ang=U.rand(0,6.28);
+    this.ang=o.phase||0;
     this.remove=false;
   }
   update(G){
     this.ang+=this.speed;
     const p=G.player;
-    if(p.starT>0||p.dead||p.pipeT||G.state!=='play')return;
+    if(p.starT>0||p.dead||p.pipeT||p.flagPhase||p.growT>0||G.state!=='play')return;
     for(let i=1;i<=this.n;i++){
       const bx=this.cx+Math.cos(this.ang)*i*(this.r/this.n);
       const by=this.cy+Math.sin(this.ang)*i*(this.r/this.n);

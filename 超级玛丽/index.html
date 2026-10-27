@@ -3,41 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>待开发 · 超级玛丽</title>
+<meta name="theme-color" content="#102c31">
+<meta name="description" content="创意空间原创像素平台冒险：四个世界、秘密水管、变身道具与十二枚星币。支持键盘、手柄和触屏，离线可玩。">
+<title>超级玛丽 · 像素冒险</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#0b1020;
-    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
-    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:none; }
-  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 30%, #17203a 0%, #0b1020 70%); }
-  canvas { image-rendering:crisp-edges; image-rendering:pixelated; display:block; box-shadow:0 0 60px rgba(0,0,0,.6); border-radius:6px; }
-  #tc { position:fixed; inset:0; pointer-events:none; display:none; z-index:10; }
-  .tbtn { position:absolute; pointer-events:auto; border-radius:50%;
-    background:rgba(255,255,255,.10); border:2px solid rgba(255,255,255,.25);
-    color:rgba(255,255,255,.75); font-size:22px; font-weight:bold;
-    display:flex; align-items:center; justify-content:center;
-    backdrop-filter:blur(2px); -webkit-tap-highlight-color:transparent; }
-  .tbtn.on { background:rgba(255,255,255,.32); color:#fff; }
-  #bL{ left:max(12px,env(safe-area-inset-left)); bottom:86px; width:64px;height:64px;}
-  #bR{ left:calc(max(12px,env(safe-area-inset-left)) + 78px); bottom:86px; width:64px;height:64px;}
-  #bD{ left:max(12px,env(safe-area-inset-left)) ; bottom:14px; width:64px;height:64px;}
-  #bB{ right:max(14px,env(safe-area-inset-right)); bottom:96px; width:66px;height:66px; font-size:17px;}
-  #bA{ right:calc(max(14px,env(safe-area-inset-right)) + 82px); bottom:26px; width:72px;height:72px; font-size:19px;}
-  #fs { position:fixed; top:10px; right:12px; z-index:20; pointer-events:auto;
-    background:rgba(0,0,0,.35); color:rgba(255,255,255,.8); border:1px solid rgba(255,255,255,.2);
-    border-radius:8px; padding:4px 10px; font-size:13px; cursor:pointer; }
+  :root{color-scheme:dark;--ink:#f5f0d5;--gold:#ffd466}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:#102c31;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
+  button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  button:focus-visible{outline:3px solid var(--gold);outline-offset:4px}button:disabled{opacity:.38;cursor:default}[hidden]{display:none!important}
+  #wrap{position:fixed;inset:0}canvas{display:block;image-rendering:pixelated}
+  .topbar{position:fixed;inset:0 0 auto;min-height:48px;padding:10px max(18px,env(safe-area-inset-right));display:flex;align-items:center;justify-content:space-between;z-index:12;gap:12px;background:linear-gradient(#102c31,#102c3100)}
+  .brand{font-size:12px;letter-spacing:2px;color:#c0d0bb}.brand b{color:var(--gold);margin-right:12px}.toolbar{display:flex;gap:6px}.toolbar button{border:1px solid #a2c7ae45;border-radius:8px;background:#12342de6;padding:7px 12px;font-size:12px}
+  #overlay{position:fixed;inset:48px 0 44px;display:flex;align-items:center;justify-content:center;z-index:11;pointer-events:none;padding:12px}
+  .panel{pointer-events:auto;width:min(440px,94vw);padding:26px 30px;border:1px solid #f8e7ad66;border-radius:16px;background:linear-gradient(145deg,#173d35f5,#102b2ef8);box-shadow:0 18px 60px #071a2370,inset 0 1px #ffffff19;max-height:100%;overflow:auto;touch-action:pan-y}
+  .eyebrow{color:var(--gold);font-size:11px;letter-spacing:3px;font-weight:600}.title-panel h1{font-size:clamp(32px,4vw,46px);line-height:1.2;letter-spacing:5px;margin:12px 0 7px;text-shadow:3px 3px #092b2b}
+  .subtitle{color:#c5d4bf;font-size:13px;line-height:1.8;margin-bottom:20px}.subtitle strong{font-weight:500;color:var(--ink)}
+  .worlds{display:flex;align-items:center;margin:0 0 18px;color:#bdceb7;font-size:11px}.worlds i{height:1px;flex:1;background:#a1bea340;margin:0 10px}.worlds span:first-child{color:var(--gold)}
+  .primary,.secondary{width:100%;min-height:43px;border-radius:8px;border:1px solid #e3d4a54d;margin-bottom:9px;text-align:center;font-size:14px;font-weight:600;transition:transform .12s,background .12s}
+  .primary{background:var(--gold);color:#183a31;border-color:#ffe29a;box-shadow:0 3px #b68b3c}.primary:hover{background:#ffe29a;transform:translateY(-1px)}.secondary{background:#33574766;color:#ecebd7}.secondary:hover{background:#3c6b57}.selected{outline:2px solid #ffde8b;outline-offset:2px}
+  .settings{border-top:1px solid #c9d0a333;margin-top:10px;padding-top:14px}.setting-label{font-size:11px;color:#c5d4bf;margin-bottom:9px;display:flex;justify-content:space-between}
+  .levels{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.levels button{border-radius:8px;border:1px solid #bad5ac40;background:#132e2e;min-height:46px;font-size:13px;padding:6px}.levels button[aria-pressed="true"]{background:#46664a;color:#ffe39b;border-color:#ffdd8f}.levels small{display:block;font-size:9px;letter-spacing:2px;color:var(--gold);margin-top:3px}
+  #mode-hint{font-size:11px;line-height:1.6;color:#bbcdb7;margin:3px 0 13px}.record{display:flex;justify-content:space-between;margin-top:16px;font-size:11px;color:#b0c5ac}.panel h2{font-size:27px;letter-spacing:2px;margin:10px 0 15px}.help-lines{font-size:13px;line-height:2.2;color:#d3ddc9;margin-bottom:20px}.help-lines kbd{font-family:inherit;color:var(--gold);font-size:12px}.result-line{margin-bottom:20px;color:#d0ddc4;line-height:1.9;font-size:14px}
+  #footnote{position:fixed;bottom:14px;left:0;right:0;text-align:center;z-index:1;font-size:11px;color:#bdc9b3;letter-spacing:.5px}#footnote kbd{color:var(--gold);font:inherit;margin:0 4px}
+  #tc{position:fixed;inset:0;pointer-events:none;display:none;z-index:10}.tbtn{position:absolute;pointer-events:auto;width:60px;height:60px;border-radius:18px;border:1px solid #e0e8ba70;background:#173d36c9;box-shadow:0 4px #061e2c55;color:#ffedb9;font-size:23px;display:flex;align-items:center;justify-content:center;touch-action:none}.tbtn.on{background:#68835b;color:#fff;transform:translateY(2px)}
+  #bL{left:max(14px,env(safe-area-inset-left));bottom:80px}#bR{left:86px;bottom:80px}#bD{left:50px;bottom:12px;width:60px;height:52px}#bA{right:max(14px,env(safe-area-inset-right));bottom:60px;width:78px;height:78px;border-radius:50%;background:#d9ae4ce6;color:#18382e;font-size:17px;font-weight:bold}#bB{right:108px;bottom:22px;width:66px;height:66px;border-radius:50%;font-size:12px}
+  @media(pointer:coarse){#tc{display:block}#footnote{display:none}}
+  @media(max-height:600px){#overlay{inset:40px 0 8px}.panel{padding:16px 22px;width:min(480px,94vw)}.title-panel h1{font-size:30px;margin:5px 0}.subtitle{margin-bottom:9px;font-size:11px}.worlds{display:none}.primary,.secondary{min-height:34px;margin-bottom:6px;font-size:12px}.settings{padding-top:9px;margin-top:5px}.levels button{min-height:34px}.record{margin-top:9px}.topbar{padding:6px 12px;min-height:36px}#footnote{display:none}#mode-hint{margin-bottom:8px}}
+  @media(max-width:520px){.brand{font-size:10px;letter-spacing:0}.brand b{margin-right:5px}.toolbar button{padding:7px 9px}.panel{padding:23px}.title-panel h1{font-size:36px}.topbar{padding:10px}.subtitle{font-size:12px}#overlay{inset:50px 0 160px}.record{font-size:10px}}
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="cv"></canvas></div>
-<button id="fs" title="全屏">⛶</button>
-<div id="tc">
-  <div class="tbtn" id="bL">◀</div>
-  <div class="tbtn" id="bR">▶</div>
-  <div class="tbtn" id="bD">▼</div>
-  <div class="tbtn" id="bB">B弹</div>
-  <div class="tbtn" id="bA">A跳</div>
-</div>
+<div id="wrap"><canvas id="cv" aria-label="超级玛丽游戏画面"></canvas></div>
+<header class="topbar"><div class="brand"><b>✦ 创意空间</b>像素冒险</div><div class="toolbar"><button id="pause" hidden>暂停</button><button id="mute" aria-label="切换声音">声音 开</button><button id="fs" title="全屏">全屏</button></div></header>
+<main id="overlay">
+  <section id="title-panel" class="panel title-panel" aria-label="游戏主菜单">
+    <p class="eyebrow">PIXEL ADVENTURE · 0.2</p><h1>超级玛丽</h1><p class="subtitle">从绿野到熔岩，一场小小的大冒险。<br><strong>跳过险境，发现秘密，带回十二枚星币。</strong></p>
+    <div class="worlds"><span>01 绿野</span><i></i><span>02 地底</span><i></i><span>03 黄昏</span><i></i><span>04 城堡</span></div>
+    <button id="start" class="primary">开始冒险 →</button><button id="help" class="secondary">操作与玩法</button>
+    <div class="settings"><p class="setting-label"><span>选择旅程</span><span id="level-name">绿野平原</span></p><div class="levels"><button id="level-0">1-1<small>◇ ◇ ◇</small></button><button id="level-1">1-2<small>未解锁</small></button><button id="level-2">1-3<small>未解锁</small></button><button id="level-3">1-4<small>未解锁</small></button></div></div>
+    <button id="mode" class="secondary" style="margin-top:14px">轻松探索 ⇄</button><p id="mode-hint">不限生命与时间，从检查点继续。适合慢慢发现每条路线。</p><div class="record"><span id="record">最高分 000000</span><span id="collection">星币 0 / 12</span></div>
+  </section>
+  <section id="help-panel" class="panel" hidden><p class="eyebrow">HOW TO PLAY</p><h2>每一跳，都有发现。</h2><div class="help-lines"><kbd>← → / A D</kbd> 移动 · <kbd>K / Z / 空格 / ↑</kbd> 跳跃<br><kbd>L / X / Shift</kbd> 冲刺，火焰形态可连续发射<br><kbd>↓ / S</kbd> 下蹲、进入标记水管<br><kbd>P / Esc</kbd> 暂停 · <kbd>M</kbd> 声音开关<br>长按跳得高，轻点跳得低；踩敌人时按住跳可弹高。<br>蘑菇变大 → 火焰花变身；黄色星星短暂无敌。<br>金色星币是支线挑战，不影响通关；旗杆是终点。<br>手柄：方向键 / 左摇杆，A 跳跃，B / X 冲刺。</div><button id="back" class="primary">知道了，回到旅程</button></section>
+  <section id="pause-panel" class="panel" hidden><p class="eyebrow">TAKE A BREATH</p><h2>休息一下。</h2><p class="subtitle">准备好了，就继续下一跳。</p><button id="resume" class="primary">继续冒险</button><button id="retry" class="secondary">从检查点重试</button><button id="home" class="secondary">返回主菜单</button></section>
+  <section id="result-panel" class="panel" hidden><p id="result-tag" class="eyebrow">ADVENTURE COMPLETE</p><h2 id="result-title">冒险完成！</h2><p id="result-detail" class="result-line"></p><button id="again" class="primary">再来一场冒险</button><button id="result-home" class="secondary">选关与星币收集</button></section>
+</main>
+<div id="tc" aria-label="触屏控制"><button class="tbtn" id="bL" aria-label="向左">◀</button><button class="tbtn" id="bR" aria-label="向右">▶</button><button class="tbtn" id="bD" aria-label="下蹲或进入水管">▼</button><button class="tbtn" id="bB">冲刺 / 弹</button><button class="tbtn" id="bA">跳跃</button></div>
+<footer id="footnote"><kbd>← →</kbd> 移动 <kbd>K / 空格</kbd> 跳跃 <kbd>L / Shift</kbd> 冲刺 <span> · </span>原创像素世界，离线也能冒险</footer>
 <script>
 'use strict';
 const U = {
@@ -54,16 +66,16 @@ const U = {
 const CFG = {
   TILE:16, ROWS:15,
   STEP:1000/60,
-  GRAV:.50, GRAV_HOLD:.26, MAX_FALL:7.4,
-  ACC_WALK:.11, ACC_RUN:.16, FRICTION:.18, SKID:.30,
-  MAX_WALK:1.7, MAX_RUN:2.85,
-  JUMP_V:-7.3, JUMP_SPD_BONUS:.28, JUMP_CUT:-6.0,
-  COYOTE:5, JBUF:7,
+  GRAV:.52, GRAV_HOLD:.29, MAX_FALL:7.4,
+  ACC_WALK:.20, ACC_RUN:.26, FRICTION:.26, SKID:.44,
+  MAX_WALK:1.85, MAX_RUN:3.05,
+  JUMP_V:-7.5, JUMP_SPD_BONUS:.22, JUMP_CUT:-3.8,
+  COYOTE:7, JBUF:8,
   STOMP_BOUNCE:-4.6, STOMP_BOUNCE_HI:-7.4,
   SHELL_SPEED:3.4,
   FIRE_VX:4.2, FIRE_MAX:2,
   STAR_TIME:660,
-  TICK_FRAMES:24,
+  TICK_FRAMES:60,
   VIEW_H:240
 };
 
@@ -90,12 +102,13 @@ const INP = {
     left:['ArrowLeft','KeyA'], right:['ArrowRight','KeyD'],
     down:['ArrowDown','KeyS'],
     up:['ArrowUp','KeyW'],
-    jump:['Space','ArrowUp','KeyK'],
-    run:['KeyL','ShiftLeft','ShiftRight'],
-    pause:['KeyP','Escape'], mute:['KeyM'], confirm:['Enter','Space','KeyK']
+    jump:['Space','ArrowUp','KeyK','KeyZ'],
+    run:['KeyL','ShiftLeft','ShiftRight','KeyX'],
+    pause:['KeyP','Escape'], mute:['KeyM'], confirm:['Enter','Space','KeyK','KeyZ']
   },
   init(){
     const dn=e=>{
+      if(e.target?.tagName==='BUTTON'&&(e.code==='Enter'||e.code==='Space'))return;
       this.anyKey=true;
       if(e.code==='F5'||(e.ctrlKey&&e.code==='KeyR'))return;
       this.keyCodes[e.code]=true;
@@ -112,8 +125,9 @@ const INP = {
     };
     addEventListener('keydown',dn,{passive:false});
     addEventListener('keyup',up);
-    addEventListener('blur',()=>this.clear());
-    document.addEventListener('visibilitychange',()=>{ if(document.hidden)this.clear(); });
+    const suspend=()=>{ this.clear(); if(G.state==='play')G.setPaused(true); };
+    addEventListener('blur',suspend);
+    document.addEventListener('visibilitychange',()=>{ if(document.hidden)suspend(); });
     this.initTouch();
     this.initGamepad();
   },
@@ -128,7 +142,7 @@ const INP = {
   clear(){
     this.keys={}; this.just={}; this.keyCodes={}; this.touchPointers={}; this.anyKey=false;
     this.sources={keyboard:{},touch:{},gamepad:{}};
-    for(const id of ['bL','bR','bD','bA','bB'])document.getElementById(id)?.classList.remove('on');
+    for(const id of ['bL','bR','bD','bA','bB'])document.getElementById(id)?.classList?.remove('on');
   },
   press(k){ return !!this.just[k]; },
   endFrame(){ this.just={}; },
@@ -143,7 +157,8 @@ const INP = {
     };
     const on=e=>{
       e.preventDefault(); this.touchPointers[e.pointerId]=k; sync();
-      el.setPointerCapture?.(e.pointerId); A.unlock();
+      try{el.setPointerCapture?.(e.pointerId);}catch(e){}
+      el.blur?.(); A.unlock();
     };
     const off=e=>{ e.preventDefault(); delete this.touchPointers[e.pointerId]; sync(); };
     el.addEventListener('pointerdown',on);
@@ -152,7 +167,7 @@ const INP = {
     el.addEventListener('pointerleave',off);
   },
   initTouch(){
-    const show=()=>{ const tc=document.getElementById('tc'); if(tc)tc.style.display='block'; removeEventListener('touchstart',show); };
+    const show=()=>{ this.touch=true; const tc=document.getElementById('tc'); if(tc)tc.style.display='block'; G.resize(); removeEventListener('touchstart',show); };
     addEventListener('touchstart',show,{once:true});
     this.bindBtn('bL','left'); this.bindBtn('bR','right');
     this.bindBtn('bD','down'); this.bindBtn('bA','jump'); this.bindBtn('bB','run');
@@ -160,7 +175,7 @@ const INP = {
     if(cv) cv.addEventListener('pointerdown',()=>{ this.anyKey=true; A.unlock(); });
     const fs=document.getElementById('fs');
     if(fs) fs.addEventListener('click',()=>{
-      const w=document.getElementById('wrap');
+      const w=document.documentElement||document.getElementById('wrap');
       const active=document.fullscreenElement||document.webkitFullscreenElement;
       const target=active?document:w;
       const action=active?(document.exitFullscreen||document.webkitExitFullscreen):(w.requestFullscreen||w.webkitRequestFullscreen);
@@ -194,7 +209,7 @@ const A = {
   curKey:null, stepIdx:0, nextT:0, timer:null, noiseBuf:null,
 
   unlock(){
-    if(this.ctx){ if(this.ctx.state==='suspended'){ try{this.ctx.resume();}catch(e){} } return; }
+    if(this.ctx){ if(this.ctx.state==='suspended'){ try{this.ctx.resume()?.catch?.(()=>{});}catch(e){} } return; }
     try{
       const AC=window.AudioContext||window.webkitAudioContext;
       if(!AC)return;
@@ -204,6 +219,7 @@ const A = {
       this.master.connect(this.ctx.destination);
       this.sfxG=this.ctx.createGain(); this.sfxG.gain.value=.9; this.sfxG.connect(this.master);
       this.musG=this.ctx.createGain(); this.musG.gain.value=.5; this.musG.connect(this.master);
+      if(this.curKey)this.playMusic(this.curKey);
     }catch(e){ this.ctx=null; }
   },
   toggleMute(){
@@ -481,6 +497,7 @@ K . h h . . h h K . h h . S . h` }
   tickSched(){
     if(!this.ctx||!this.curKey)return;
     const c=this.ctx, sd=this.stepDur(this.curKey);
+    if(this.nextT<c.currentTime-.2)this.nextT=c.currentTime+.02;
     while(this.nextT<c.currentTime+.14){
       this.schedStep(this.curKey,this.stepIdx,this.nextT,sd);
       this.nextT+=sd;
@@ -544,7 +561,7 @@ A.buildSongs();
 try{
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden)A.pauseMusic();
-    else if(A.curKey)A.resumeMusic();
+    else if(A.curKey&&!G.paused)A.resumeMusic();
   });
 }catch(e){}
 const ART = {
@@ -1227,6 +1244,8 @@ const ART = {
   mkCastleSprite(){
     const c=this.cv(80,80),g=c.getContext('2d');
     const b1='#b0907a',b2='#93765f',dark='#5f4a38',win='#20141c';
+    this.R(g,6,20,68,60,b2);
+    this.R(g,16,8,48,72,b1);
     for(let y=0;y<80;y+=8){
       for(let x=((y/8)%2)*8;x<80;x+=16){
         this.R(g,x,y,7,4,(U.hash(x*31+y*7)<.5)?b1:b2);
@@ -1267,9 +1286,11 @@ const LVD=[];
 function Builder(cols){
   const R=CFG.ROWS;
   const g=new Uint8Array(cols*R);
-  const sp=[],warps=[];
+  const sp=[],warps=[],signs=[];
   const o={
-    cols,g,spawns:sp,warps,flagCol:0,castleCol:0,cpCol:0,
+    cols,g,spawns:sp,warps,signs,flagCol:0,castleCol:0,cpCol:0,
+    sign(c,text){signs.push({x:c*PX,text});},
+    medal(c,r,id){o.spawn('medal',c*PX,r*PX,{id});},
     set(c,r,t){ if(c>=0&&c<cols&&r>=0&&r<R)g[r*cols+c]=t; },
     get(c,r){ return g[r*cols+c]; },
     rect(c0,c1,r0,r1,t){ for(let c=c0;c<=c1;c++)for(let r=r0;r<=r1;r++)o.set(c,r,t); },
@@ -1282,7 +1303,7 @@ function Builder(cols){
       const top=SR-h;
       o.set(c,top,TL.PIPE_TL); o.set(c+1,top,TL.PIPE_TR);
       for(let r=top+1;r<SR;r++){ o.set(c,r,TL.PIPE_BL); o.set(c+1,r,TL.PIPE_BR); }
-      if(opt.plant)sp.push({t:'plant',x:(c+1)*PX,y:top*PX});
+      if(opt.plant)sp.push({t:'plant',x:(c+1)*PX-7,y:top*PX});
       if(opt.warp)warps.push({a:opt.a||0,col:c,row:top,dest:opt.warp});
       return o;
     },
@@ -1314,7 +1335,7 @@ function Builder(cols){
 function areaOf(b){
   return { grid:b.g, cols:b.cols, rows:CFG.ROWS, spawns:b.spawns,
            flagCol:b.flagCol, castleCol:b.castleCol, cpX:b.cpCol*PX,
-           warps:b.warps };
+           warps:b.warps,signs:b.signs };
 }
 
 LVD.push({
@@ -1322,10 +1343,15 @@ LVD.push({
   build(){
     const b=Builder(214);
     b.ground(0,68); b.ground(71,213);
+    b.sign(5,'← → 移动 · 长按跳跃更高');
+    b.sign(13,'顶问号砖，接住蘑菇！');
+    b.sign(65,'冲刺 + 跳跃，越过缺口 →');
+    b.sign(101,'这根水管藏着奖励 · 按 ↓');
+    b.set(10,9,TL.Q_POWER);
     b.set(16,9,TL.Q_COIN);
     b.row(20,20,9,TL.BRICK); b.set(21,9,TL.Q_POWER); b.row(22,22,9,TL.BRICK);
     b.set(21,5,TL.Q_COIN);
-    b.spawn('goomba',23*PX,12*PX);
+    b.spawn('goomba',26*PX,12*PX);
     b.pipe(28,2,{});
     b.spawn('goomba',34*PX,12*PX); b.spawn('goomba',36*PX,12*PX);
     b.pipe(39,3,{});
@@ -1340,11 +1366,15 @@ LVD.push({
     b.spawn('goomba',93*PX,12*PX); b.spawn('goomba',95*PX,12*PX);
     b.set(91,9,TL.BRICK_COIN);
     b.spawn('koopa',99*PX,11*PX);
-    b.pipe(104,2,{warp:{a:1,x:3.5*PX,y:-24}});
+    b.pipe(104,2,{warp:{a:1,x:3.5*PX,y:40,mode:'drop'}});
     b.pipe(112,2,{});
     b.spawn('goomba',117*PX,12*PX); b.spawn('goomba',119*PX,12*PX);
     b.pipe(124,3,{plant:true});
     b.checkpoint(90);
+    b.set(94,9,TL.Q_POWER);
+    b.set(155,9,TL.Q_POWER);
+    b.coinArc(69,11,4);
+    b.medal(38,7,0);b.medal(86,3,1);b.medal(150,9,2);
     b.stairsUp(130,4); b.stairsDown(136,4);
     b.spawn('goomba',146*PX,12*PX); b.spawn('goomba',148*PX,12*PX);
     b.pipe(152,2,{});
@@ -1373,6 +1403,10 @@ LVD.push({
     const b=Builder(196);
     b.ceiling(); b.ground(0,195);
     b.wallCol(0);
+    b.sign(6,'地下探险 · 找找高处的路线');
+    b.sign(72,'金色平台会移动，等它靠近');
+    b.medal(28,4,0);b.medal(98,6,1);b.medal(142,6,2);
+    b.set(94,9,TL.Q_POWER);
     b.set(16,9,TL.Q_POWER);
     b.coins(20,24,9);
     b.rect(26,29,6,6,TL.BRICK);
@@ -1419,40 +1453,45 @@ LVD.push({
   build(){
     const b=Builder(206);
     b.ground(0,24);
+    b.sign(6,'云台练习 · 落稳后再起跳');
+    b.set(12,9,TL.Q_POWER);
+    b.medal(50,5,0);b.medal(99,5,1);b.medal(153,7,2);
     b.ground(28,33);
-    b.plat(35,37,9);
+    b.plat(35,38,9);
     b.ground(40,45);
     b.spawn('goomba',43*PX,12*PX); b.spawn('goomba',45*PX,12*PX);
-    b.plat(48,51,7);
+    b.plat(48,53,9);
     b.coins(48,51,5);
     b.ground(55,69);
     b.pipe(62,4,{plant:true});
     b.spawn('para',73*PX,6*PX);
     b.ground(70,75);
     b.rect(72,73,9,9,TL.BRICK); b.set(72,9,TL.Q_STAR);
-    b.plat(78,80,8);
+    b.plat(78,81,9);
     b.ground(84,88);
-    b.spawn('goomba',86*PX,12*PX);
-    b.checkpoint(86);
-    b.plat(91,94,9);
+    b.checkpoint(84);
+    b.set(85,9,TL.Q_POWER);
+    b.plat(91,95,9);
     b.plat(97,100,7);
     b.coins(97,100,5);
     b.ground(103,107);
     b.spawn('koopa',105*PX,11*PX);
     b.rect(109,120,13,13,0);
     for(let c=109;c<=120;c++){ b.set(c,SR,0); b.set(c,SR+1,0); }
-    b.spawn('mover',108*PX,9*PX,{axis:'x',range:11*PX+16,speed:.85,w:48});
+    b.spawn('mover',114*PX,9*PX,{axis:'x',range:6*PX,speed:.65,w:48});
     b.plat(109,121,11);
     b.coins(112,116,6);
     b.ground(123,134);
     b.spawn('para',126*PX,6*PX);
     b.pipe(131,3,{plant:true});
-    b.plat(136,139,8);
+    b.plat(136,140,9);
+    b.plat(135,141,12); // A recovery route below the high cloud path.
     b.ground(142,148);
     b.spawn('goomba',145*PX,12*PX); b.spawn('goomba',147*PX,12*PX);
-    b.plat(151,154,9);
+    b.plat(151,155,9);
     b.ground(157,162);
     b.spawn('koopa',160*PX,11*PX);
+    b.plat(165,169,10);
     b.rect(165,168,6,6,TL.BRICK); b.set(167,6,TL.Q_POWER);
     b.ground(171,205);
     b.spawn('goomba',176*PX,12*PX);
@@ -1471,17 +1510,21 @@ LVD.push({
     b.lava(90,94); b.ground(95,127);
     b.lava(128,132); b.ground(133,185);
     b.wallCol(0);
+    b.sign(6,'熔岩城堡 · 看准火棒的空隙');
+    b.sign(26,'前方熔岩！冲刺后长按跳跃');
+    b.medal(32,8,0);b.medal(108,4,1);b.medal(130,6,2);
     b.set(14,9,TL.Q_POWER);
-    b.pillar(44,4); b.spawn('firebar',44*PX+8,(SR-4)*PX,{n:5,r:36,speed:.055});
+    b.pillar(44,3); b.spawn('firebar',44*PX+8,(SR-3)*PX+8,{n:4,r:28,speed:.028});
     b.spawn('koopa',50*PX,11*PX);
-    b.pillar(76,4); b.spawn('firebar',76*PX+8,(SR-4)*PX,{n:6,r:40,speed:-.06});
+    b.pillar(76,3); b.spawn('firebar',76*PX+8,(SR-3)*PX+8,{n:5,r:32,speed:-.032,phase:Math.PI});
     b.spawn('goomba',68*PX,12*PX); b.spawn('goomba',70*PX,12*PX);
     b.rect(66,66,9,9,TL.BRICK); b.set(66,9,TL.Q_STAR);
     b.plat(91,93,9);
     b.checkpoint(97);
+    b.set(98,9,TL.Q_POWER);
     b.spawn('koopa',102*PX,11*PX);
     b.rect(106,110,6,6,TL.BRICK); b.coins(106,110,5);
-    b.pillar(112,4); b.spawn('firebar',112*PX+8,(SR-4)*PX,{n:5,r:36,speed:.075});
+    b.pillar(112,3); b.spawn('firebar',112*PX+8,(SR-3)*PX+8,{n:5,r:32,speed:.035});
     b.spawn('para',120*PX,6*PX);
     b.plat(129,131,8);
     b.spawn('goomba',138*PX,12*PX);
@@ -1607,14 +1650,12 @@ class Foe{
   }
   physics(G){
     this.vy=Math.min(this.vy+.42,CFG.MAX_FALL);
-    moveAndCollide(this,G.area());
-    if(this.hitWallL)this.vx=Math.abs(this.vx);
-    if(this.hitWallR)this.vx=-Math.abs(this.vx);
+    moveAndCollide(this,G.area(),{bounceX:true});
     if(this.y>CFG.ROWS*16+40)this.remove=true;
   }
   stompScore(chain){
     const tbl=[100,200,400,500,800,1000,2000,4000,8000];
-    if(chain>=tbl.length){ G.addLife(); return '1UP'; }
+    if(chain>=tbl.length){ G.addLife(); return 0; }
     return tbl[chain];
   }
   flipDie(G,vxDir,score){
@@ -1622,13 +1663,12 @@ class Foe{
     this.dead=true;this.flip=true;
     this.vy=-4.6;this.vx=(vxDir||0)||1.2;
     A.sfx('kick');
-    if(score!=null)G.popScore(this.x,this.y,String(score));
+    if(score!=null)G.addScore(score,this.x,this.y);
   }
   onStomp(G){ this.flipDie(G,G.player.face,100); return true; }
   onTouch(G,p){ p.hurt(); }
   onFire(G){
     this.flipDie(G,G.player.face,200);
-    G.popScore(this.x,this.y,'200');
   }
   draw(){}
 }
@@ -1671,11 +1711,13 @@ class Koopa extends Foe{
   }
   kick(dir){
     this.state='shell';this.moveShell=true;this.shellT=0;
+    this.kickGrace=12;this.chain=0;
     this.vx=dir*CFG.SHELL_SPEED;
     A.sfx('kick');
   }
   update(G){
     if(!this.baseUpdate(G))return;
+    if(this.kickGrace>0)this.kickGrace--;
     if(this.state==='shell'){
       if(this.moveShell){
         this.physics(G);
@@ -1729,7 +1771,7 @@ class Koopa extends Foe{
   onTouch(G,p){
     if(this.state==='shell'){
       if(this.moveShell){
-        p.hurt();
+        if(!this.kickGrace)p.hurt();
       }else{
         const dir=p.x+p.w/2<this.x+this.w/2?1:-1;
         this.kick(dir);
@@ -1778,6 +1820,7 @@ class Plant extends Foe{
     this.active=true;this.noGrav=true;
   }
   update(G){
+    if(this.flip){ this.baseUpdate(G); return; }
     this.animT++;
     const p=G.player;
     const near=Math.abs(p.x+p.w/2-(this.x+7))<44;
@@ -1798,7 +1841,7 @@ class Plant extends Foe{
   }
   onStomp(G){ return null; }
   onTouch(G,p){ if(this.emerge>.25)p.hurt(); }
-  onFire(G){ this.dead=true;this.flip=true;this.vy=-4;this.vx=1;A.sfx('kick');G.addScore(200,this.x,this.y); }
+  onFire(G){ this.flipDie(G,1,200); }
   draw(ctx,f){
     if(this.emerge<=0)return;
     ctx.drawImage(Math.floor(f/12)%2?ART.F.plantB:ART.F.plantA,this.x-1,this.y-1,16,23);
@@ -1920,6 +1963,7 @@ class StaticCoin{
   }
   update(G){
     const p=G.player;
+    if(p.dead||p.pipeT||p.flagPhase||this.remove)return;
     if(U.aabb(p,{x:this.x,y:this.y,w:12,h:13})){
       G.getCoin(this.x,this.y);
       this.remove=true;
@@ -1931,13 +1975,32 @@ class StaticCoin{
   }
 }
 
+class StarCoin extends StaticCoin{
+  constructor(x,y,id){super(x,y);this.type='medal';this.w=18;this.h=18;this.id=id;}
+  update(G){
+    const p=G.player;
+    if(!this.remove&&!p.dead&&!p.pipeT&&!p.flagPhase&&U.aabb(p,this)){
+      this.remove=true;G.starMask|=1<<this.id;
+      G.addScore(1000,this.x,this.y);A.sfx('power');
+      G.notify('星币 '+G.starMask.toString(2).replace(/0/g,'').length+' / 3 · 高处也有惊喜');
+      for(let i=0;i<6;i++)G.sparkle(this.x+U.rand(0,18),this.y+U.rand(0,18),'#ffe09a');
+    }
+  }
+  draw(ctx,f){
+    const y=this.y+Math.sin(f*.05)*2;
+    ctx.fillStyle='#ffcb45';ctx.beginPath();ctx.arc(this.x+9,y+9,10,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff4b7';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.drawImage(ART.I.star,this.x+3,y+3,12,12);
+  }
+}
+
 class Mover{
   constructor(x,y,o){
     this.type='mover';
     this.x=x;this.y=y;this.w=o.w||44;this.h=8;
     this.axis=o.axis||'x';this.range=o.range||64;
     this.speed=o.speed||.6;
-    this.phase=Math.random()*6.28;
+    this.phase=o.phase||0;
     this.bx=x;this.by=y;
     this.dx=0;this.dy=0;
     this.remove=false;
@@ -2079,13 +2142,13 @@ class FireBar{
     this.cx=cx;this.cy=cy;
     this.n=o.n||5;this.r=o.r||38;
     this.speed=o.speed||.05;
-    this.ang=U.rand(0,6.28);
+    this.ang=o.phase||0;
     this.remove=false;
   }
   update(G){
     this.ang+=this.speed;
     const p=G.player;
-    if(p.starT>0||p.dead||p.pipeT||G.state!=='play')return;
+    if(p.starT>0||p.dead||p.pipeT||p.flagPhase||p.growT>0||G.state!=='play')return;
     for(let i=1;i<=this.n;i++){
       const bx=this.cx+Math.cos(this.ang)*i*(this.r/this.n);
       const by=this.cy+Math.sin(this.ang)*i*(this.r/this.n);
@@ -2128,12 +2191,20 @@ class Player{
   }
   expBox(){ return {x:this.x-2,y:this.y-2,w:this.w+4,h:this.h+4}; }
   setForm(f){
-    const nh=f===0?14:24;
+    let nh=f===0?14:24;
+    if(f>0&&G.areas.length&&!this.canFit(nh))nh=14;
     const nw=f===0?11:12;
     this.y+=this.h-nh;
     this.h=nh;this.w=nw;
     this.form=f;
-    this.crouch=false;
+    this.crouch=f>0&&nh===14;
+  }
+  canFit(h){
+    const box={x:this.x,y:this.y+this.h-h,w:this.form>0?12:this.w,h};
+    for(let r=Math.floor(box.y/16);r<=Math.floor((box.y+h-.01)/16);r++)
+      for(let c=Math.floor(box.x/16);c<=Math.floor((box.x+box.w-.01)/16);c++)
+        if(isSolid(entTileAt(G.area(),c,r)))return false;
+    return true;
   }
   doJump(G){
     this.vy=CFG.JUMP_V-Math.abs(this.vx)*CFG.JUMP_SPD_BONUS;
@@ -2143,17 +2214,19 @@ class Player{
   }
   bounce(v){ this.vy=v; this.jumpHeld=false; }
   hurt(){
-    if(this.dead||this.invT>0||this.starT>0)return;
+    if(this.dead||this.invT>0||this.starT>0||this.pipeT||this.flagPhase||this.growT>0)return;
     if(this.form>0){
-      this.setForm(0);
+      this.setForm(this.form===2?1:0);
       this.invT=130;this.growT=40;this.growMode='shrink';
+      G.freeze=40;
       A.sfx('pipe');
     }else{
       this.die();
     }
   }
-  die(){
-    if(this.dead)return;
+  die(reason='碰到敌人了。试试从上方踩下去！'){
+    if(this.dead||this.flagPhase)return;
+    G.deathHint=reason; G.deaths++;
     this.dead=true;this.deadT=0;this.vy=-7.6;this.vx=0;
     A.stopMusic();A.jDeath();
   }
@@ -2183,7 +2256,7 @@ class Player{
     G.addScore(1000,this.x,this.y);
   }
   update(G){
-    if(this.growT>0){
+    if(this.growT>0&&!this.dead){
       this.growT--;
       if(this.growT===0){
         if(this.growMode==='grow')this.setForm(1);
@@ -2233,7 +2306,6 @@ class Player{
       if(this.flagPhase==='walkoff'){
         this.vx=1.15;
         this.animDist+=Math.abs(this.vx);
-        this.x+=this.vx;
         this.vy=Math.min(this.vy+.46,CFG.MAX_FALL);
         moveAndCollide(this,G.area());
         if(!G.walkedOff&&this.x>G.castleDoorX){
@@ -2247,8 +2319,9 @@ class Player{
 
     const K=INP.keys,J=INP.just;
 
-    const wantCrouch=K.down&&this.form>0&&this.onGround;
-    this.crouch=wantCrouch;
+    const wantCrouch=this.form>0&&(K.down&&this.onGround||!this.canFit(24));
+    const height=this.form>0&&!wantCrouch?24:14;
+    this.y+=this.h-height; this.h=height; this.crouch=wantCrouch;
 
     let ax=0;
     const L=K.left,R=K.right;
@@ -2270,7 +2343,7 @@ class Player{
       }
       this.face=ax;
     }else{
-      if(this.onGround)this.vx=U.approach(this.vx,0,CFG.FRICTION);
+      if(this.onGround&&!J.jump)this.vx=U.approach(this.vx,0,CFG.FRICTION);
     }
 
     if(J.jump)this.jbuf=CFG.JBUF;
@@ -2298,9 +2371,13 @@ class Player{
     for(const mv of G.movers){
       const top=mv.y;
       if(this.vy>=0&&this.x+this.w>mv.x&&this.x<mv.x+mv.w&&
-         this.prevBot<=top+Math.max(2,mv.dy+1)&&this.y+this.h>=top&&this.y+this.h<=top+10){
+         this.prevBot<=top-mv.dy+2&&(this.y+this.h>=top||Math.abs(this.prevBot-(top-mv.dy))<1.5)&&this.y+this.h<=top+10){
         this.y=top-this.h;this.vy=0;this.onGround=true;
-        this.x+=mv.dx;this.y+=mv.dy;
+        // Carry only horizontally: top already includes this frame's vertical motion.
+        const speed=this.vx;
+        this.vx=mv.dx; moveAndCollide(this,G.area()); this.vx=speed;
+        this.onGround=true;
+        break;
       }
     }
 
@@ -2315,11 +2392,11 @@ class Player{
     if(this.x<0){this.x=0;this.vx=0;}
     if(this.x+this.w>G.pxW()){this.x=G.pxW()-this.w;this.vx=0;}
 
-    if(this.y>CFG.ROWS*16+28){ this.die(); return; }
+    if(this.y>CFG.ROWS*16+28){ this.die('掉进深坑了。长按跳跃，配合冲刺可以跳得更远。'); return; }
     const lavaRow=Math.floor((this.y+this.h-2)/16);
     const lavaL=entTileAt(G.area(),Math.floor((this.x+2)/16),lavaRow);
     const lavaR=entTileAt(G.area(),Math.floor((this.x+this.w-2)/16),lavaRow);
-    if(lavaL===TL.LAVA_T||lavaL===TL.LAVA_B||lavaR===TL.LAVA_T||lavaR===TL.LAVA_B){ this.starT=0; this.die(); return; }
+    if(lavaL===TL.LAVA_T||lavaL===TL.LAVA_B||lavaR===TL.LAVA_T||lavaR===TL.LAVA_B){ this.starT=0; this.die('熔岩不能碰。先在安全地面看清下一处落脚点。'); return; }
 
     if(this.starT>0){
       this.starT--;
@@ -2333,7 +2410,7 @@ class Player{
     if(this.throwCd>0)this.throwCd--;
     if(this.throwT>0)this.throwT--;
 
-    if(J.run&&this.form===2&&this.fireCount()<CFG.FIRE_MAX&&this.throwCd<=0){
+    if(K.run&&this.form===2&&this.fireCount()<CFG.FIRE_MAX&&this.throwCd<=0){
       G.spawnFireball(this);
       this.throwT=9;this.throwCd=13;
     }
@@ -2410,7 +2487,7 @@ const G={
   canvas:null,ctx:null,dpr:1,Z:2,offX:0,offY:0,
   viewW:420,viewH:CFG.VIEW_H,
   cssW:800,cssH:450,
-  levelIdx:0,lives:3,score:0,coins:0,hiscore:0,unlocked:1,
+  levelIdx:0,lives:5,score:0,coins:0,hiscore:0,unlocked:1,
   player:null,level:null,areas:[],warps:[],curArea:0,
   ents:[],fx:[],movers:[],bumpAnims:new Map(),
   cam:{x:0},
@@ -2419,20 +2496,28 @@ const G={
   cpReached:false,flagAnim:0,walkedOff:false,castleDoorX:0,
   cardT:0,clearT:0,menuSel:0,pickLevel:0,howOpen:false,fadeA:1,fadeDir:-1,fadeCb:null,
   overT:0,titleCam:0,
+  mode:'relaxed',deaths:0,deathHint:'',starMask:0,starBest:[0,0,0,0],completed:[false,false,false,false],
+  toast:'',toastT:0,areaStates:[],pauseSel:0,
 
   init(){
     this.canvas=document.getElementById('cv');
     this.ctx=this.canvas.getContext('2d');
     try{
-      this.hiscore=parseInt(localStorage.getItem('spl_hi')||'0')||0;
-      this.unlocked=Math.max(1,parseInt(localStorage.getItem('spl_unlock')||'1')||1);
+      this.hiscore=U.clamp(parseInt(localStorage.getItem('spl_hi'))||0,0,999999999);
+      this.unlocked=U.clamp(parseInt(localStorage.getItem('spl_unlock'))||1,1,LV.defs.length);
+      const save=JSON.parse(localStorage.getItem('spl_save_v2')||'{}');
+      if(save.version===2){
+        this.mode=save.mode==='classic'?'classic':'relaxed';
+        this.starBest=this.starBest.map((_,i)=>Number.isInteger(save.stars?.[i])?save.stars[i]&7:0);
+        this.completed=this.completed.map((_,i)=>save.completed?.[i]===true);
+      }
     }catch(e){}
     addEventListener('resize',()=>this.resize());
     this.resize();
     ART.build();
     INP.init();
     this.state='title';
-    A.unlock();
+    if(typeof UI!=='undefined')UI.init();
   },
 
   resize(){
@@ -2442,10 +2527,14 @@ const G={
     this.canvas.height=Math.floor(this.cssH*this.dpr);
     this.canvas.style.width=this.cssW+'px';
     this.canvas.style.height=this.cssH+'px';
-    const z=Math.min(this.cssW/this.viewW,this.cssH/this.viewH);
+    const touch=INP.touch||(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches);
+    const portrait=touch&&this.cssH>this.cssW;
+    const availableH=Math.max(180,this.cssH-(portrait?230:touch?70:76));
+    const z=Math.min((this.cssW-(touch?0:32))/this.viewW,availableH/this.viewH,4);
     this.Z=z;
     this.offX=(this.cssW-this.viewW*z)/2;
-    this.offY=(this.cssH-this.viewH*z)/2;
+    this.offY=portrait?60+(availableH-this.viewH*z)/2:(this.cssH-this.viewH*z)/2;
+    this.ctx.imageSmoothingEnabled=false;
   },
 
   saveHi(){
@@ -2453,6 +2542,19 @@ const G={
       this.hiscore=this.score;
       try{localStorage.setItem('spl_hi',String(this.hiscore));}catch(e){}
     }
+  },
+  saveProgress(){
+    try{localStorage.setItem('spl_save_v2',JSON.stringify({version:2,mode:this.mode,stars:this.starBest,completed:this.completed}));}catch(e){}
+  },
+  notify(text){this.toast=text;this.toastT=180;},
+  setPaused(value){
+    if(this.state!=='play')return;
+    this.paused=!!value;this.pauseSel=0;
+    if(value)A.pauseMusic();else A.resumeMusic();
+  },
+  retry(){
+    if(this.state!=='play'||this.player.flagPhase)return;
+    this.player.die();this.afterDeath();
   },
   unlockNext(){
     if(this.levelIdx+2>this.unlocked){
@@ -2462,17 +2564,22 @@ const G={
   },
 
   newGame(){
-    this.lives=3;this.score=0;this.coins=0;this.cpReached=false;
+    this.lives=5;this.score=0;this.coins=0;this.cpReached=false;this.player=null;this.deaths=0;
     this.loadLevel(this.pickLevel);
   },
-  loadLevel(i,respawn){
+  loadLevel(i,respawn,carryForm=false){
+    i=U.clamp(Number.isInteger(i)?i:0,0,LV.defs.length-1);
+    const form=carryForm&&this.player?this.player.form:0;
+    const collected=respawn?this.starMask:0;
     this.levelIdx=i;
     this.level=LV.build(i);
     this.areas=this.level.areas;
     this.warps=this.level.warps;
     this.curArea=0;
     this.timeLeft=this.level.time;this.timeAcc=0;this.warned=false;
-    this.ents=[];this.fx=[];this.movers=[];this.bumpAnims.clear();this.multiLeft.clear();
+    this.ents=[];this.fx=[];this.movers=[];this.bumpAnims.clear();this.multiLeft.clear();this.areaStates=[];
+    this.starMask=collected;this.freeze=0;this.paused=false;this.flagProg=0;this.shakeT=0;
+    this.toastT=0;
     const ar=this.areas[0];
     for(const s of ar.spawns)this.spawnEnt(s);
     if(respawn&&this.cpReached&&ar.cpX>0){
@@ -2483,8 +2590,11 @@ const G={
       this.player=new Player(40,(SR-2)*PX-14);
       this.cam.x=0;
     }
+    this.player.setForm(form);
+    if(respawn)this.player.invT=120;
     this.walkedOff=false;
-    this.state='card';this.cardT=0;
+    this.state='card';this.cardT=0;this.cardDuration=respawn?22:65;
+    this.fadeIn();
     A.stopMusic();A.tempoMult=1;
   },
   spawnEnt(s){
@@ -2493,28 +2603,32 @@ const G={
     else if(s.t==='para')this.ents.push(new Koopa(s.x,s.y,true));
     else if(s.t==='plant')this.ents.push(new Plant(s.x,s.y));
     else if(s.t==='coin')this.ents.push(new StaticCoin(s.x,s.y));
+    else if(s.t==='medal'&&!(this.starMask&(1<<s.id)))this.ents.push(new StarCoin(s.x,s.y,s.id));
     else if(s.t==='mover'){
       const m=new Mover(s.x,s.y,s);this.movers.push(m);
     }
     else if(s.t==='firebar'){
-      this.ents.push(new FireBar(s.x+8,s.y+8,s));
+      this.ents.push(new FireBar(s.x,s.y,s));
     }
   },
 
   area(a){ return this.areas[a===undefined?this.curArea:a]; },
   grid(){ return this.area().grid; },
   pxW(a){ return (this.area(a).cols)*PX; },
-  curMusic(){ return LV.defs[this.levelIdx].music; },
-  theme(){ return LV.defs[this.levelIdx].theme; },
+  curMusic(){ return this.curArea===1?'underground':LV.defs[this.levelIdx].music; },
+  theme(){ return this.curArea===1?'cave':LV.defs[this.levelIdx].theme; },
 
   step(){
     INP.pollGamepad();
     this.update();
     INP.endFrame();
+    if(typeof UI!=='undefined')UI.sync();
   },
 
   update(){
     this.tick++;
+    if(this.toastT>0&&!this.paused)this.toastT--;
+    if(this.shakeT>0&&!this.paused)this.shakeT--;
     if(INP.press('mute')){ A.toggleMute(); }
     switch(this.state){
       case 'title': this.upTitle(); break;
@@ -2540,20 +2654,23 @@ const G={
   },
   fadeOut(cb){ this.fadeDir=1;this.fadeCb=cb; },
   fadeIn(){ this.fadeDir=-1; },
-  toTitle(){ this.state='title';this.menuSel=0;A.stopMusic();this.fadeIn(); },
+  toTitle(){ this.saveHi();this.state='title';this.menuSel=0;this.howOpen=false;this.paused=false;this.fadeCb=null;A.stopMusic();this.fadeIn();INP.clear(); },
 
   upTitle(){
     this.titleCam+=.6;
-    const n=this.unlocked>1?3:2;
+    if(this.howOpen){
+      if(INP.press('confirm')||INP.press('pause')){this.howOpen=false;A.sfx('select');}
+      return;
+    }
+    const n=4;
     if(INP.just.up){ this.menuSel=(this.menuSel+n-1)%n; A.sfx('select'); }
     if(INP.just.down){ this.menuSel=(this.menuSel+1)%n; A.sfx('select'); }
     if(this.menuSel===2){
       if(INP.just.left){ this.pickLevel=Math.max(0,this.pickLevel-1);A.sfx('select'); }
       if(INP.just.right){ this.pickLevel=Math.min(this.unlocked-1,this.pickLevel+1);A.sfx('select'); }
     }
-    if(this.howOpen){
-      if(INP.press('confirm')||INP.press('pause')){ this.howOpen=false;A.sfx('select'); }
-      return;
+    if(this.menuSel===3&&(INP.just.left||INP.just.right||INP.just.confirm)){
+      this.mode=this.mode==='classic'?'relaxed':'classic';this.saveProgress();return;
     }
     if(INP.press('confirm')){
       if(this.menuSel===1){ this.howOpen=true;A.sfx('select'); }
@@ -2565,7 +2682,7 @@ const G={
   },
   upCard(){
     this.cardT++;
-    if(this.cardT>90){
+    if(this.cardT>this.cardDuration||this.cardT>12&&INP.press('confirm')){
       this.state='play';
       A.playMusic(this.curMusic());
       this.fadeIn();
@@ -2574,16 +2691,30 @@ const G={
 
   upPlay(){
     if(INP.press('pause')){
-      this.paused=!this.paused;
+      this.setPaused(!this.paused);
       A.sfx('pauseBlip');
-      if(this.paused)A.pauseMusic();else A.resumeMusic();
     }
-    if(this.paused)return;
+    if(this.paused){
+      if(INP.just.down)this.pauseSel=(this.pauseSel+1)%3;
+      if(INP.just.up)this.pauseSel=(this.pauseSel+2)%3;
+      if(INP.just.confirm){
+        if(this.pauseSel===0)this.setPaused(false);
+        else if(this.pauseSel===1)this.retry();
+        else this.toTitle();
+      }
+      return;
+    }
+    if(this.player.dead){
+      this.player.update(this);
+      if(this.player.deadT>65||(this.player.deadT>18&&INP.press('confirm')))this.afterDeath();
+      return;
+    }
     if(this.freeze>0){ this.freeze--; this.player.update(this); return; }
     for(const m of this.movers)m.update(this);
     const ar=this.area();
-    if(!this.cpReached&&ar.cpX>0&&this.player.x>ar.cpX&&!this.player.dead){
+    if(this.curArea===0&&!this.cpReached&&ar.cpX>0&&this.player.x>ar.cpX&&this.player.onGround&&!this.player.dead){
       this.cpReached=true;
+      this.notify('检查点已点亮 · 失误后从这里继续');
       this.sparkle(this.player.x+5,this.player.y-4,'#7ee3ff');
       A.sfx('select');
     }
@@ -2601,14 +2732,13 @@ const G={
     }
     for(const [k,b] of this.bumpAnims)if(b.t>12)this.bumpAnims.delete(k);
     this.camera();
-    this.timerTick();
-    if(this.player.dead&&this.player.deadT>150&&this.player.y>this.viewH+80)this.afterDeath();
+    if(this.state==='play'&&!this.player.dead&&!this.player.pipeT&&!this.player.flagPhase)this.timerTick();
   },
 
   afterDeath(){
-    this.lives--;
+    if(this.mode==='classic')this.lives--;
     this.saveHi();
-    if(this.lives<0){
+    if(this.mode==='classic'&&this.lives<=0){
       this.state='gameover';this.overT=0;
       A.jGameOver();
     }else{
@@ -2617,12 +2747,13 @@ const G={
   },
 
   timerTick(){
+    if(this.mode!=='classic')return;
     this.timeAcc++;
     if(this.timeAcc>=CFG.TICK_FRAMES){
       this.timeAcc=0;
       this.timeLeft--;
       if(this.timeLeft===100&&!this.warned){ this.warned=true;A.jWarning();A.tempoMult=1.28; }
-      if(this.timeLeft<=0){ this.timeLeft=0;this.player.die(); }
+      if(this.timeLeft<=0){ this.timeLeft=0;this.player.die('时间到了。下一次可以少走一些弯路，或试试轻松探索。'); }
     }
   },
 
@@ -2641,8 +2772,9 @@ const G={
 
   collidePlayer(){
     const p=this.player;
-    if(p.dead||p.pipeT)return;
+    if(p.dead||p.pipeT||p.flagPhase||p.growT>0)return;
     for(const f of this.ents){
+      if(f.remove)continue;
       if(f instanceof Foe){
         if(!f.active||f.dead&&f.flip||f.squashT>0)continue;
         if(f instanceof Plant&&f.emerge<=.25)continue;
@@ -2695,6 +2827,8 @@ const G={
   bumpBlock(c,r){
     const t=entTileAt(this.area(),c,r);
     const key=c+','+r;
+    const multiKey=this.curArea+':'+key;
+    if([TL.Q_COIN,TL.Q_POWER,TL.Q_STAR,TL.BRICK_COIN,TL.HIDDEN,TL.BRICK].includes(t))this.killOnTop(c,r);
     if(t===TL.Q_COIN){
       this.setTile(c,r,TL.USED);
       this.bumpAnims.set(key,{c,r,t:0});
@@ -2723,9 +2857,9 @@ const G={
     }
     if(t===TL.BRICK_COIN){
       let left=6;
-      if(this.multiLeft.has(key))left=this.multiLeft.get(key);
+      if(this.multiLeft.has(multiKey))left=this.multiLeft.get(multiKey);
       left--;
-      this.multiLeft.set(key,left);
+      this.multiLeft.set(multiKey,left);
       const cp=new CoinPop(c*16+1,(r-1)*16);
       this.ents.push(cp);
       this.getCoin(c*16,r*16);
@@ -2750,7 +2884,6 @@ const G={
         const cx=c*16+8,cy=r*16+8;
         for(const [vx,vy] of [[-1.4,-5],[1.4,-5],[-.9,-2.6],[.9,-2.6]])
           this.fx.push(new Debris(cx,cy,vx,vy));
-        this.killOnTop(c,r);
       }else{
         this.bumpAnims.set(key,{c,r,t:0});
         A.sfx('bump');
@@ -2771,7 +2904,6 @@ const G={
       if(f.dead&&f.flip)continue;
       if(U.aabb(box,{x:f.x,y:f.y,w:f.w,h:f.h})){
         f.flipDie(this,1,100);
-        this.addScore(100,f.x,f.y);
       }
     }
   },
@@ -2787,6 +2919,7 @@ const G={
     }
   },
   addScore(n,x,y){
+    if(!Number.isFinite(n)||n<=0)return;
     this.score+=n;
     if(x!=null)this.popScore(x,y,String(n));
     this.saveHi();
@@ -2808,7 +2941,7 @@ const G={
 
   tryPipeEnter(){
     const p=this.player;
-    if(!p.onGround||!INP.keys.down||p.pipeT)return;
+    if(p.dead||p.flagPhase||!p.onGround||!INP.keys.down||p.pipeT)return;
     const feetR=Math.floor((p.y+p.h+1)/16);
     const cx=p.x+p.w/2;
     const warps=this.warps.filter(w=>w.a===this.curArea);
@@ -2825,16 +2958,20 @@ const G={
   finishPipeIn(){
     const p=this.player;
     const dest=p.pipeT.warp.dest;
+    this.areaStates[this.curArea]={ents:this.ents.filter(e=>!e.remove),movers:this.movers};
     this.curArea=dest.a;
     const ar=this.area();
-    this.ents=[];
-    this.movers=[];
+    const saved=this.areaStates[this.curArea];
+    this.ents=saved?saved.ents:[];
+    this.movers=saved?saved.movers:[];
     this.fx=[];
     this.bumpAnims.clear();
-    for(const s of ar.spawns)this.spawnEnt(s);
+    if(!saved)for(const s of ar.spawns)this.spawnEnt(s);
+    p.onGround=false;p.coyote=0;p.jbuf=0;
+    A.playMusic(p.starT>0?'star':this.curMusic());
     if(dest.mode==='drop'){
       p.x=dest.x-p.w/2;
-      p.y=-30;
+      p.y=dest.y;
       p.vy=0;p.pipeT=null;
       this.cam.x=U.clamp(p.x-this.viewW*.38,0,Math.max(0,this.pxW()-this.viewW));
     }else{
@@ -2873,6 +3010,7 @@ const G={
     this.state='clear';
     this.clearT=0;
     this.tallyTime=this.timeLeft;
+    if(this.mode!=='classic')this.timeLeft=0;
     this.fireDone=false;
     this.fwCount=-1;
     this.fwNext=0;
@@ -2880,6 +3018,7 @@ const G={
     A.jClear();
     this.saveHi();
     this.unlockNext();
+    this.starBest[this.levelIdx]|=this.starMask;this.completed[this.levelIdx]=true;this.saveProgress();
   },
   upClear(){
     this.clearT++;
@@ -2889,7 +3028,7 @@ const G={
     if(t>60&&this.timeLeft>0){
       const drain=Math.min(3,this.timeLeft);
       this.timeLeft-=drain;
-      this.score+=drain*50;
+      this.addScore(this.mode==='classic'?drain*50:0,null);
       if(t%5===0)A.sfx('tick');
       return;
     }
@@ -2918,9 +3057,9 @@ const G={
     }
   },
   advanceLevel(){
+    this.saveHi();
     if(this.levelIdx+1<LV.defs.length){
-      this.fadeDir=1;
-      this.fadeCb=()=>{ this.cpReached=false; this.loadLevel(this.levelIdx+1); };
+      if(!this.fadeCb)this.fadeOut(()=>{ this.cpReached=false; this.loadLevel(this.levelIdx+1,false,true); });
     }else{
       this.state='win';
       this.fadeA=1;this.fadeDir=-1;
@@ -2960,7 +3099,7 @@ const RND={
   draw(G){
     const ctx=G.ctx,dpr=G.dpr,dz=G.Z*dpr;
     ctx.setTransform(1,0,0,1,0,0);
-    ctx.fillStyle='#000';
+    ctx.fillStyle='#102c31';
     ctx.fillRect(0,0,G.canvas.width,G.canvas.height);
     if(G.state==='title'){ this.title(G,ctx); this.fade(G,ctx); return; }
     if(G.state==='card'){ this.card(G,ctx); this.fade(G,ctx); return; }
@@ -2968,11 +3107,12 @@ const RND={
     if(G.state==='win'){ this.win(G,ctx); this.fade(G,ctx); return; }
 
     let sx=0,sy=0;
-    if(G.shakeT>0){ G.shakeT--; sx=Math.sin(G.tick*1.7)*2; sy=Math.cos(G.tick*2.3)*1.5; }
+    if(G.shakeT>0){ sx=Math.sin(G.tick*1.7)*2; sy=Math.cos(G.tick*2.3)*1.5; }
     const camX=G.cam.x;
 
     ctx.setTransform(dpr,0,0,dpr,G.offX*dpr,G.offY*dpr);
     ctx.scale(G.Z,G.Z);
+    ctx.save();ctx.beginPath();ctx.rect(0,0,G.viewW,CFG.VIEW_H);ctx.clip();
     this.sky(G,ctx);
 
     ctx.translate(-camX+sx,-sy);
@@ -2980,6 +3120,7 @@ const RND={
     this.castleBack(G,ctx,camX);
     this.plants(G,ctx,camX);
     this.tiles(G,ctx,camX);
+    this.guides(G,ctx);
     this.movers(G,ctx,camX);
     this.ents(G,ctx,camX);
     this.player(G,ctx);
@@ -2990,7 +3131,19 @@ const RND={
     ctx.scale(G.Z,G.Z);
     this.vignette(G,ctx);
     this.hud(G,ctx);
+    if(G.state==='clear'){
+      this.banner(G,ctx,'关卡完成！',G.starMask.toString(2).replace(/0/g,'').length+' / 3 枚星币 · 准备前往下一个世界');
+    }else if(G.player.dead){
+      this.banner(G,ctx,'再来一跳',G.deathHint);
+      this.txt(ctx,'按跳跃键快速重试',G.viewW/2,112,8,'#ffe3a0','center');
+    }else if(G.toastT>0){
+      this.notice(G,ctx,G.toast);
+    }else{
+      const sign=(G.area().signs||[]).find(s=>Math.abs(s.x-G.player.x)<52);
+      if(sign)this.notice(G,ctx,sign.text);
+    }
     if(G.paused)this.pauseOv(G,ctx);
+    ctx.restore();
     ctx.setTransform(1,0,0,1,0,0);
     this.fade(G,ctx);
   },
@@ -3112,6 +3265,31 @@ const RND={
       if(e instanceof Plant&&e.x>camX-40&&e.x<camX+G.viewW+40)e.draw(ctx,G.tick);
     }
   },
+  guides(G,ctx){
+    const ar=G.area();
+    for(const s of ar.signs||[]){
+      ctx.fillStyle='#715136';ctx.fillRect(s.x+4,SR*16-18,3,18);
+      ctx.fillStyle='#f2d49a';ctx.fillRect(s.x-4,SR*16-28,23,13);
+      this.txt(ctx,'→',s.x+7,SR*16-28,11,'#f5e3ad','center',true);
+    }
+    if(ar.cpX){
+      ctx.fillStyle='#e4e4c6';ctx.fillRect(ar.cpX,SR*16-40,2,40);
+      ctx.fillStyle=G.cpReached?'#87f0bf':'#718e8c';
+      ctx.beginPath();ctx.moveTo(ar.cpX+2,SR*16-40);ctx.lineTo(ar.cpX+23,SR*16-32);ctx.lineTo(ar.cpX+2,SR*16-24);ctx.fill();
+    }
+    for(const w of ar.warps||[]){
+      this.txt(ctx,'↓',w.col*16+16,w.row*16-22+Math.sin(G.tick*.06)*2,13,'#ffe28b','center',true);
+    }
+  },
+  notice(G,ctx,text){
+    ctx.fillStyle='rgba(13,39,38,.85)';ctx.fillRect(36,42,G.viewW-72,19);
+    this.txt(ctx,text,G.viewW/2,48,7,'#fff0c5','center');
+  },
+  banner(G,ctx,title,detail){
+    ctx.fillStyle='rgba(12,32,34,.9)';ctx.fillRect(25,66,G.viewW-50,61);
+    this.txt(ctx,title,G.viewW/2,76,17,'#ffe09b','center',true);
+    this.txt(ctx,detail,G.viewW/2,100,7,'#f2f0d8','center');
+  },
 
   tiles(G,ctx,camX){
     const th=ART.TS[G.theme()];
@@ -3130,7 +3308,7 @@ const RND={
         const x=c*16,y=r*16+dy;
         switch(t){
           case TL.GTOP:
-            ctx.drawImage(th[1],x,y);
+            ctx.drawImage(th[1],x,y,16,16);
             // 坑边警示：左右相邻为空（无底深坑）的地面，画黄黑警示条
             const gL=(c-1>=0)&&ar.grid[r*ar.cols+c-1]===TL.EMPTY;
             const gR=(c+1<ar.cols)&&ar.grid[r*ar.cols+c+1]===TL.EMPTY;
@@ -3143,16 +3321,16 @@ const RND={
               ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(sx,y+4,sw,1);
             }
             break;
-          case TL.GFILL: ctx.drawImage(th[2],x,y);break;
-          case TL.STONE: ctx.drawImage(th[3],x,y);break;
-          case TL.BRICK: case TL.BRICK_COIN: ctx.drawImage(th[4],x,y);break;
-          case TL.Q_COIN: case TL.Q_POWER: case TL.Q_STAR: ctx.drawImage(th.q[qf],x,y);break;
-          case TL.USED: ctx.drawImage(th[9],x,y);break;
-          case TL.PIPE_TL: ctx.drawImage(th[10],x,y);break;
-          case TL.PIPE_TR: ctx.drawImage(th[11],x,y);break;
-          case TL.PIPE_BL: ctx.drawImage(th[12],x,y);break;
-          case TL.PIPE_BR: ctx.drawImage(th[13],x,y);break;
-          case TL.PLAT: ctx.drawImage(th[14],x,y);break;
+          case TL.GFILL: ctx.drawImage(th[2],x,y,16,16);break;
+          case TL.STONE: ctx.drawImage(th[3],x,y,16,16);break;
+          case TL.BRICK: case TL.BRICK_COIN: ctx.drawImage(th[4],x,y,16,16);break;
+          case TL.Q_COIN: case TL.Q_POWER: case TL.Q_STAR: ctx.drawImage(th.q[qf],x,y,16,16);break;
+          case TL.USED: ctx.drawImage(th[9],x,y,16,16);break;
+          case TL.PIPE_TL: ctx.drawImage(th[10],x,y,16,16);break;
+          case TL.PIPE_TR: ctx.drawImage(th[11],x,y,16,16);break;
+          case TL.PIPE_BL: ctx.drawImage(th[12],x,y,16,16);break;
+          case TL.PIPE_BR: ctx.drawImage(th[13],x,y,16,16);break;
+          case TL.PLAT: ctx.drawImage(th[14],x,y,16,16);break;
           case TL.POLE:
             ctx.fillStyle='#b9c2c9';ctx.fillRect(x+7,y,2,16);
             ctx.fillStyle='#eef2f5';ctx.fillRect(x+7,y,1,16);
@@ -3165,10 +3343,10 @@ const RND={
             ctx.beginPath();ctx.arc(x+6.8,y+2.8,1.4,0,7);ctx.fill();
             break;
           case TL.LAVA_T:
-            ctx.drawImage(th.lavaTop,x,y+(lavaOff?1:0));
+            ctx.drawImage(th.lavaTop,x,y+(lavaOff?1:0),16,16);
             break;
           case TL.LAVA_B:
-            ctx.drawImage(th.lavaBody,x,y);
+            ctx.drawImage(th.lavaBody,x,y,16,16);
             break;
         }
       }
@@ -3207,9 +3385,8 @@ const RND={
     let prog=0;
     if(p&&p.flagPhase==='slide'){
       prog=U.clamp(((p.y+p.h)-4*16)/((SR-1)*16-4*16-14),0,1);
-      G.flagProg=prog;
     }else if(p&&(p.flagPhase==='hop'||p.flagPhase==='walkoff'))prog=1;
-    else prog=G.flagProg||0;
+    else prog=0;
     const fy=4*16+prog*((SR-1)*16-4*16-12);
     ctx.drawImage(ART.M.flag,fc*16-12,fy,13,10);
   },
@@ -3237,26 +3414,24 @@ const RND={
   },
 
   hud(G,ctx){
-    const th=G.theme();
-    const dark=th==='cave'||th==='castle';
-    const c1=dark?'#fff':'#fff';
-    this.txt(ctx,'SCORE',8,5,6,'rgba(255,255,255,.75)');
-    this.txt(ctx,U.pad(G.score,6),8,13,9,c1);
-    ctx.drawImage(ART.I.coin[Math.floor(G.tick/7)%4],86,12,10,10);
-    this.txt(ctx,'×'+U.pad(G.coins,2),97,13,9,c1);
-    this.txt(ctx,'WORLD',150,5,6,'rgba(255,255,255,.75)');
-    this.txt(ctx,LV.defs[G.levelIdx].name.split(' ')[0],152,13,9,c1);
-    this.txt(ctx,'TIME',215,5,6,'rgba(255,255,255,.75)');
-    const warn=G.timeLeft<=100&&Math.floor(G.tick/16)%2===0;
-    this.txt(ctx,U.pad(Math.max(0,G.timeLeft),3),216,13,9,warn?'#ff6a5a':c1);
-    ctx.drawImage(ART.H['small_idle_norm'],250,11,11,11);
-    this.txt(ctx,'×'+Math.max(0,G.lives),262,13,9,c1);
-    if(G.timeLeft<=100&&!G.warnedShown){}
+    ctx.fillStyle='rgba(11,34,35,.88)';ctx.fillRect(6,4,G.viewW-12,30);
+    this.txt(ctx,'得分',14,8,6,'#b8cdb8');this.txt(ctx,U.pad(G.score,6),14,18,9,'#fff1ce');
+    ctx.drawImage(ART.I.coin[Math.floor(G.tick/7)%4],89,16,11,11);
+    this.txt(ctx,'×'+U.pad(G.coins,2),102,18,9,'#ffe18e');
+    this.txt(ctx,LV.defs[G.levelIdx].name,152,8,7,'#f0efd4');
+    this.txt(ctx,[0,1,2].map(i=>G.starMask&(1<<i)?'◆':'◇').join('  '),152,20,9,'#ffd875');
+    this.txt(ctx,G.mode==='classic'?'剩余时间':'轻松探索',278,8,6,'#b8cdb8');
+    this.txt(ctx,G.mode==='classic'?U.pad(G.timeLeft,3):'不限时',278,18,9,G.timeLeft<=30&&G.mode==='classic'?'#ff997a':'#fff1ce');
+    this.txt(ctx,'生命',363,8,6,'#b8cdb8');
+    this.txt(ctx,G.mode==='classic'?'× '+Math.max(0,G.lives):'∞',363,18,9,'#fff1ce');
+    const progress=G.curArea===0?U.clamp(G.player.x/(G.area().flagCol*16),0,1):0;
+    ctx.fillStyle='#86ceb1';ctx.fillRect(6,34,(G.viewW-12)*progress,1.5);
   },
 
   pauseOv(G,ctx){
     ctx.fillStyle='rgba(8,10,25,.62)';
     ctx.fillRect(0,0,G.viewW,CFG.VIEW_H);
+    if(typeof UI!=='undefined'&&UI.ready)return;
     this.txt(ctx,'PAUSED',G.viewW/2,92,20,'#fff','center',true);
     this.txt(ctx,'P 键继续 · M 键音效开关',G.viewW/2,124,8,'rgba(255,255,255,.85)','center');
   },
@@ -3269,7 +3444,9 @@ const RND={
     this.txt(ctx,'WORLD '+LV.defs[G.levelIdx].name.split(' ')[0],G.viewW/2,86,16,'#fff','center',true);
     this.txt(ctx,LV.defs[G.levelIdx].name.split(' ').slice(1).join(' '),G.viewW/2,110,9,'rgba(255,255,255,.8)','center');
     ctx.drawImage(ART.H['small_idle_norm'],G.viewW/2-22,132,14,14);
-    this.txt(ctx,'× '+G.lives,G.viewW/2+2,134,11,'#fff');
+    this.txt(ctx,G.mode==='classic'?'× '+G.lives:'∞',G.viewW/2+2,134,11,'#fff');
+    this.txt(ctx,['跳跃、顶砖，找到秘密水管','地下探索，留意移动的平台','在云台间跳跃，收集高处星币','看准火棒间隙，抵达最后的城堡'][G.levelIdx],G.viewW/2,162,8,'#d2e3cb','center');
+    this.txt(ctx,'按跳跃键出发',G.viewW/2,184,7,'#ffe09a','center');
   },
 
   title(G,ctx){
@@ -3304,6 +3481,15 @@ const RND={
     const hi=ART.H['big_idle_norm'];
     ctx.drawImage(hi,-8,-30,hi.width/ART.SS,hi.height/ART.SS);
     ctx.restore();
+    if(typeof UI!=='undefined'&&UI.ready){
+      for(const x of [32,348]){
+        ctx.drawImage(ART.TS.day.q[Math.floor(G.tick/10)%3],x,142,16,16);
+        ctx.drawImage(ART.TS.day[4],x+16,142,16,16);
+      }
+      ctx.drawImage(ART.H['big_walk1_norm'],58,170,26,52);
+      ctx.drawImage(ART.B.castle,326,160,64,64);
+      return;
+    }
 
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.translate(G.offX,G.offY);
@@ -3312,7 +3498,7 @@ const RND={
     ctx.fillStyle='rgba(12,16,38,.42)';
     if(ctx.roundRect){ctx.beginPath();ctx.roundRect(cx-118,26,236,74,10);ctx.fill();}
     else ctx.fillRect(cx-118,26,236,74);
-    this.txt(ctx,'待开发',cx,38,21,'#ffe27a','center',true);
+    this.txt(ctx,'像素冒险',cx,38,21,'#ffe27a','center',true);
     this.txt(ctx,'超 级 玛 丽',cx,68,12,'#fff','center');
     const items=['开 始 游 戏','操 作 说 明'];
     if(G.unlocked>1)items.push('选关 ◀ '+LV.defs[G.pickLevel].name.split(' ')[0]+' ▶');
@@ -3327,8 +3513,8 @@ const RND={
       ctx.fillRect(30,40,G.viewW-60,160);
       this.txt(ctx,'操 作 说 明',cx,52,13,'#ffe27a','center',true);
       const lines=[
-        '←→/AD 移动      Z/J/空格/↑ 跳跃(长按跳更高)',
-        'X/K/Shift 冲刺 · 火力状态发射火球',
+        '←→/AD 移动      K/Z/空格/↑ 跳跃(长按跳更高)',
+        'L/X/Shift 冲刺 · 火力状态发射火球',
         '↓ 下蹲 · 站在特定水管上按 ↓ 进入',
         '顶砖块获得金币和道具 · 蘑菇变大 ·',
         '火焰花发射火球 · 星星短暂无敌',
@@ -3357,6 +3543,7 @@ const RND={
   },
 
   gameover(G,ctx){
+    if(typeof UI!=='undefined'&&UI.ready){this.title(G,ctx);return;}
     ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
     ctx.translate(G.offX,G.offY);
     ctx.scale(G.Z,G.Z);
@@ -3378,6 +3565,7 @@ const RND={
     }
     ctx.fillStyle=g;ctx.fillRect(0,0,G.viewW,CFG.VIEW_H);
     for(const f of G.fx)f.draw(ctx);
+    if(typeof UI!=='undefined'&&UI.ready)return;
     ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
     ctx.translate(G.offX,G.offY);
     ctx.scale(G.Z,G.Z);
@@ -3387,10 +3575,64 @@ const RND={
     this.txt(ctx,'金币 ×'+G.coins+'   剩余生命 ×'+Math.max(0,G.lives),G.viewW/2,146,8,'rgba(255,255,255,.85)','center');
     if(Math.floor(G.tick/22)%2===0)
       this.txt(ctx,'按 Enter 返回标题',G.viewW/2,176,8,'rgba(255,255,255,.85)','center');
-    G.winFxTick=(G.winFxTick||0)+1;
   }
 };
 function dzSafe(G){return G.Z*G.dpr;}
+// DOM controls mirror the same state/actions as keyboard and gamepad.
+const UI={
+  ready:false,last:'',
+  el(id){return document.getElementById(id);},
+  init(){
+    const root=this.el('overlay');
+    if(!root?.querySelectorAll)return;
+    this.ready=true;
+    const bind=(id,action)=>this.el(id)?.addEventListener('click',e=>{
+      e.currentTarget?.blur?.();A.unlock();action();this.last='';this.sync();
+    });
+    bind('start',()=>G.fadeOut(()=>G.newGame()));
+    bind('help',()=>{G.howOpen=true;});bind('back',()=>{G.howOpen=false;});
+    bind('mode',()=>{G.mode=G.mode==='classic'?'relaxed':'classic';G.saveProgress();});
+    for(let i=0;i<LV.defs.length;i++)bind('level-'+i,()=>{if(i<G.unlocked){G.pickLevel=i;G.menuSel=2;}});
+    bind('pause',()=>G.setPaused(!G.paused));bind('mute',()=>A.toggleMute());
+    bind('resume',()=>G.setPaused(false));
+    bind('retry',()=>G.retry());
+    bind('home',()=>G.toTitle());bind('result-home',()=>G.toTitle());
+    bind('again',()=>{G.pickLevel=G.state==='win'?0:G.levelIdx;G.fadeOut(()=>G.newGame());});
+    this.sync();
+  },
+  sync(){
+    if(!this.ready)return;
+    const key=[G.state,G.paused,G.howOpen,G.menuSel,G.pauseSel,G.pickLevel,G.mode,G.unlocked,G.hiscore,G.starBest.join(),G.score,A.muted].join(':');
+    if(this.last===key)return;this.last=key;
+    const title=G.state==='title',pause=G.state==='play'&&G.paused,result=['win','gameover'].includes(G.state);
+    this.el('overlay').hidden=!(title||pause||result);
+    this.el('title-panel').hidden=!title||G.howOpen;
+    this.el('help-panel').hidden=!title||!G.howOpen;
+    this.el('pause-panel').hidden=!pause;this.el('result-panel').hidden=!result;
+    this.el('pause').hidden=G.state!=='play';this.el('pause').textContent=pause?'继续':'暂停';
+    this.el('retry').textContent=G.mode==='classic'?'检查点重试（消耗 1 条生命）':'从检查点重试';
+    this.el('mute').textContent='声音 '+(A.muted?'关':'开');
+    this.el('start').textContent=(G.pickLevel===0?'开始冒险':'进入 '+LV.defs[G.pickLevel].name)+' →';
+    this.el('level-name').textContent=LV.defs[G.pickLevel].name.split(' ')[1];
+    this.el('mode').textContent=(G.mode==='classic'?'经典挑战':'轻松探索')+' ⇄';
+    this.el('mode-hint').textContent=G.mode==='classic'?'5 条生命，限时挑战。收集 100 枚金币可以补一条生命。':'不限生命与时间，从检查点继续。适合慢慢发现每条路线。';
+    this.el('record').textContent='最高分 '+U.pad(G.hiscore,6);
+    const total=G.starBest.reduce((n,m)=>n+m.toString(2).replace(/0/g,'').length,0);
+    this.el('collection').textContent='星币 '+total+' / 12';
+    for(let i=0;i<4;i++){
+      const el=this.el('level-'+i);el.disabled=i>=G.unlocked;el.setAttribute('aria-pressed',String(i===G.pickLevel));
+      el.innerHTML='1-'+(i+1)+'<small>'+(el.disabled?'未解锁':[0,1,2].map(b=>G.starBest[i]&(1<<b)?'◆':'◇').join(' '))+'</small>';
+      el.classList.toggle('selected',title&&!G.howOpen&&G.menuSel===2&&i===G.pickLevel);
+    }
+    for(const [id,index] of [['start',0],['help',1],['mode',3]])this.el(id).classList.toggle('selected',title&&!G.howOpen&&G.menuSel===index);
+    for(const [id,index] of [['resume',0],['retry',1],['home',2]])this.el(id).classList.toggle('selected',pause&&G.pauseSel===index);
+    if(result){
+      const win=G.state==='win';this.el('result-tag').textContent=win?'ADVENTURE COMPLETE':'ONE MORE TRY';
+      this.el('result-title').textContent=win?'四个世界，都走过了。':'差一点，再试一次。';
+      this.el('result-detail').textContent='本次得分 '+U.pad(G.score,6)+' · 已收藏星币 '+total+'/12'+(win?'。还有藏起来的路线等你发现。':'。已解锁的关卡和通关星币会保留。');
+    }
+  }
+};
 (function(){
   let last=0,acc=0;
   function frame(t){

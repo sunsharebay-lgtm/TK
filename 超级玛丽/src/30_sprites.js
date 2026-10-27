@@ -678,6 +678,8 @@ const ART = {
   mkCastleSprite(){
     const c=this.cv(80,80),g=c.getContext('2d');
     const b1='#b0907a',b2='#93765f',dark='#5f4a38',win='#20141c';
+    this.R(g,6,20,68,60,b2);
+    this.R(g,16,8,48,72,b1);
     for(let y=0;y<80;y+=8){
       for(let x=((y/8)%2)*8;x<80;x+=16){
         this.R(g,x,y,7,4,(U.hash(x*31+y*7)<.5)?b1:b2);
