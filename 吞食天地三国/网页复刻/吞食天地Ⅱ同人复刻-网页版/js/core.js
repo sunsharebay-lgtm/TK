@@ -230,16 +230,19 @@ T.AudioManager = {
   async playBgm(obj) {
     if (!obj || !obj.name || this._bgmName === obj.name && this._bgmHandle) return;
     this.stopBgm(0.4);
-    const buf = await this.buffer("bgm", obj.name);
+    const request = this._bgmRequest;
+    let buf = await this.buffer("bgm", obj.name);
+    if (request !== this._bgmRequest) return;
     if (!buf && obj.name !== "Battle_04") {
-      return this.playBgm({ ...obj, name: "Battle_04" });
+      obj = { ...obj, name: 'Battle_04' };
+      buf = await this.buffer('bgm', obj.name);
     }
-    if (buf) {
+    if (buf && request === this._bgmRequest) {
       this._bgmName = obj.name;
       this._bgmHandle = this._play(buf, { ...obj, loop: true });
     }
   },
-  stopBgm(fade = 1) { this._stop(this._bgmHandle, fade); this._bgmHandle = null; this._bgmName = null; },
+  stopBgm(fade = 1) { this._bgmRequest = (this._bgmRequest || 0) + 1; this._stop(this._bgmHandle, fade); this._bgmHandle = null; this._bgmName = null; },
   saveBgm() { this._savedBgm = this._bgmName; },
   replaySavedBgm() {
     if (this._savedBgm) this.playBgm({ name: this._savedBgm, volume: 90, pitch: 100 });

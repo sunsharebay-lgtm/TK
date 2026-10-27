@@ -319,12 +319,17 @@ class Scene_Map {
     if (!this.created) return;
     this.tilemap.update();
     T.$gameScreen.update();
+    T.$gameTimer.update();
     const interp = T.$gameMap.interpreter;
+    if (!interp.isRunning() && !T.$gameMessage.texts.length && T.$gameTemp.commonEventQueue.length) {
+      const ce = T.$dataCommonEvents[T.$gameTemp.commonEventQueue.shift()];
+      if (ce) interp.setup(ce.list);
+    }
 
     /* 战斗挂起请求 */
     if (T.PendingBattle) {
       const req = T.PendingBattle; T.PendingBattle = null;
-      T.SceneManager.startBattle(req, interp);
+      T.SceneManager.startBattle(req, req.interpreter || interp);
       return;
     }
 
@@ -362,8 +367,7 @@ class Scene_Map {
     if (!interp.isRunning()) {
       for (const ev of T.$gameMap.events) {
         if (ev._erased || !ev.page) continue;
-        if (ev.page.trigger === 2 && !ev._ranAuto) {
-          ev._ranAuto = true;
+        if (ev.page.trigger === 3) {
           interp.setup(ev.list(), ev.eventId);
           break;
         }
@@ -375,7 +379,7 @@ class Scene_Map {
     const pool = T._parallelPool;
     const curMap = T.$gameMap.mapId;
     for (const ev of T.$gameMap.events) {
-      if (ev._erased || !ev.page || ev.page.trigger !== 3) continue;
+      if (ev._erased || !ev.page || ev.page.trigger !== 4) continue;
       const key = curMap + ":" + ev.eventId;
       let pi = pool[key];
       if (!pi || pi._pageKey !== ev.page || !pi.isRunning()) {
@@ -440,7 +444,7 @@ class Scene_Map {
     else if (mapId === 24 && stage >= 1655) text = "二周目特别篇「秦皇陵」：准备好队伍和补给，进入秦皇陵挑战葛玄、曹操、袁绍与秦始皇。";
     else if (mapId === 159 && stage >= 30 && stage < 45) text = "曹操暂时没有新的军令。请出城前往大地图，继续追击袁术。";
     if (!text && chapter && chapter.id >= 2) text = `当前主线：${chapter.name}。请查看城中人物和大地图入口，按对话推进。`;
-    if (!text || !T.$gameSystem || T.$gameMessage.texts.length || this.messageWindow.isOpen()) return;
+    if (!text || !T.$gameSystem || T.$gameMap.interpreter.isRunning() || T.$gameMessage.texts.length || this.messageWindow.isOpen()) return;
     T.$gameSystem.chapterGuides = T.$gameSystem.chapterGuides || {};
     const key = `${mapId}:${stage}`;
     if (T.$gameSystem.chapterGuides[key]) return;

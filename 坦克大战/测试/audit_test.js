@@ -39,6 +39,7 @@ const rafQueue=[];globalThis.requestAnimationFrame=cb=>{rafQueue.push(cb);return
 
 const harness = `
 ;(function(){
+  srand(20261027);
   const out=[]; let errors=[];
   const check=(n,ok,d)=>{if(!ok)errors.push(n+(d?" · "+d:""));out.push((ok?"[OK] ":"[FAIL] ")+n+(d?" · "+d:""));};
   Game.testMode=true; Game.testMenu="map";
@@ -107,13 +108,15 @@ const harness = `
   check("战役每周目6关", CAMPAIGN_STAGE_COUNT===6 && CAMPAIGN_STAGE_IDS.length===6, "n="+CAMPAIGN_STAGE_COUNT);
   const gimmicks=new Set(); for(const si of CAMPAIGN_STAGE_IDS) gimmicks.add(stageFxInfo(si).key);
   check("战役每关机制不同", gimmicks.size===CAMPAIGN_STAGE_IDS.length, "gimmicks="+[...gimmicks].join(","));
-  check("5个周目", true);   // loop 0-4
+  check("5个周目耐久递增", [0,1,2,3,4].every(loop=>difficultyFor(0,loop).enemyHpBonus===loop));
   // 地狱绝境：5区域 + 首领
   const wh=new World(Game,0,0,false,null); wh.hellRound=4;
   const bossInQueue = wh.queue.includes(4)===false;  // 测试模式非地狱
   Game.hell=true; const wh2=new World(Game,1,0,false,null);
   check("地狱含首领战", wh2.isHellBossStage===true && wh2.queue.includes(4), "boss="+wh2.queue.includes(4));
-  check("首领双发齐射(volley)", ENEMY_DEF[4].name==="首领" && true, "bossDef="+ENEMY_DEF[4].name);
+  const boss = new Enemy(wh2,0,4,false,SPAWN_CELLS[0]);
+  boss.tryFire([0,1]);
+  check("首领双发齐射(volley)", wh2.bullets.length===2 && wh2.bullets[0].dir!==wh2.bullets[1].dir && boss.bulletsOut===2);
   Game.hell=false;
 
   /* ---- 操作方式 ---- */

@@ -28,13 +28,15 @@ T.SceneManager = {
     const s = T.$gameScreen;
     s.fadeColor = fadeType === 1 ? "#fff" : "#000";
     s.fadeDuration = 24; s.fadeCount = 24;
-    await waitFrames(26);
-    /* 清除并行解释器缓存 */
-    if (T.$gameMap) T.$gameMap._parallel = null;
-    await this.gotoMap(mapId, x, y, dir);
-    s.fadeDuration = 24; s.fadeCount = 24;
-    s.fadeType = 2; s.fadeColor = null;
-    this.busy = false;
+    try {
+      await waitFrames(26);
+      await this.gotoMap(mapId, x, y, dir);
+      s.fadeDuration = 24; s.fadeCount = 24;
+      s.fadeType = 2; s.fadeColor = null;
+    } catch (error) {
+      s.fadeDuration = 0; s.fadeCount = 0; s.fadeType = 2;
+      throw error;
+    } finally { this.busy = false; }
   },
   openMenu() { this.push(new Scene_Menu()); },
   startBattle(req, interp) {
@@ -46,8 +48,8 @@ T.SceneManager = {
     this.push(new Scene_Battle(req, interp));
   },
   returnToMapFromMenu() {
-    // 读档后重建地图场景
-    this.stack = [];
+    const index = this.stack.findIndex(scene => scene instanceof Scene_Map);
+    if (index >= 0) this.stack = this.stack.slice(0, index + 1);
   },
   gameOver() {
     this.stack = [new Scene_GameOver()];
@@ -62,8 +64,8 @@ T.SceneManager = {
 function waitFrames(n) {
   return new Promise(res => {
     let c = n;
-    const step = () => { if (--c <= 0) res(); else setTimeout(step, 0); };
-    setTimeout(step, 0);
+    const step = () => { if (--c <= 0) res(); else setTimeout(step, 1000 / 60); };
+    setTimeout(step, 1000 / 60);
   });
 }
 
@@ -250,18 +252,26 @@ T.GameMain = {
     }
   },
   loop() {
-    const step = () => {
-      this.frameCount++;
-      const sc = T.SceneManager.current();
-      if (sc && !T.SceneManager.busy) sc.update();
-      this.render();
-      /* 输入采样放帧末：场景更新期间 _down=本帧按键、_prev=上帧按键，triggered() 才能检测到边沿 */
-      T.Input.update();
-      if (typeof requestAnimationFrame === "function") requestAnimationFrame(step);
-      else setTimeout(step, 16);
+    const frameMs = 1000 / 60;
+    let previous = performance.now(), elapsed = 0;
+    const schedule = () => {
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(step);
+      else setTimeout(() => step(performance.now()), frameMs);
     };
-    if (typeof requestAnimationFrame === "function") requestAnimationFrame(step);
-    else setTimeout(step, 16);
+    const step = now => {
+      // 逻辑固定为60Hz，切回后台时最多补六帧，避免高刷加速和长时间追帧。
+      elapsed += Math.max(0, Math.min(100, now - previous)); previous = now;
+      while (elapsed + 0.001 >= frameMs) {
+        elapsed -= frameMs;
+        this.frameCount++;
+        const sc = T.SceneManager.current();
+        if (sc && !T.SceneManager.busy) sc.update();
+        T.Input.update();
+      }
+      this.render();
+      schedule();
+    };
+    schedule();
   },
   render() {
     const ctx = T.mainCtx;

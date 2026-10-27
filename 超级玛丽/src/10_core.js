@@ -13,16 +13,16 @@ const U = {
 const CFG = {
   TILE:16, ROWS:15,
   STEP:1000/60,
-  GRAV:.50, GRAV_HOLD:.26, MAX_FALL:7.4,
-  ACC_WALK:.11, ACC_RUN:.16, FRICTION:.18, SKID:.30,
-  MAX_WALK:1.7, MAX_RUN:2.85,
-  JUMP_V:-7.3, JUMP_SPD_BONUS:.28, JUMP_CUT:-6.0,
-  COYOTE:5, JBUF:7,
+  GRAV:.52, GRAV_HOLD:.29, MAX_FALL:7.4,
+  ACC_WALK:.20, ACC_RUN:.26, FRICTION:.26, SKID:.44,
+  MAX_WALK:1.85, MAX_RUN:3.05,
+  JUMP_V:-7.5, JUMP_SPD_BONUS:.22, JUMP_CUT:-3.8,
+  COYOTE:7, JBUF:8,
   STOMP_BOUNCE:-4.6, STOMP_BOUNCE_HI:-7.4,
   SHELL_SPEED:3.4,
   FIRE_VX:4.2, FIRE_MAX:2,
   STAR_TIME:660,
-  TICK_FRAMES:24,
+  TICK_FRAMES:60,
   VIEW_H:240
 };
 
@@ -49,12 +49,13 @@ const INP = {
     left:['ArrowLeft','KeyA'], right:['ArrowRight','KeyD'],
     down:['ArrowDown','KeyS'],
     up:['ArrowUp','KeyW'],
-    jump:['Space','ArrowUp','KeyK'],
-    run:['KeyL','ShiftLeft','ShiftRight'],
-    pause:['KeyP','Escape'], mute:['KeyM'], confirm:['Enter','Space','KeyK']
+    jump:['Space','ArrowUp','KeyK','KeyZ'],
+    run:['KeyL','ShiftLeft','ShiftRight','KeyX'],
+    pause:['KeyP','Escape'], mute:['KeyM'], confirm:['Enter','Space','KeyK','KeyZ']
   },
   init(){
     const dn=e=>{
+      if(e.target?.tagName==='BUTTON'&&(e.code==='Enter'||e.code==='Space'))return;
       this.anyKey=true;
       if(e.code==='F5'||(e.ctrlKey&&e.code==='KeyR'))return;
       this.keyCodes[e.code]=true;
@@ -71,8 +72,9 @@ const INP = {
     };
     addEventListener('keydown',dn,{passive:false});
     addEventListener('keyup',up);
-    addEventListener('blur',()=>this.clear());
-    document.addEventListener('visibilitychange',()=>{ if(document.hidden)this.clear(); });
+    const suspend=()=>{ this.clear(); if(G.state==='play')G.setPaused(true); };
+    addEventListener('blur',suspend);
+    document.addEventListener('visibilitychange',()=>{ if(document.hidden)suspend(); });
     this.initTouch();
     this.initGamepad();
   },
@@ -87,7 +89,7 @@ const INP = {
   clear(){
     this.keys={}; this.just={}; this.keyCodes={}; this.touchPointers={}; this.anyKey=false;
     this.sources={keyboard:{},touch:{},gamepad:{}};
-    for(const id of ['bL','bR','bD','bA','bB'])document.getElementById(id)?.classList.remove('on');
+    for(const id of ['bL','bR','bD','bA','bB'])document.getElementById(id)?.classList?.remove('on');
   },
   press(k){ return !!this.just[k]; },
   endFrame(){ this.just={}; },
@@ -102,7 +104,8 @@ const INP = {
     };
     const on=e=>{
       e.preventDefault(); this.touchPointers[e.pointerId]=k; sync();
-      el.setPointerCapture?.(e.pointerId); A.unlock();
+      try{el.setPointerCapture?.(e.pointerId);}catch(e){}
+      el.blur?.(); A.unlock();
     };
     const off=e=>{ e.preventDefault(); delete this.touchPointers[e.pointerId]; sync(); };
     el.addEventListener('pointerdown',on);
@@ -111,7 +114,7 @@ const INP = {
     el.addEventListener('pointerleave',off);
   },
   initTouch(){
-    const show=()=>{ const tc=document.getElementById('tc'); if(tc)tc.style.display='block'; removeEventListener('touchstart',show); };
+    const show=()=>{ this.touch=true; const tc=document.getElementById('tc'); if(tc)tc.style.display='block'; G.resize(); removeEventListener('touchstart',show); };
     addEventListener('touchstart',show,{once:true});
     this.bindBtn('bL','left'); this.bindBtn('bR','right');
     this.bindBtn('bD','down'); this.bindBtn('bA','jump'); this.bindBtn('bB','run');
@@ -119,7 +122,7 @@ const INP = {
     if(cv) cv.addEventListener('pointerdown',()=>{ this.anyKey=true; A.unlock(); });
     const fs=document.getElementById('fs');
     if(fs) fs.addEventListener('click',()=>{
-      const w=document.getElementById('wrap');
+      const w=document.documentElement||document.getElementById('wrap');
       const active=document.fullscreenElement||document.webkitFullscreenElement;
       const target=active?document:w;
       const action=active?(document.exitFullscreen||document.webkitExitFullscreen):(w.requestFullscreen||w.webkitRequestFullscreen);

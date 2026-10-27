@@ -24,12 +24,20 @@ class Player{
   }
   expBox(){ return {x:this.x-2,y:this.y-2,w:this.w+4,h:this.h+4}; }
   setForm(f){
-    const nh=f===0?14:24;
+    let nh=f===0?14:24;
+    if(f>0&&G.areas.length&&!this.canFit(nh))nh=14;
     const nw=f===0?11:12;
     this.y+=this.h-nh;
     this.h=nh;this.w=nw;
     this.form=f;
-    this.crouch=false;
+    this.crouch=f>0&&nh===14;
+  }
+  canFit(h){
+    const box={x:this.x,y:this.y+this.h-h,w:this.form>0?12:this.w,h};
+    for(let r=Math.floor(box.y/16);r<=Math.floor((box.y+h-.01)/16);r++)
+      for(let c=Math.floor(box.x/16);c<=Math.floor((box.x+box.w-.01)/16);c++)
+        if(isSolid(entTileAt(G.area(),c,r)))return false;
+    return true;
   }
   doJump(G){
     this.vy=CFG.JUMP_V-Math.abs(this.vx)*CFG.JUMP_SPD_BONUS;
@@ -39,17 +47,19 @@ class Player{
   }
   bounce(v){ this.vy=v; this.jumpHeld=false; }
   hurt(){
-    if(this.dead||this.invT>0||this.starT>0)return;
+    if(this.dead||this.invT>0||this.starT>0||this.pipeT||this.flagPhase||this.growT>0)return;
     if(this.form>0){
-      this.setForm(0);
+      this.setForm(this.form===2?1:0);
       this.invT=130;this.growT=40;this.growMode='shrink';
+      G.freeze=40;
       A.sfx('pipe');
     }else{
       this.die();
     }
   }
-  die(){
-    if(this.dead)return;
+  die(reason='碰到敌人了。试试从上方踩下去！'){
+    if(this.dead||this.flagPhase)return;
+    G.deathHint=reason; G.deaths++;
     this.dead=true;this.deadT=0;this.vy=-7.6;this.vx=0;
     A.stopMusic();A.jDeath();
   }
@@ -79,7 +89,7 @@ class Player{
     G.addScore(1000,this.x,this.y);
   }
   update(G){
-    if(this.growT>0){
+    if(this.growT>0&&!this.dead){
       this.growT--;
       if(this.growT===0){
         if(this.growMode==='grow')this.setForm(1);
@@ -129,7 +139,6 @@ class Player{
       if(this.flagPhase==='walkoff'){
         this.vx=1.15;
         this.animDist+=Math.abs(this.vx);
-        this.x+=this.vx;
         this.vy=Math.min(this.vy+.46,CFG.MAX_FALL);
         moveAndCollide(this,G.area());
         if(!G.walkedOff&&this.x>G.castleDoorX){
@@ -143,8 +152,9 @@ class Player{
 
     const K=INP.keys,J=INP.just;
 
-    const wantCrouch=K.down&&this.form>0&&this.onGround;
-    this.crouch=wantCrouch;
+    const wantCrouch=this.form>0&&(K.down&&this.onGround||!this.canFit(24));
+    const height=this.form>0&&!wantCrouch?24:14;
+    this.y+=this.h-height; this.h=height; this.crouch=wantCrouch;
 
     let ax=0;
     const L=K.left,R=K.right;
@@ -166,7 +176,7 @@ class Player{
       }
       this.face=ax;
     }else{
-      if(this.onGround)this.vx=U.approach(this.vx,0,CFG.FRICTION);
+      if(this.onGround&&!J.jump)this.vx=U.approach(this.vx,0,CFG.FRICTION);
     }
 
     if(J.jump)this.jbuf=CFG.JBUF;
@@ -194,9 +204,13 @@ class Player{
     for(const mv of G.movers){
       const top=mv.y;
       if(this.vy>=0&&this.x+this.w>mv.x&&this.x<mv.x+mv.w&&
-         this.prevBot<=top+Math.max(2,mv.dy+1)&&this.y+this.h>=top&&this.y+this.h<=top+10){
+         this.prevBot<=top-mv.dy+2&&(this.y+this.h>=top||Math.abs(this.prevBot-(top-mv.dy))<1.5)&&this.y+this.h<=top+10){
         this.y=top-this.h;this.vy=0;this.onGround=true;
-        this.x+=mv.dx;this.y+=mv.dy;
+        // Carry only horizontally: top already includes this frame's vertical motion.
+        const speed=this.vx;
+        this.vx=mv.dx; moveAndCollide(this,G.area()); this.vx=speed;
+        this.onGround=true;
+        break;
       }
     }
 
@@ -211,11 +225,11 @@ class Player{
     if(this.x<0){this.x=0;this.vx=0;}
     if(this.x+this.w>G.pxW()){this.x=G.pxW()-this.w;this.vx=0;}
 
-    if(this.y>CFG.ROWS*16+28){ this.die(); return; }
+    if(this.y>CFG.ROWS*16+28){ this.die('掉进深坑了。长按跳跃，配合冲刺可以跳得更远。'); return; }
     const lavaRow=Math.floor((this.y+this.h-2)/16);
     const lavaL=entTileAt(G.area(),Math.floor((this.x+2)/16),lavaRow);
     const lavaR=entTileAt(G.area(),Math.floor((this.x+this.w-2)/16),lavaRow);
-    if(lavaL===TL.LAVA_T||lavaL===TL.LAVA_B||lavaR===TL.LAVA_T||lavaR===TL.LAVA_B){ this.starT=0; this.die(); return; }
+    if(lavaL===TL.LAVA_T||lavaL===TL.LAVA_B||lavaR===TL.LAVA_T||lavaR===TL.LAVA_B){ this.starT=0; this.die('熔岩不能碰。先在安全地面看清下一处落脚点。'); return; }
 
     if(this.starT>0){
       this.starT--;
@@ -229,7 +243,7 @@ class Player{
     if(this.throwCd>0)this.throwCd--;
     if(this.throwT>0)this.throwT--;
 
-    if(J.run&&this.form===2&&this.fireCount()<CFG.FIRE_MAX&&this.throwCd<=0){
+    if(K.run&&this.form===2&&this.fireCount()<CFG.FIRE_MAX&&this.throwCd<=0){
       G.spawnFireball(this);
       this.throwT=9;this.throwCd=13;
     }

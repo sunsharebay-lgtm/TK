@@ -16,6 +16,8 @@ const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args
 
 const url = opt("--url", "http://localhost:8642/");
 const duration = Number(opt("--duration", "8000"));
+const viewportWidth = Number(opt('--width', '1366'));
+const viewportHeight = Number(opt('--height', '900'));
 const step = Number(opt("--step", "0"));
 const outDir = opt("--out", "/tmp/frames");
 const keysOnce = args.includes("--keys-once");
@@ -117,7 +119,7 @@ await send("Runtime.enable");
 await send("Network.enable");
 await send("Network.setCacheDisabled", { cacheDisabled: true });
 await send("Log.enable");
-await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
+await send("Emulation.setDeviceMetricsOverride", { width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1, mobile: false });
 
 const KEYMAP = { Enter: 13, Esc: 27, Escape: 27, " ": 32, Space: 32,  ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, Up: 38, Down: 40, Left: 37, Right: 39, Z: 90, X: 88, J: 74, K: 75, L: 76, H: 72, Shift: 16 };
 async function keyTap(key) {

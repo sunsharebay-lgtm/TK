@@ -65,6 +65,7 @@ function section(s){console.log('\n== '+s);}
 
 vm.runInThisContext(src,{filename:'bundle.js'});
 const {G,A,INP,LV,ART,U}=global.__SPL;
+G.mode='classic'; // This legacy suite asserts finite-life / timeout rules.
 
 function keyDown(code){
   for(const k in INP.map)if(INP.map[k].includes(code)){
@@ -85,11 +86,11 @@ function clearFoes(){ G.ents=G.ents.filter(e=>!(e instanceof Foe)); }
 function startPlaying(){
   G.fadeA=1;G.fadeDir=-1;G.menuSel=0;
   keyDown('Enter');step(3);keyUp('Enter');
-  const got=pumpUntil(()=>G.state==='play'&&G.cardT>90,400,'play');
+  const got=pumpUntil(()=>G.state==='play',400,'play');
   return got;
 }
 function releaseAll(){ for(const k of Object.keys(INP.keys))INP.keys[k]=false; }
-function freshLevel(i){releaseAll();G.loadLevel(i,false);pumpUntil(()=>G.state==='play',200,'play2');}
+function freshLevel(i){releaseAll();G.lives=5;G.loadLevel(i,false);pumpUntil(()=>G.state==='play',200,'play2');}
 const P=()=>G.player;
 
 section('T1 启动与标题画面');

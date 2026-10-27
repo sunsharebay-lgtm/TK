@@ -5,7 +5,7 @@ const A = {
   curKey:null, stepIdx:0, nextT:0, timer:null, noiseBuf:null,
 
   unlock(){
-    if(this.ctx){ if(this.ctx.state==='suspended'){ try{this.ctx.resume();}catch(e){} } return; }
+    if(this.ctx){ if(this.ctx.state==='suspended'){ try{this.ctx.resume()?.catch?.(()=>{});}catch(e){} } return; }
     try{
       const AC=window.AudioContext||window.webkitAudioContext;
       if(!AC)return;
@@ -15,6 +15,7 @@ const A = {
       this.master.connect(this.ctx.destination);
       this.sfxG=this.ctx.createGain(); this.sfxG.gain.value=.9; this.sfxG.connect(this.master);
       this.musG=this.ctx.createGain(); this.musG.gain.value=.5; this.musG.connect(this.master);
+      if(this.curKey)this.playMusic(this.curKey);
     }catch(e){ this.ctx=null; }
   },
   toggleMute(){
@@ -292,6 +293,7 @@ K . h h . . h h K . h h . S . h` }
   tickSched(){
     if(!this.ctx||!this.curKey)return;
     const c=this.ctx, sd=this.stepDur(this.curKey);
+    if(this.nextT<c.currentTime-.2)this.nextT=c.currentTime+.02;
     while(this.nextT<c.currentTime+.14){
       this.schedStep(this.curKey,this.stepIdx,this.nextT,sd);
       this.nextT+=sd;
@@ -355,6 +357,6 @@ A.buildSongs();
 try{
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden)A.pauseMusic();
-    else if(A.curKey)A.resumeMusic();
+    else if(A.curKey&&!G.paused)A.resumeMusic();
   });
 }catch(e){}

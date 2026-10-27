@@ -110,14 +110,16 @@ class Window_Base {
     ctx.font = T.fontStr(this.fntSize());
     ctx.textBaseline = "top";
     if (maxWidth > 0) {
-      const w = ctx.measureText(text).width;
+      const w = Math.min(maxWidth, ctx.measureText(text).width);
       if (align === "right") x += maxWidth - w;
       else if (align === "center") x += (maxWidth - w) / 2;
     }
     ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillText(text, x + 1.5, y + 1.5);
+    if (maxWidth > 0) ctx.fillText(text, x + 1.5, y + 1.5, maxWidth);
+    else ctx.fillText(text, x + 1.5, y + 1.5);
     ctx.fillStyle = this.textColor;
-    ctx.fillText(text, x, y);
+    if (maxWidth > 0) ctx.fillText(text, x, y, maxWidth);
+    else ctx.fillText(text, x, y);
     ctx.restore();
     return ctx.measureText(text).width;
   }
@@ -128,11 +130,14 @@ class Window_Base {
     ctx.font = T.fontStr(this.fntSize());
     ctx.textBaseline = "top";
     for (const s of segments) {
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.fillText(s.text, cx + 1.5, y + 1.5);
-      ctx.fillStyle = T.TEXT_COLORS[s.color];
-      ctx.fillText(s.text, cx, y);
-      cx += ctx.measureText(s.text).width;
+      for (const char of s.text) {
+        const width = ctx.measureText(char).width;
+        if (char === '\n' || cx + width > this.innerX + this.innerW) { cx = x; y += this.fontSize + 8; }
+        if (char === '\n') continue;
+        if (y + this.fontSize > this.innerY + this.innerH) break;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillText(char, cx + 1.5, y + 1.5);
+        ctx.fillStyle = T.TEXT_COLORS[s.color]; ctx.fillText(char, cx, y); cx += width;
+      }
     }
     ctx.restore();
     return cx - x;
@@ -203,9 +208,17 @@ class Window_Selectable extends Window_Base {
     this.topRow = 0;
     this.spacing = 8;
     this.active = true;
+    this.contentTop = 0; this.contentBottom = 0;
   }
   itemHeight() { return this.lineH(); }
-  visibleRows() { return Math.floor(this.innerH / this.itemHeight()); }
+  visibleRows() { return Math.max(1, Math.floor((this.innerH - this.contentTop - this.contentBottom) / this.itemHeight())); }
+  visibleEntries(items) {
+    this.scrollToFit();
+    const start = this.topRow * this.colMax;
+    return items.slice(start, start + this.visibleRows() * this.colMax).map((item, offset) => ({
+      item, index: start + offset, y: this.innerY + this.contentTop + 4 + Math.floor(offset / this.colMax) * this.itemHeight(),
+    }));
+  }
   maxRows() { return Math.ceil(this.itemMax / this.colMax); }
   updateInput() {
     if (!this.active || this.itemMax === 0) return false;
@@ -250,7 +263,7 @@ class Window_Selectable extends Window_Base {
     const col = this.index % this.colMax;
     const cw = this.innerW / this.colMax;
     const x = this.innerX + col * cw + 2;
-    const y = this.innerY + row * this.itemHeight() + 2;
+    const y = this.innerY + this.contentTop + row * this.itemHeight() + 2;
     const w = cw - 4, h = this.itemHeight() - 4;
     ctx.save();
     ctx.fillStyle = "rgba(120,170,255,0.28)";
@@ -278,14 +291,32 @@ class Window_Message extends Window_Base {
     this.charIndex = 0;
     this.pauseSign = false;
     if (T.$gameMessage.faceName) T.loadFace(T.$gameMessage.faceName);
+    const ctx = T.mainCtx, width = this.innerW - (T.$gameMessage.faceName ? 104 : 0) - 16;
+    ctx.save(); ctx.font = T.fontStr(this.fontSize);
+    this.lines = [];
+    for (const raw of T.$gameMessage.texts.join('\n').split('\n')) {
+      let line = '', used = 0;
+      for (const segment of T.parseEscapes(raw).segments) {
+        line += `\\C[${segment.color}]`;
+        for (const char of segment.text) {
+          const w = ctx.measureText(char).width;
+          if (used + w > width && used > 0) { this.lines.push(line); line = `\\C[${segment.color}]`; used = 0; }
+          line += char; used += w;
+        }
+      }
+      this.lines.push(line);
+    }
+    ctx.restore();
   }
+  pageRows() { return Math.max(1, Math.floor((this.innerH - 12) / this.lineH())); }
+  pageText() { return (this.lines || []).slice(0, this.pageRows()).join('\n'); }
   update() {
     super.update();
     const m = T.$gameMessage;
     if (m.texts.length === 0) return;
     if (this.state === "closed") { this.openAndStart(); }
     if (this.state === "typing") {
-      const full = m.texts.join("\n");
+      const full = this.pageText();
       const total = full.length;
       if (this.charIndex < total) {
         this.charIndex += 2;
@@ -307,9 +338,9 @@ class Window_Message extends Window_Base {
   finishTyping() { this.state = "waitinput"; this.pauseSign = false; }
   advance() {
     const m = T.$gameMessage;
-    const shown = m.texts.splice(0, 1)[0];
-    void shown;
-    if (m.texts.length === 0) {
+    this.lines.splice(0, this.pageRows());
+    if (this.lines.length === 0) {
+      m.texts = [];
       // 全部显示完：若有选项则进入选择，否则关闭
       if (m.choices.length > 0) this.openChoices();
       else this.closeAll();
@@ -325,6 +356,7 @@ class Window_Message extends Window_Base {
     const x = this.x + this.w - w - 8;
     const y = Math.max(8, this.y - h + 12);
     this.choiceWindow = new Window_ChoiceList(x, y, w, h, m.choices.slice(), m.choiceCancelType);
+    this.choiceWindow.index = Math.max(0, m.choiceDefaultType || 0);
     this.state = "choosing";
   }
   updateChoices() {
@@ -334,7 +366,7 @@ class Window_Message extends Window_Base {
     if (cw.finished) {
       const idx = cw.selectedIndex, cancelled = cw.cancelled;
       this.choiceWindow = null;
-      const interp = T.currentInterpreter;
+      const interp = T.$gameMessage.choiceInterpreter || T.currentInterpreter;
       this.closeAll();
       if (interp && interp.waitMode === "choice") {
         interp.onChoiceResult(idx, cancelled);
@@ -346,8 +378,6 @@ class Window_Message extends Window_Base {
     this.close();
     this.state = "closed";
     this.pauseSign = false;
-    /* 对话结束恢复玩家可见（开场剧情 211 透明 + 对话的常见组合） */
-    if (T.$gamePlayer && T.$gamePlayer._transparent) T.$gamePlayer._transparent = false;
   }
   draw(ctx) {
     const m = T.$gameMessage;
@@ -361,7 +391,7 @@ class Window_Message extends Window_Base {
     }
     // 正文（打字机）
     if (m.texts.length > 0) {
-      const full = m.texts.join("\n");
+      const full = this.pageText();
       const shown = full.slice(0, this.charIndex);
       const lines = shown.split("\n");
       ctx.save();
@@ -418,9 +448,9 @@ class Window_ChoiceList extends Window_Selectable {
       this.finished = true;
       T.AudioManager.playSe({ name: "Ok", volume: 60 });
     } else if (T.Input.triggered("cancel")) {
-      if (this.cancelType <= 0) { T.AudioManager.playSe({ name: "Buzzer", volume: 60 }); }
-      else if (this.cancelType === 1) { this.cancelled = true; this.selectedIndex = -1; this.finished = true; }
-      else { this.selectedIndex = this.cancelType - 2; this.finished = true; }
+      if (this.cancelType === -1) { T.AudioManager.playSe({ name: "Buzzer", volume: 60 }); }
+      else if (this.cancelType === -2) { this.cancelled = true; this.selectedIndex = -1; this.finished = true; }
+      else { this.selectedIndex = this.cancelType; this.finished = true; }
     }
   }
   draw(ctx) {
