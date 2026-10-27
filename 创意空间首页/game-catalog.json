@@ -42,7 +42,7 @@
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
       "external": false,
-      "version": "v0.1.1",
+      "version": "v0.2.0",
       "status": "稳定版"
     },
     {
