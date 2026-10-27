@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0e17">
 <link rel="icon" href="data:,">
 <link rel="preload" href="assets/blender/tank-sprites-v2.png" as="image" type="image/png">
-<title>钢铁防线 · 坦克大战 v1.6.12</title>
+<title>钢铁防线 · 坦克大战 v1.6.13</title>
 <style>
 /* ============================================================
    钢铁防线 — 现代化坦克大战
@@ -490,7 +490,7 @@ kbd{
   <div class="tbtn" id="tPause">暂停</div>
 </div>
 
-<div id="footer">钢铁防线 v1.6.12 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
+<div id="footer">钢铁防线 v1.6.13 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
 
 <output id="diagnostics" hidden></output>
 
@@ -499,7 +499,7 @@ kbd{
 /* ============================================================
    P1 · 常量 / 工具 / 输入
    ============================================================ */
-const GAME_VERSION = "1.6.12";
+const GAME_VERSION = "1.6.13";
 // 每个周目走 6 关，每关都有独特「关卡特性」，让手感差异明显：
 // 序章(标准) → 冰原(滑行) → 沙漠(减速) → 熔岩(灼烧) → 密林(隐蔽) → 最终防线(浴血)。
 // 保留 16 张地图作为素材，其余地图可在测试模式与地狱绝境中使用。
@@ -548,7 +548,28 @@ function rectHit(ax,ay,aw,ah,bx,by,bw,bh){
 
 /* ---------------- 存档 ---------------- */
 const SAVE_KEY = "steel_frontline_v2";
-const SAVE_SCHEMA = 2;
+const SAVE_SCHEMA = 3;
+const isRecord = value=>value !== null && typeof value === "object" && !Array.isArray(value);
+function savedInt(value, fallback, min=0, max=Number.MAX_SAFE_INTEGER){
+  const n = (typeof value === "number" || typeof value === "string") ? Number(value) : NaN;
+  return Number.isFinite(n) ? clamp(Math.floor(n), min, max) : fallback;
+}
+function normalizeCarry(carry){
+  if(!isRecord(carry) && !Array.isArray(carry)) return null;
+  const players = Array.isArray(carry) ? carry : (Array.isArray(carry.players) ? carry.players : []);
+  const base = isRecord(carry.base) ? carry.base : {};
+  return {
+    base:{eaglePower:savedInt(base.eaglePower,0,0,5), baseArmor:savedInt(base.baseArmor,0,0,5),
+      fieldLevel:savedInt(base.fieldLevel ?? carry.fieldLevel,0,0,5)},
+    players:players.slice(0,2).map(value=>{
+      const p = isRecord(value) ? value : {};
+      const lives = savedInt(p.lives,3);
+      return {lives, score:savedInt(p.score,0), gone:p.gone === true || lives === 0,
+        kills:Array.from({length:5},(_,i)=>savedInt(p.kills?.[i],0)),
+        level:savedInt(p.level,0,0,5), armor:savedInt(p.armor,0,0,5), twin:savedInt(p.twin,0,0,3)};
+    })
+  };
+}
 const Save = {
   data:{ schema:SAVE_SCHEMA, hi:0, maxStage:1, totalKills:0, plays:0, mute:false, scan:true,
     campaign:null, unlockedLoops:1, hellUnlocked:false, hellBest:0, achievements:[], loopRewards:{} },
@@ -557,17 +578,39 @@ const Save = {
       const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem("steel_frontline_v1");
       if(raw){
         const parsed = JSON.parse(raw);
-        Object.assign(this.data, parsed);
+        if(!isRecord(parsed)) return this.data;
+        for(const key of Object.keys(this.data)){
+          if(Object.prototype.hasOwnProperty.call(parsed, key)) this.data[key] = parsed[key];
+        }
         this.data.schema = SAVE_SCHEMA;
-        if(!Array.isArray(this.data.achievements)) this.data.achievements = [];
-        if(!Number.isFinite(this.data.unlockedLoops)) this.data.unlockedLoops = 1;
-        if(!Number.isFinite(this.data.hellBest)) this.data.hellBest = 0;
-        if(!this.data.loopRewards || typeof this.data.loopRewards !== "object") this.data.loopRewards = {};
+        for(const key of ["hi","totalKills","plays"]) this.data[key] = savedInt(this.data[key],0);
+        this.data.maxStage = savedInt(this.data.maxStage,1,1,CAMPAIGN_STAGE_COUNT);
+        this.data.unlockedLoops = savedInt(this.data.unlockedLoops,1,1,5);
+        this.data.hellBest = savedInt(this.data.hellBest,0,0,5);
+        this.data.mute = this.data.mute === true;
+        this.data.scan = this.data.scan !== false;
+        this.data.hellUnlocked = this.data.hellUnlocked === true;
+        const c = this.data.campaign;
+        this.data.campaign = isRecord(c) ? {
+          schema:savedInt(c.schema,2), twoP:c.twoP === true, hell:c.hell === true,
+          stageIndex:savedInt(c.stageIndex,0), loop:savedInt(c.loop,0,0,4),
+          hellRound:savedInt(c.hellRound,0,0,5), carry:normalizeCarry(c.carry), hellCarry:normalizeCarry(c.hellCarry),
+          elapsed:savedInt(c.elapsed,0), score:savedInt(c.score,0), superUsed:c.superUsed === true,
+          complete:c.complete === true, cleared:c.cleared === true,
+          savedAt:typeof c.savedAt === "string" ? c.savedAt : ""
+        } : null;
+        this.data.achievements = (Array.isArray(this.data.achievements) ? this.data.achievements : [])
+          .filter(a=>isRecord(a) && /^(hell|loop[1-5])$/.test(a.key) && Number.isFinite(a.time) && a.time >= 0)
+          .map(a=>({...a, superUsed:a.superUsed === true}));
+        if(!isRecord(this.data.loopRewards)) this.data.loopRewards = {};
       }
     }catch(e){}
     return this.data;
   },
-  save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); }catch(e){} }
+  save(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); return true; }
+    catch(e){ return false; }
+  }
 };
 Save.load();
 
@@ -593,7 +636,7 @@ const PadUI = {
     return innerWidth > innerHeight ? "landscape" : "portrait";
   },
   readSaved(){
-    try{ return JSON.parse(localStorage.getItem(CTL_POS_KEY)) || {}; }catch(e){ return {}; }
+    try{ const data=JSON.parse(localStorage.getItem(CTL_POS_KEY)); return isRecord(data) ? data : {}; }catch(e){ return {}; }
   },
   get(id){ return document.getElementById(id); },
   isDraggable(el){ return !!el && CTL_DEFS.some(d=>d.id===el.id); },
@@ -766,10 +809,11 @@ const Input = {
   init(){
     addEventListener("keydown", e=>{
       const k = e.code;
+      const textEntry = e.target && e.target.matches?.("input, textarea, select, [contenteditable='true']");
+      if(e.isComposing || (textEntry && k !== "Enter" && k !== "Escape")) return;
       if(!this.keys[k]) this.pressed[k] = 1;
       this.keys[k] = 1;
       this.anyPressed = true;
-      const textEntry = e.target && e.target.matches?.("input, textarea, select, [contenteditable='true']");
       if(!textEntry && ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space","Enter","KeyP","Tab","Slash"].includes(k)) e.preventDefault();
     }, {passive:false});
     addEventListener("keyup", e=>{ this.keys[e.code] = 0; });
@@ -806,6 +850,7 @@ const Input = {
     let pid = null, cx=0, cy=0, R=52;
 
     const start = (e)=>{
+      if(pid !== null) return;
       const t = e.changedTouches ? e.changedTouches[0] : e;
       pid = t.identifier !== undefined ? t.identifier : "m";
       if(e.pointerType === "mouse") padEl.setPointerCapture?.(e.pointerId);
@@ -838,6 +883,7 @@ const Input = {
       e.preventDefault();
     };
     const end = (e)=>{
+      if(e?.changedTouches && !Array.from(e.changedTouches).some(t=>t.identifier === pid)) return;
       if(PadUI.arranging) PadUI.endArrange();
       pid = null; nub.style.transform = "";
       this.touch.active=false; this.touch.dx=0; this.touch.dy=0;
@@ -1033,7 +1079,7 @@ const Snd = {
   },
   resume(){
     if(!this.ctx) this.init();
-    if(this.ctx && this.ctx.state === "suspended"){ try{ this.ctx.resume(); }catch(e){} }
+    if(this.ctx && this.ctx.state === "suspended"){ try{ this.ctx.resume()?.catch(()=>{}); }catch(e){} }
   },
   setMute(m){
     this.muted = m; Save.data.mute = m; Save.save();
@@ -1231,6 +1277,14 @@ const Snd = {
       if(!this.ready || this._track !== track) return;
       try{
         const t = this.now();
+        // 后台节流后只调度当前节拍，避免同时创建大量过期音符节点。
+        if(this._next < t){
+          const skipped = Math.floor((t - this._next)/spb);
+          this._next += skipped*spb;
+          this._step += skipped;
+          if(T.loop === false && this._step >= T.len){ this.stopMusic(); return; }
+          this._step %= T.len;
+        }
         while(this._next < t + 0.16){
           this._playStep(T, this._step, this._next);
           this._next += spb;
@@ -2573,8 +2627,8 @@ function validateStages(){
     const key = (x,y)=>y*GN+x;
     const reachableFrom = (start)=>{
       const q=[start], seen=new Set([key(...start)]);
-      while(q.length){
-        const [x,y]=q.shift();
+      for(let head=0; head<q.length; head++){
+        const [x,y]=q[head];
         for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
           const nx=x+dx, ny=y+dy, k=key(nx,ny);
           if(!seen.has(k) && !hard(nx,ny)){ seen.add(k); q.push([nx,ny]); }
@@ -2614,7 +2668,9 @@ const PLAYER_SPEED = 1.5;
    P6 · 战场地形 / 粒子特效
    ============================================================ */
 class Field {
-  constructor(){
+  constructor(world=null){
+    this.world = world;
+    this.pendingWalls = new Map();
     this.grid = new Uint8Array(GN*GN);
     this.mask = new Uint8Array(GN*GN);   // 砖块 8x8 子块位掩码
     this.baseAlive = true;
@@ -2625,6 +2681,7 @@ class Field {
     this.waterT = 0;
   }
   load(stage){
+    this.pendingWalls.clear();
     const rows = normalizeStage(stage.rows);
     this.grid.fill(0); this.mask.fill(0);
     for(let gy=0; gy<GN; gy++){
@@ -2658,16 +2715,26 @@ class Field {
   }
   buildWall(type){
     for(const [gx,gy] of BASE_WALL){
-      const i = gy*GN+gx;
-      this.grid[i] = type;
-      this.mask[i] = (type === TE.BRICK) ? 0b1111 : 0;
+      this.pendingWalls.set(gy*GN+gx,type);
+    }
+    this.restoreWalls();
+  }
+  restoreWalls(){
+    const tanks = this.world?.players && this.world?.enemies ? this.world.allTanks() : [];
+    for(const [i,type] of this.pendingWalls){
+      const gx=i%GN, gy=Math.floor(i/GN);
+      // 等待车体离开缺口后再补墙，修复或铁锹到期都不能把坦克困进地形。
+      if(tanks.some(t=>rectHit(gx*G,gy*G,G,G,t.x,t.y,TS,TS))) continue;
+      this.grid[i]=type;
+      this.mask[i]=type === TE.BRICK ? 15 : 0;
+      this.pendingWalls.delete(i);
     }
   }
   spawnHasEscape(gx, gy, depth=8){
     const key = (x,y)=>y*GN+x;
     const q=[[gx,gy]], seen=new Set([key(gx,gy)]);
-    while(q.length){
-      const [x,y]=q.shift();
+    for(let head=0; head<q.length; head++){
+      const [x,y]=q[head];
       if(y >= depth) return true;
       for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const nx=x+dx, ny=y+dy, k=key(nx,ny);
@@ -2779,6 +2846,7 @@ class Field {
       this.shovelT -= dt;
       if(this.shovelT <= 0){ this.shovelT = 0; this.buildWall(this.baseSteel ? TE.STEEL : TE.BRICK); }
     }
+    if(this.pendingWalls.size) this.restoreWalls();
   }
   /* 坦克矩形四周 1 格外是否存在水面/熔岩（用于灼烧机制） */
   nearWater(x,y,w,h){
@@ -3004,7 +3072,7 @@ class Bullet {
       // 老鹰自卫炮弹穿透自家基地区域（基地+围墙），避免开火即被挡下
       if(this.fromBase){
         const gx = sx>>1, gy = sy>>1;
-        if(gy >= BASE_GY-1 && gy <= BASE_GY+1 && gx >= BASE_GX-1 && gx <= BASE_GX+1) continue;
+        if(f.isBaseWall(gx,gy) || f.at(gx,gy) === TE.BASE) continue;
       }
       // 我方坦克炮弹撞入基地防区时被安全拦截，不能拆墙或摧毁老鹰。
       if(this.isPlayer && !this.fromBase){
@@ -3134,20 +3202,17 @@ class Tank {
     // 三级炮允许 2 枚在途弹道，双炮基准翻倍为 4；每次双炮强化再加 2。
     return Math.max(2, this.maxBullets) * 2 + (this.twin - 1) * 2;
   }
-  tryFire(){
+  tryFire(directions=null){
     if(this.fireCool > 0) return false;
-    const shots = this.twin > 0 ? 2 : 1;      // 双炮双发并行
+    const dirs = directions || (this.twin > 0 ? [this.dir,this.dir] : [this.dir]);
+    const shots = dirs.length;
     const cap = this.twinBulletCap;
     if(this.bulletsOut + shots > cap) return false;
     const dmgMul = this.twin >= 3 ? 2 : (this.twin >= 2 ? 1.5 : 1);   // 双炮强化
-    if(shots === 2){
-      this.fireOne(this.dir, -9, dmgMul);
-      this.fireOne(this.dir,  9, dmgMul);
-      this.bulletsOut += 2;
-    } else {
-      this.fireOne(this.dir, 0, dmgMul);
-      this.bulletsOut += 1;
+    for(let i=0;i<shots;i++){
+      this.fireOne(dirs[i], this.twin > 0 ? (i===0 ? -9 : 9) : 0, dmgMul);
     }
+    this.bulletsOut += shots;
     this.fireCool = this.isPlayer
       ? (this.twin > 0 ? Math.max(0.06, 0.10 - (this.twin - 1)*0.02) : 0.10)
       : 0.18;
@@ -3450,13 +3515,16 @@ class Player extends Tank {
     // 出生点被其他坦克占据时，就近寻找空闲位置，避免复活重叠卡死
     if(!this.spotFree(px,py)){
       const spot = this.findRespawnSpot(gx,gy);
-      if(spot){ px = spot.x; py = spot.y; }
+      if(!spot){ this.deadTimer = 0.25; return; }
+      px = spot.x; py = spot.y;
     }
     this.x = px; this.y = py;
     this.dir = 0; this.dead = false;
     this.spawnT = this.spawnDur; this.shield = 5.0;
-    this.bulletsOut = 0; this.fireCool = 0;
+    this.bulletsOut = this.w.bullets.filter(b=>b.owner === this && !b.dead).length;
+    this.fireCool = 0;
     this.slideV = 0; this.moving = false;
+    this.lavaT = 0; this._lavaWarned = false;
     this._dmgAcc = 0;                 // 重生清除电磁场伤害累计
     // 死亡只掉一级火力，跨关继承的等级不会被直接清空。
     this.level = Math.max(0, this.level - 1);
@@ -3504,7 +3572,7 @@ class Player extends Tank {
     else if(input.lf){ wantDir = 3; wantMove = true; }
     else if(input.rt){ wantDir = 1; wantMove = true; }
     this.applyMotion(dt, wantMove, wantDir);
-    if(input.fire && this.fireCool <= 0) this.tryFire();
+    if((input.fire || input.firePressed) && this.fireCool <= 0) this.tryFire();
   }
 }
 
@@ -3603,9 +3671,9 @@ class Enemy extends Tank {
     }
     return true;
   }
-  trafficBlocksNode(gx,gy){
+  trafficBlocksNode(gx,gy,tanks=this.w.allTanks()){
     const x=gx*G, y=gy*G;
-    for(const t of this.w.allTanks()){
+    for(const t of tanks){
       if(t===this || t.dead) continue;
       if(rectHit(x,y,TS,TS,t.x,t.y,TS,TS)) return true;
     }
@@ -3636,15 +3704,16 @@ class Enemy extends Tank {
     const startKey = (x,y)=>y*GN+x;
     const start = [sx,sy];
     const queue=[start], prev=new Map([[startKey(sx,sy),null]]);
+    const tanks = this.w.allTanks(); // 一次搜索内实体不变，避免为每个节点分配数组。
     const goals = new Set(this.routeGoals(target).map(([x,y])=>startKey(x,y)));
     let goalKey = goals.has(startKey(sx,sy)) ? startKey(sx,sy) : null;
-    while(queue.length && goalKey === null){
-      const [x,y]=queue.shift();
+    for(let head=0; head<queue.length && goalKey === null; head++){
+      const [x,y]=queue[head];
       for(const d of [0,1,2,3]){
         const nx=x+DX[d], ny=y+DY[d], k=startKey(nx,ny);
         if(nx<0||ny<0||nx>=GN-1||ny>=GN-1||prev.has(k)) continue;
         if(!this.w.field.freeForTank(nx*G,ny*G,TS,TS)) continue;
-        if(this.trafficBlocksNode(nx,ny)) continue;
+        if(this.trafficBlocksNode(nx,ny,tanks)) continue;
         prev.set(k,startKey(x,y)); queue.push([nx,ny]);
         if(goals.has(k)){ goalKey=k; break; }
       }
@@ -3818,13 +3887,9 @@ class Enemy extends Tank {
     // 开火
     let p = this.def.fireRate * this.aggr.fireMul * (this.w.fxFire || 1) * dMul;
     if(this.lineOfFire()) p *= 2.8;
-    if(rnd() < p) this.tryFire();
     if(this.isBoss && this.skill === "volley" && rnd() < 0.004){
-      const old = this.dir;
-      this.tryFire();
-      this.dir = (old + 1) % 4; this.tryFire();
-      this.dir = old;
-    }
+      this.tryFire([this.dir, (this.dir + 1) % 4]);
+    } else if(rnd() < p) this.tryFire();
   }
 }
 
@@ -3885,7 +3950,10 @@ function difficultyFor(stage, loop){
 
 class World {
   constructor(game, stageIndex, loop, twoP, carry){
+    carry = normalizeCarry(carry);
     this.game = game;
+    this.hell = !!game.hell;
+    this.hellRound = game.hellRound || 0;
     this.stageIndex = stageIndex;
     this.loop = loop || 0;
     // 地图池：地狱 / “所有地图”用全图；主线战役（含测试选主线）用战役精选
@@ -3894,7 +3962,7 @@ class World {
     this.mapIndex = this.stagePool[stageIndex % this.stagePool.length];
     this.stage = STAGES[this.mapIndex];
     this.twoP = !!twoP;
-    this.field = new Field();
+    this.field = new Field(this);
     this.field.load(this.stage);
     // 关卡特性
     const fxi = stageFxInfo(this.mapIndex);
@@ -4140,7 +4208,7 @@ class World {
   grantMaxPower(index=0){
     const p = this.players[index] || this.players[0];
     if(!p || p.gone) return;
-    p.level = 3;
+    p.level = 5;
     p.applyLevel();
     p.shield = Math.max(p.shield, 5);
     this.game.toast("满级火力");
@@ -4279,6 +4347,7 @@ class World {
   endGame(win){
     if(this.over) return;
     this.over = true;
+    this.cleared = false;
     this.endTimer = win ? 2.0 : 2.4;
   }
 
@@ -4407,7 +4476,7 @@ class World {
       if(px<0||py<0||px>FS||py>FS) return false;
       const gx = (px/G)|0, gy = (py/G)|0;
       // 跳过老鹰自家基地区域（基地+围墙）
-      if(gy >= BASE_GY-1 && gy <= BASE_GY+1 && gx >= BASE_GX-1 && gx <= BASE_GX+1) continue;
+      if(this.field.isBaseWall(gx,gy) || this.field.at(gx,gy) === TE.BASE) continue;
       const cell = this.field.at(gx, gy);
       if(cell === TE.STEEL || cell === TE.BASE || cell === TE.BORDER) return false;
     }
@@ -4446,9 +4515,12 @@ class World {
         if(e.dead) continue;
         const want = this.inField(e.cx, e.cy) ? this.fieldDebuff : 0;
         if(want > (e._fieldApplied || 0)){
-          const loss = Math.floor(e.maxHp * (want - (e._fieldApplied||0)));
-          e.maxHp = Math.max(1, e.maxHp - loss);
-          e.hp = Math.max(0, e.hp - loss);
+          // 始终按最初耐久计算累计压制，避免逐级升级时反复取整丢失效果。
+          if(e._fieldBaseHp === undefined) e._fieldBaseHp = e.maxHp;
+          const maxHp = Math.max(1, e._fieldBaseHp - Math.floor(e._fieldBaseHp * want + 1e-9));
+          const loss = Math.max(0, e.maxHp - maxHp);
+          e.maxHp = maxHp;
+          e.hp = Math.max(1, e.hp - loss);
           e._fieldApplied = want;
         }
       }
@@ -4498,7 +4570,7 @@ class World {
       this.checkClear();
     }
     // 玩家全部阵亡
-    if(!this.over && !this.cleared){
+    if(!this.over){
       const alive = this.players.filter(p=>p && !p.gone);
       if(alive.length === 0) this.endGame(false);
     }
@@ -4582,6 +4654,7 @@ function renderField(x, W){
   const f = W.field;
   x.save();
   x.translate(FX, FY);
+  x.beginPath(); x.rect(0,0,FS,FS); x.clip();
 
   // 地面
   const bg = x.createLinearGradient(0,0,0,FS);
@@ -4780,13 +4853,13 @@ function renderHUD(x, W, G_){
   const rem = W ? W.remaining() : 0;
   drawTxt(x, String(rem).padStart(2,"0"), px+pw-10-txtW(String(rem).padStart(2,"0"),1,1), cy, "#e8eef7", 1, 1);
   cy += 11;
-  // 图标网格 (每行 5 个)
+  // 图标铺满侧栏宽度，为双人高周目的状态与关卡说明留出空间。
   const ico = SPR.misc.iconEnemy;
-  const perRow = 5;
+  const perRow = 10;
   const maxShow = W ? W.totalEnemies : 20;
   for(let i=0;i<maxShow;i++){
     const r = (i/perRow)|0, c = i%perRow;
-    const ix = cxL + c*11, iy = cy + r*11;
+    const ix = cxL + c*10, iy = cy + r*11;
     if(i < rem){ x.globalAlpha = 1; x.drawImage(ico, ix, iy); }
     else { x.globalAlpha = 0.14; x.drawImage(ico, ix, iy); }
   }
@@ -4805,7 +4878,7 @@ function renderHUD(x, W, G_){
     const col = i===0 ? "#f2c14e" : "#6fd47a";
     drawUiText(x, label, cxL, cy, col, 1, 1);
     // 等级星
-    for(let s=0;s<p.level;s++) x.drawImage(SPR.misc.iconStar, cxL+18+s*10, cy-1);
+    for(let s=0;s<p.level;s++) x.drawImage(SPR.misc.iconStar, cxL+34+s*10, cy-1);
     cy += 11;
     // 玩家专属强化状态：与生命和等级紧邻，保持紧凑可读。
     drawUiText(x, "火力" + p.level + "/5", cxL, cy, "#ffe066", 1, 1);
@@ -4832,8 +4905,8 @@ function renderHUD(x, W, G_){
   drawUiText(x, loopLabel, cxL, cy, W && (W.hell || (W.game && W.game.testMode)) ? "#ff6b9d" : "#ff9d5c", 1, 1);
   cy += 11;
   x.drawImage(SPR.misc.iconFlag, cxL, cy);
-  const stageNum = W ? (W.stageIndex+1) : 1;
-  drawUiText(x, "第" + stageNum + "关", cxL+18, cy+2, "#e8eef7", 1, 1);
+  const stageNum = W ? (W.hell ? W.hellRound+1 : W.stageIndex+1) : 1;
+  drawUiText(x, (W?.hell ? "区域" : "第") + stageNum + (W?.hell ? "/5" : "关"), cxL+18, cy+2, "#e8eef7", 1, 1);
   cy += 24;
 
   // 关卡名
@@ -5004,6 +5077,9 @@ const Game = {
     this.showPanel("title");
     Snd.music("title");
     addEventListener("resize", syncTouchLayout);
+    const pauseWhenAway = ()=>{ if(this.state === "play") this.togglePause(); };
+    addEventListener("blur", pauseWhenAway);
+    document.addEventListener("visibilitychange", ()=>{ if(document.hidden) pauseWhenAway(); });
   },
 
   showPanel(name){
@@ -5019,6 +5095,7 @@ const Game = {
   },
 
   openSuperPrompt(){
+    if(this.state === "super") return;
     if(this.superUnlocked){ this.toast("超级按键已启用"); return; }
     if(this.state === "clear" || this.state === "over" || this.state === "win") return;
     this.superReturnState = this.state;
@@ -5030,6 +5107,7 @@ const Game = {
     setTimeout(()=>this.superInput?.focus(), 0);
   },
   closeSuperPrompt(){
+    this.superInput?.blur?.();
     const restore = this.superReturnState || "title";
     this.showPanel(restore === "stage" ? null : restore);
     this.state = restore;
@@ -5048,6 +5126,7 @@ const Game = {
       return;
     }
     this.superUnlocked = true;
+    this.superInput.blur?.();
     this.syncSuperTouchUI();
     const restore = this.superReturnState || "title";
     this.state = restore;
@@ -5125,8 +5204,7 @@ const Game = {
     this.superUnlocked = false;
     this.testReturnState = null;
     this.syncSuperTouchUI();
-    this.state = "title";
-    this.showPanel("title");
+    this.backToTitle();
     this.toast("已退出测试模式");
     Snd.sfx("menu");
   },
@@ -5189,7 +5267,7 @@ const Game = {
       this.hell = true;
       this.hellRound = this.testStageIndex;
       this.loop = 4;
-      this.stageIndex = (this.testStageIndex + this.loop*2) % STAGES.length;
+      this.stageIndex = this.testStageIndex === 0 ? 0 : (this.testStageIndex + this.loop*2) % STAGES.length;
     } else if(this.testMenu === "map"){
       this.hell = false;
       this.hellRound = 0;
@@ -5344,7 +5422,10 @@ const Game = {
       case 0: this.newGame(false); break;
       case 1: this.newGame(true);  break;
       case 2: this.continueCampaign(); break;
-      case 3: break;
+      case 3:
+        this.startStage = (this.startStage + 1) % Math.min(CAMPAIGN_STAGE_COUNT, Save.data.maxStage);
+        this.buildMenu();
+        break;
       case 4: this.openIntro(); break;
       case 5: Snd.setMute(!Snd.muted); this.buildMenu(); if(!Snd.muted) Snd.music("title"); else Snd.stopMusic(); break;
     }
@@ -5364,62 +5445,48 @@ const Game = {
     this.superUsed = false;
     this.campaignStartedAt = performance.now();
     this.campaignElapsed = 0;
-    Save.data.campaign = null;
-    Save.data.plays++;
-    Save.save();
+    if(!this.testMode){
+      Save.data.campaign = null;
+      Save.data.plays++;
+      Save.save();
+    }
     this.beginStage();
   },
   continueCampaign(){
+    if(this.testMode){ this.toast("请先退出测试模式再继续战役"); return; }
     this.testMenu = "campaign";
     const c = Save.data.campaign;
     if(!c){ this.toast("暂无可继续的战役存档"); return; }
-    this.twoP = !!c.twoP;
-    this.stageIndex = clamp(c.stageIndex||0, 0, (c.hell ? STAGES.length : CAMPAIGN_STAGE_COUNT)-1);
-    this.loop = clamp(c.loop||0, 0, 4);
-    this.hell = !!c.hell;
-    this.hellRound = c.hellRound||0;
-    this.hellCarry = c.hellCarry||null;
-    this.carry = c.carry||null;
-    if(!this.testMode) this.superUnlocked = false;
+    this.twoP = c.twoP === true;
+    this.hell = c.hell === true;
+    this.loop = this.hell ? 4 : savedInt(c.loop,0,0,4);
+    this.hellRound = savedInt(c.hellRound,0,0,5);
+    this.stageIndex = this.hell
+      ? (this.hellRound === 0 ? 0 : (this.hellRound + this.loop*2) % STAGES.length)
+      : savedInt(c.stageIndex,0,0,CAMPAIGN_STAGE_COUNT-1);
+    this.hellCarry = normalizeCarry(c.hellCarry);
+    this.carry = normalizeCarry(c.carry);
+    this.superUnlocked = false;
+    this.syncSuperTouchUI();
     this.superUsed = !!c.superUsed;
     this.campaignStartedAt = performance.now();
-    this.campaignElapsed = Number(c.elapsed)||0;
-    if(c.complete){
-      // 通关存档继续时自动进入下一周目，避免玩家必须回到结算页才能推进。
-      if(!this.hell && this.loop < 4){
-        const completed = this.loop + 1;
-        const reward = this.loopReward(completed);
-        this.loop = completed;
-        this.stageIndex = 0;
-        this.hellRound = 0;
-        this.hell = false;
-        if(!this.testMode) this.superUnlocked = false;
-        this.superUsed = false;
-        const savedPlayers = Array.isArray(c.carry) ? c.carry : ((c.carry && c.carry.players) || []);
-        const savedBase = (c.carry && c.carry.base) ? c.carry.base : {eaglePower:0, baseArmor:0};
-        this.carry = {
-          base:{
-            eaglePower:clamp(savedBase.eaglePower||0,0,5),
-            baseArmor:clamp(savedBase.baseArmor||0,0,5),
-            fieldLevel:clamp(savedBase.fieldLevel||0,0,5)
-          },
-          players:savedPlayers.map(p=>({
-            lives:3 + (reward.extraLife||0), score:p.score||0,
-            kills:Array.isArray(p.kills) ? p.kills.slice() : [0,0,0,0,0],
-            gone:false,
-            level:Math.min(5, (p.level||1) + (reward.startPower||0)),
-            armor:Math.min(5, p.armor||0),
-            twin:Math.min(3, p.twin||0)
-          }))
-        };
-        Save.data.unlockedLoops = Math.max(Save.data.unlockedLoops||1, completed+1);
-        Save.data.loopRewards[String(completed)] = reward;
-        this.clearCheckpoint();
-        this.beginStage();
-        this.toast("第" + (completed+1) + "周目已开启 · " + this.loopIntro(completed));
-        return;
+    this.campaignElapsed = savedInt(c.elapsed,0);
+    // 恢复结算节点后复用正常推进流程，地图、奖励与计时只维护一套规则。
+    if(c.complete || c.cleared || (this.hell && this.hellRound >= 5)){
+      this.world = new World(this, this.stageIndex, this.loop, this.twoP, this.carry);
+      this.world.queue.length = 0;
+      this.world.cleared = true;
+      this.state = "clear";
+      if(c.complete || (this.hell && this.hellRound >= 5)){
+        if(!this.hell && this.loop < 4){ this.startNextLoop(); return; }
+        this.state = "win";
+        if(!this.hell) Save.data.hellUnlocked = true;
+        else Save.data.hellBest = Math.max(Save.data.hellBest,5);
+        this.renderWinPanel(this.hell ? "地狱绝境完成 · 五场首领战全部通过" : "全部 " + CAMPAIGN_STAGE_COUNT + " 关战役完成");
+        this.showPanel("win");
+      }else{
+        this.nextStage();
       }
-      this.toast("该战役已完成，请开启下一周目");
       return;
     }
     this.beginStage();
@@ -5440,12 +5507,15 @@ const Game = {
       score:Math.max(...this.world.players.map(p=>p.score)),
       elapsed:this.currentRunElapsed(),
       superUsed:!!this.superUsed,
+      cleared:this.state === "clear" || this.state === "win",
+      complete:this.state === "win",
       savedAt:new Date().toISOString()
     };
-    Save.save();
-    if(showToast) this.toast("进度已保存");
+    const saved = Save.save();
+    if(showToast) this.toast(saved ? "进度已保存" : "保存失败 · 浏览器存储不可用");
   },
   clearCheckpoint(){
+    if(this.testMode) return;
     Save.data.campaign = null;
     Save.save();
   },
@@ -5481,7 +5551,7 @@ const Game = {
     const key = kind === "hell" ? "hell" : "loop" + (this.loop+1);
     const entry = {key, kind, loop:this.loop+1, time:Math.round(this.currentRunElapsed()), superUsed:!!this.superUsed, at:new Date().toISOString()};
     const old = Save.data.achievements.find(a=>a.key===key);
-    if(!old || entry.time < old.time || (old.superUsed && !entry.superUsed)){
+    if(!old || (old.superUsed && !entry.superUsed) || (old.superUsed === entry.superUsed && entry.time < old.time)){
       if(old) Save.data.achievements[Save.data.achievements.indexOf(old)] = entry;
       else Save.data.achievements.push(entry);
     }
@@ -5502,7 +5572,8 @@ const Game = {
         fieldLevel:this.world.fieldLevel
       },
       players:this.world.players.map(p=>({
-        lives:p.lives, score:p.score, kills:p.kills.slice(), gone:p.gone, level:p.level, armor:p.armor, twin:p.twin
+        lives:p.lives, score:p.score, kills:p.kills.slice(), gone:p.gone,
+        level:p.dead && !p.gone ? Math.max(0,p.level-1) : p.level, armor:p.armor, twin:p.twin
       }))
     };
   },
@@ -5516,18 +5587,10 @@ const Game = {
     const best = Math.max(...this.world.players.map(p=>p.score));
     if(!this.testMode && best > Save.data.hi){ Save.data.hi = best; }
     const stageCount = this.hell ? STAGES.length : CAMPAIGN_STAGE_COUNT;
-    const nxt = this.stageIndex + 1;
+    const nxt = Math.min(stageCount, this.stageIndex + 2);
     // maxStage 表示已解锁关卡数量；通关最后一关也要把最后一关计入可选范围。
     if(!this.testMode && !this.hell && nxt <= stageCount && nxt > Save.data.maxStage) Save.data.maxStage = nxt;
     this.saveCheckpoint(false);
-    if(this.testMode) return;              // 测试模式不推进存档
-    // 结算页本身是安全节点：继续战役应从下一关/下一个地狱区域开始。
-    if(this.hell){
-      Save.data.campaign.hellRound = this.hellRound + 1;
-    }else if(this.stageIndex + 1 < CAMPAIGN_STAGE_COUNT){
-      Save.data.campaign.stageIndex = this.stageIndex + 1;
-    }
-    Save.save();
   },
   renderClearPanel(){
     const body = document.getElementById("clearBody");
@@ -5628,6 +5691,7 @@ const Game = {
     if(hellBtn) hellBtn.style.display = (!this.hell && Save.data.hellUnlocked) ? "" : "none";
   },
   startNextLoop(){
+    if(this.testMode) return;
     const completed = Math.min(4, this.loop + 1);
     this.loop = completed;
     Save.data.unlockedLoops = Math.max(Save.data.unlockedLoops||1, completed+1);

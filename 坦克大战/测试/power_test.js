@@ -39,6 +39,7 @@ const rafQueue=[];globalThis.requestAnimationFrame=cb=>{rafQueue.push(cb);return
 
 const harness = `
 ;(function(){
+  srand(20261027);
   const out=[]; let errors=[];
   const check=(n,ok,d)=>{if(!ok)errors.push(n+(d?" · "+d:""));out.push((ok?"[OK] ":"[FAIL] ")+n+(d?" · "+d:""));};
   Game.testMode=true; Game.testMenu="map";

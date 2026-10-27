@@ -187,3 +187,11 @@ git push origin game/three-kingdoms/v1.0.0
 - Mac 旧地址 `粉丝资源/资源/Mac软件资源库/` 只保留兼容跳转，不恢复原编号。详情页复制共用 `粉丝资源/scripts/copy.js`，必须随详情页部署。
 - 版本目录只使用当前 HEAD 可达的稳定标签，避免未合并分支/未来标签污染。`main` 手动发布限制与测试门禁均已写入工作流，但本轮没有执行 GitHub Actions 新部署。
 - 本轮恢复增量在 `/Users/sun/Desktop/AI/Codex恢复备份/2026-10-26-创意空间-review/`；它不是完整 Codex 安装备份。
+
+## 11. 坦克大战 v1.6.13 源码审查修复
+
+- 坦克大战本轮完整修复与 27 个专项行为场景见 `坦克大战/测试/源码审查-2026-10-27.md`；交付与源文件哈希见该项目 `project.md` 最新发布章节。
+- 关卡级存档保留原存储键，内部 schema 3 向后兼容旧玩家数组与地狱进度。不要按旧 schema 2 重新实现结算恢复，否则会恢复已修复的通关重打与区域错配问题。
+- 子项目一键回归 `node 坦克大战/测试/run_all.cjs`；浏览器回归 `node 坦克大战/测试/browser_audit_test.cjs`，需要 Playwright/Chrome，可通过 `PLAYWRIGHT_MODULE` 指定依赖；脚本自行启动并关闭临时 HTTP 服务。
+- 截图与带源码 SHA-256 的机器报告在项目测试的 `.artifacts/`（忽略）。系统 Python 无 Pillow 时先发现 Codex 自带 Python，不要依赖固定缓存路径或改动系统环境。
+- 发布标签为 `game/tank-battle/v1.6.13`，前一线上源码在 `坦克大战/历史版本/坦克大战-v1.6.12.html`；部署仍由 `main` 唯一触发。手机视口模拟通过不等于真机性能验收。
