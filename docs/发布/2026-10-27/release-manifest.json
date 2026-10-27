@@ -37,5 +37,11 @@
       "tag": "content/fan-resources/v0.7.1",
       "changes": "复制正确内容、失败反馈与旧Mac地址兼容跳转"
     }
-  ]
+  ],
+  "codeCommit": "d4acaab836c5bb192ac228b0ee49fe14ffa84151",
+  "localQA": {
+    "projectSuites": 37,
+    "passed": 37,
+    "sourceSnapshotVerified": true
+  }
 }

@@ -6,7 +6,7 @@
   "scripts/build-site.cjs": "4ffcc80cc16eb44651da21db8e2c7aa0a459276d997c558e2f836df543850b3b",
   "scripts/check-all.cjs": "1438e1baf60a37fd3f7ea192f2584cf426fd4d85b9da160e1f27ba2fce8cbd3f",
   "scripts/serve-site.cjs": "d10ef67bcaa78b2f23c3c3ecb943c31f4991228dac155a26b505ff38275e4d39",
-  "创意空间首页/game-catalog.json": "2d4c6d0b3a1696be8455c370142c7f5e93006fe4a8e64b36312234f008f7cb38",
+  "创意空间首页/game-catalog.json": "8cb49cd2c76be4610d89c85573f4362d2d4d638cdf7643ff9726b89ddc708245",
   "创意空间首页/index.html": "534cbf9d82b44080af518735a94e7c7f9e554a7b0cf56ff169d9c14ca1a21c8d",
   "创意空间首页/scripts/generate-game-catalog.cjs": "774255a76dd36665ccd240f95d17274c592fdbfec42b3381f867a43f0bab8cfd",
   "创意空间首页/测试/catalog_history_test.js": "033b1914e6aaaf9ea81c5e6a9a86612d1892df7083f4bdba5cc847e11c3a14ff",
