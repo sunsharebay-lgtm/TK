@@ -43,5 +43,14 @@
     "projectSuites": 37,
     "passed": 37,
     "sourceSnapshotVerified": true
+  },
+  "firstDeployment": {
+    "commit": "41a41930b24b0aa2e516a7a82b9b2982713bf67c",
+    "actionsRun": 40521986517,
+    "actionsUrl": "https://github.com/sunsharebay-lgtm/TK/actions/runs/40521986517",
+    "status": "success",
+    "projectChecks": 37,
+    "pages": 15,
+    "scripts": 10
   }
 }

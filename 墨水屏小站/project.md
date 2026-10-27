@@ -94,3 +94,5 @@
 - 发布前在干净检出中执行统一门禁，部署后按预期提交号验收。发布记录：`../docs/发布/2026-10-27/project.md`。
 
 - 发布文件 `index.html` SHA-256：`581d0db30ef22c1423bc6c57a4e4175e0632e875ba01d13ca2dc65318f3eba32`。
+
+- 2026-10-27 发布验收完成：`game/idle-screen/v0.4.1` 已推送，main首轮部署 `41a4193` 的 [Actions 40521986517](https://github.com/sunsharebay-lgtm/TK/actions/runs/40521986517) 成功；全站37组Linux检查及线上入口/数据/脚本验证通过。

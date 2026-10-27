@@ -110,3 +110,5 @@
 - 发布前在干净检出中执行统一门禁，部署后按预期提交号验收。发布记录：`../docs/发布/2026-10-27/project.md`。
 
 - 发布文件 `网页复刻/吞食天地Ⅱ同人复刻-网页版/index.html` SHA-256：`e794e1f4dd7e71d9a23cce182366ea0013f8275d9c405bdc55a411f02b6fccbd`。
+
+- 2026-10-27 发布验收完成：`game/three-kingdoms/v0.3.1` 已推送，main首轮部署 `41a4193` 的 [Actions 40521986517](https://github.com/sunsharebay-lgtm/TK/actions/runs/40521986517) 成功；全站37组Linux检查及线上入口/数据/脚本验证通过。
