@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-27",
+  "note": "本轮审查前工作区快照，包含 2026-10-26 尚未提交的修复。",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "bc2ddf076641a36f38e94759fe4ecd159506a427389d41bf6028221cf89cc3f9"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c9a6c43f776d66b64abdab8dd0e60ef9af2eef8f19d6d16a125d4fc5a2b5be29"
+    },
+    {
+      "path": "project.md",
+      "sha256": "32dbfe9453361f886c8347ca975f08b572c00e19924c2812460b3141c004d09f"
+    },
+    {
+      "path": "更新记录.md",
+      "sha256": "0a64552fc51ff76e920b12dea3b74d61a657c6410b9c00fd8b21305e1072ab10"
+    },
+    {
+      "path": "resources.json",
+      "sha256": "0bf1c537a31657a8423f7caf77b9c4ff9ebde0fc41b49a7a81c65762edf554fc"
+    },
+    {
+      "path": "index.html",
+      "sha256": "bf791276e3dba84ce5fe64208adff945fae8f4d49ffb1a66c223b7d7b54f09f2"
+    },
+    {
+      "path": "scripts/copy.js",
+      "sha256": "7fb2a8f48bbd9a003ac7057b8cbdacbda5dc3145ef98c8b04fa2cbbc9a2303f4"
+    },
+    {
+      "path": "测试/resources_test.js",
+      "sha256": "1fd7d507a5429168b84cd5f45cce46c042f5d3e5e2519354231e0cbb492df954"
+    },
+    {
+      "path": "测试/clipboard_test.js",
+      "sha256": "40fb4e71291fe9d61586784efc145675b23b828fe207251e384eeec4216c1461"
+    },
+    {
+      "path": "测试/legacy_routes_test.js",
+      "sha256": "b8fb008293855e5c108257a9257e4102ae3981b0bc673df6a41521b5579afed0"
+    },
+    {
+      "path": "资源/汉化Codex和ClaudeCode工具/index.html",
+      "sha256": "a159f0a1487d42439514e39f8bc0d516d951bed033dd6e1828c6fafe048bd6fa"
+    },
+    {
+      "path": "资源/Mac软件资源库/index.html",
+      "sha256": "88a94a82822208403f9bc6c72b3a077d3a035c1178235c587837430f3095bacf"
+    },
+    {
+      "path": "资源/Codex生图执行规范/index.html",
+      "sha256": "7d65fda88889d85cf6e351d8398e3fa1dd580a050d2134f91c984ca75a8187f1"
+    },
+    {
+      "path": "资源/名人智囊团Hermes安装包/index.html",
+      "sha256": "fbbe8daf168f6eda85715202a28b08211cb036e9e25fa30a64453e7cb05123e9"
+    },
+    {
+      "path": "资源/自动剪辑视频技能包/index.html",
+      "sha256": "fe5aacda0eee2ba4df29c1f28adfc65741c0026fa61f8ffb5bcfa9098e9fb08a"
+    },
+    {
+      "path": "资源/iStoreOS安装OpenClash/index.html",
+      "sha256": "e293807dfcbf1bbdf90593cbd97344067016f07fbb04880fec67ad14ff674cd4"
+    },
+    {
+      "path": "资源/giffgaff保命资料/index.html",
+      "sha256": "08f5bd1b9bba813a87a933b08b75a0e3a9a7e1397be65be65157b1ea012ff73c"
+    },
+    {
+      "path": "共享发布设施/build-site.cjs",
+      "source": "../scripts/build-site.cjs",
+      "sha256": "4ffcc80cc16eb44651da21db8e2c7aa0a459276d997c558e2f836df543850b3b"
+    }
+  ]
+}

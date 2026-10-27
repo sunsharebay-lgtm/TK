@@ -19,7 +19,7 @@ const files = [
   '吞食天地三国/index.html', '吞食天地三国/three-kingdoms.html', `${engine}/index.html`, `${engine}/js`, `${engine}/assets`,
   '超级玛丽/index.html', '墨水屏小站/index.html',
   'Mac软件资源库/index.html', 'Mac软件资源库/software-resources.json',
-  '粉丝资源/index.html', '粉丝资源/resources.json', '粉丝资源/scripts', '粉丝资源/资源',
+  '粉丝资源/index.html', '粉丝资源/resources.json', '粉丝资源/scripts', '粉丝资源/styles', '粉丝资源/资源',
 ];
 for (const file of files) {
   const from = path.join(root, file), to = path.join(output, file);

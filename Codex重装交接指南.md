@@ -195,3 +195,10 @@ git push origin game/three-kingdoms/v1.0.0
 - 子项目一键回归 `node 坦克大战/测试/run_all.cjs`；浏览器回归 `node 坦克大战/测试/browser_audit_test.cjs`，需要 Playwright/Chrome，可通过 `PLAYWRIGHT_MODULE` 指定依赖；脚本自行启动并关闭临时 HTTP 服务。
 - 截图与带源码 SHA-256 的机器报告在项目测试的 `.artifacts/`（忽略）。系统 Python 无 Pillow 时先发现 Codex 自带 Python，不要依赖固定缓存路径或改动系统环境。
 - 发布标签为 `game/tank-battle/v1.6.13`，前一线上源码在 `坦克大战/历史版本/坦克大战-v1.6.12.html`；部署仍由 `main` 唯一触发。手机视口模拟通过不等于真机性能验收。
+
+
+### 粉丝资源 v0.8.0 恢复要点
+
+- 入口依次加载 `粉丝资源/scripts/catalog.js`、`scripts/resources.js`；详情页共用 `scripts/copy.js`；所有页面使用 `styles/common.css`。共享打包清单必须收录 styles/，否则发布后缺失公共交互样式。
+- 本项目基础回归为 `resources_test.js`、`catalog_validation_test.js`、`clipboard_test.js`、`legacy_routes_test.js`、`package_test.js`；浏览器回归用 `node --test 测试/browser_test.cjs`，依赖恢复见粉丝资源 README。
+- 本次以远程 main 已验收的 v0.7.1 为基线，在隔离工作树发布 v0.8.0；专项审查前的源码快照与当前校验值见 `粉丝资源/project.md`。

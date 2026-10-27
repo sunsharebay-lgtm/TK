@@ -1,0 +1,21 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const root = path.resolve(__dirname, '..');
+const file = path.join(root, '资源/Mac软件资源库/index.html');
+assert.ok(fs.existsSync(file), '旧公开 Mac 资料页必须保留兼容入口');
+const html = fs.readFileSync(file, 'utf8');
+const destination = '../../../Mac软件资源库/';
+assert.ok(html.includes(`href="${destination}"`), '无 JavaScript 时也必须可以打开新入口');
+assert.ok(html.includes(`url=${destination}`), '保留 meta refresh 回退');
+assert.ok(fs.existsSync(path.resolve(path.dirname(file), destination, 'index.html')), '相对跳转必须到达独立资源库');
+let redirected;
+const location = { search: '?q=test', hash: '#software-grid', replace: (url) => { redirected = url; } };
+const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+vm.runInNewContext(script, { location });
+assert.equal(redirected, `${destination}?q=test#software-grid`, '兼容跳转保留书签查询与锚点');
+const data = JSON.parse(fs.readFileSync(path.join(root, 'resources.json'), 'utf8'));
+assert.ok(!data.resources.some((item) => item.id === 'mac-software-resource-library'), '兼容入口不能恢复已迁出的资源编号');
+console.log('Legacy resource route checks passed (relative redirect, fallback, query/hash, independent ownership).');

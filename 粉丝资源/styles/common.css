@@ -1,0 +1,19 @@
+/* Shared interaction/layout rules; resource-specific presentation stays in each page. */
+[hidden] { display: none !important; }
+.brand { min-width: 0; }
+.brand-mark { flex-shrink: 0; }
+.brand span:last-child, h1, code { overflow-wrap: anywhere; }
+.copy-btn, .resource-action { min-height: 44px; max-width: 100%; height: auto; line-height: 1.5; }
+.copy-btn[aria-disabled="true"] { cursor: wait; opacity: .7; }
+.copy-status { margin: 12px 0 0; color: var(--muted); font-family: "PingFang SC", system-ui, sans-serif; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.copy-status:empty { margin: 0; }
+.copy-value { user-select: all; }
+.footer a { color: var(--cyan); }
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+@media (max-width: 600px) {
+  .topbar { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .template-head { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+}

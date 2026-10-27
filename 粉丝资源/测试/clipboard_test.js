@@ -29,7 +29,8 @@ async function checkPage(item, mode) {
     dataset: { copyTarget: match[0].match(/data-copy-target="([^"]+)"/)?.[1] },
     classList: { add() {}, remove() {} },
     setAttribute() {},
-    closest: () => ({ querySelector: () => ({ textContent: expected[index] }) }),
+    getAttribute() { return null; },
+    closest: () => ({ querySelector: () => ({ textContent: expected[index] }), appendChild() {} }),
     addEventListener(event, callback) { this.click = callback; },
   }));
   const document = {
