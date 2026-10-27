@@ -112,11 +112,12 @@ class MoveRouteExecutor {
     if (this.wait > 0) { this.wait--; return; }
     if (this.chr.isMoving()) return;
     const list = this.route.list;
-    while (this.index < list.length) {
+    let budget = list.length + 1;
+    while (this.index < list.length && budget-- > 0) {
       const cmd = list[this.index++];
       if (!this.execCmd(cmd)) break;         // 尚在等待（如移动中）
       if (cmd.code === 0) {                  // 结束
-        if (this.route.repeat) { this.index = 0; continue; }
+        if (this.route.repeat) { this.index = 0; return; }
         this.chr.cancelMoveRoute();
         return;
       }
@@ -125,31 +126,36 @@ class MoveRouteExecutor {
   execCmd(cmd) {
     const c = this.chr, p = cmd.parameters || [];
     switch (cmd.code) {
-      case 1: case 2: case 3: case 4:
-        c.moveStraight(cmd.code * 2); return !c.isMoving();
-      case 15: this.wait = p[0]; return true;
+      case 1: case 2: case 3: case 4: {
+        const moved = c.moveStraight(cmd.code * 2);
+        if (!moved && !this.route.skippable) this.index--;
+        return false;
+      }
+      case 15: this.wait = p[0]; return false;
       case 16: c.setDirection(2); return true;
       case 17: c.setDirection(4); return true;
       case 18: c.setDirection(6); return true;
       case 19: c.setDirection(8); return true;
-      case 20: T.$gameSwitches.setValue(p[0], true); return true;
-      case 21: T.$gameSwitches.setValue(p[0], false); return true;
-      case 26: c._through = true; return true;
-      case 27: c._through = false; return true;
+      case 27: T.$gameSwitches.setValue(p[0], true); return true;
+      case 28: T.$gameSwitches.setValue(p[0], false); return true;
       case 29: c._moveSpeed = p[0]; return true;
-      case 33: return c.moveStraight(c.direction());
-      case 34: { const opp = { 2: 8, 8: 2, 4: 6, 6: 4 }; return c.moveStraight(opp[c.direction()] || 2); }
+      case 12: c.moveStraight(c.direction()); return false;
+      case 13: { const dir = c.direction(); c.moveStraight(10 - dir); c.setDirection(dir); return false; }
       case 14: { // G3-R3: 位置相对移动（TNW 路线扩展命令 [dx,dy]）
         const m = T.$gameMap;
         const w = m ? m.width - 1 : 999, h = m ? m.height - 1 : 999;
         c.x = T.clamp((c.x || 0) + (p[0] || 0), 0, Math.max(0, w));
         c.y = T.clamp((c.y || 0) + (p[1] || 0), 0, Math.max(0, h));
-        return true;
+        c._moving = true; return false;
       }
-      case 37: c._stepAnime = true; return true;
-      case 38: c._stepAnime = false; return true;
-      case 39: c._walkAnime = true; return true;
-      case 40: c._walkAnime = false; return true;
+      case 31: c._walkAnime = true; return true;
+      case 32: c._walkAnime = false; return true;
+      case 33: c._stepAnime = true; return true;
+      case 34: c._stepAnime = false; return true;
+      case 37: c._through = true; return true;
+      case 38: c._through = false; return true;
+      case 39: c._transparent = true; return true;
+      case 40: c._transparent = false; return true;
       case 41: c.setImage(p[0], p[1]); return true;
       case 44: T.AudioManager.playSe(p[0]); return true;
       case 45: try { new Function(...p)(""); } catch (e) {} return true;
@@ -275,7 +281,7 @@ class Game_Map {
     return false;
   }
   regionId(x, y) {
-    const idx = (4 * this.height + y) * this.width + x;
+    const idx = (5 * this.height + y) * this.width + x;
     return this.data[idx] || 0;
   }
   terrainTag(x, y) {
@@ -367,8 +373,7 @@ class Game_Event extends Game_Character {
     this._imgName = name; this._imgIndex = index;
   }
   imageInfo() {
-    const img = this.page ? this.page.image : { characterName: "", characterIndex: 0 };
-    return { name: img.characterName, index: img.characterIndex };
+    return { name: this.page ? this._imgName : "", index: this._imgIndex || 0 };
   }
   isChest() {
     const name = (this.page && this.page.image && this.page.image.characterName) ||
@@ -517,7 +522,8 @@ class Game_Player extends Game_Character {
   }
   update() {
     super.update();
-    if (!this.isMoving() && !T.$gameMap.interpreter.isRunning()) this.doInputMove();
+    if (!this.isMoving() && !this._routeExecutor && !T.$gameMap.interpreter.isRunning() &&
+        !T.$gameMessage.texts.length && !T.$gameMessage.choices.length && !T.SceneManager.busy) this.doInputMove();
   }
   doInputMove() {
     if (T.Input.pressed("shift")) this._moveSpeed = 5; else this._moveSpeed = 4;
@@ -543,6 +549,8 @@ class Game_Interpreter {
     this._routeWaitChar = null;
     this.branches = {};
     this.onFinish = null;
+    this._choiceResult = undefined; this._battleResult = undefined; this._battleBranches = {};
+    this._asyncPromise = null;
   }
   setup(list, eventId = 0) {
     this.clear();
@@ -551,7 +559,8 @@ class Game_Interpreter {
   }
   isRunning() { return !!this.list; }
   update() {
-    while (this.isRunning()) {
+    let budget = 1000;
+    while (this.isRunning() && budget-- > 0) {
       if (this.waitCount > 0) { this.waitCount--; return false; }
       if (this.child) {
         if (!this.child.update()) return false;
@@ -561,11 +570,11 @@ class Game_Interpreter {
       if (this.waitMode === "route" && this.routeChar() != null) return false;
       if (this.waitMode === "choice" && this._choiceResult == null && !this.choiceResolved()) return false;
       if (this.waitMode === "async" && this._asyncPromise) return false;
+      if (this.waitMode === "battle" && (T.PendingBattle || T.BattleScene)) return false;
       if (this.waitMode === "choice" && this.choiceResolved()) {
         // 记录结果并继续执行（402/403 会读取）
         const r = this._choiceResult;
-        if (r.cancelled) this.branches["choice"] = { taken: -1, cancelled: true };
-        else this.branches["choice"] = { taken: r.index, cancelled: false };
+        this.branches['choice:' + this._choiceIndent] = { taken: r.index, cancelled: r.cancelled };
         T.$gameMessage.clear();
         this.waitMode = "";
       }
@@ -575,7 +584,7 @@ class Game_Interpreter {
       if (ret === false) return false;   // 异步等待
       if (ret === "skip") continue;
     }
-    return true;
+    return !this.isRunning();
   }
   choiceResolved() { return this._choiceResult !== undefined; }
   onChoiceResult(index, cancelled) {
@@ -607,6 +616,9 @@ class Game_Interpreter {
       if (cmd.code === 411 && mode === "false") return;
       if (cmd.code === 0 || cmd.code === 412 || cmd.code === 413) return;
     }
+  }
+  skipIndentedBranch(indent) {
+    while (this.index < this.list.length && this.list[this.index].indent > indent) this.index++;
   }
   jumpToLoopEnd() {
     let depth = 0;
@@ -663,11 +675,15 @@ class Game_Interpreter {
     switch (c) {
       case 0: return true;                       // 列表结束由外层处理
       /* ---- 消息 ---- */
-      case 101:
+      case 101: {
+        if (this.hasMessage()) { this.index--; this.waitMode = 'message'; return false; }
         T.$gameMessage.clear();
         M.faceName = p[0] || ""; M.faceIndex = p[1] || 0;
         M.background = p[2] || 0; M.position = p[3] == null ? 2 : p[3];
-        return true;
+        while (this.list?.[this.index]?.code === 401) M.add(this.list[this.index++].parameters[0]);
+        if (this.list?.[this.index]?.code === 102) return this.command(this.list[this.index++]);
+        this.waitMode = 'message'; return false;
+      }
       case 401: {
         M.add(p[0]);
         const sc = T.SceneManager.current();
@@ -682,12 +698,13 @@ class Game_Interpreter {
         }
         M.choices = p[0].slice(); M.choiceCancelType = p[1];
         M.choiceDefaultType = p[2] || 0;
+        M.choiceInterpreter = this; this._choiceIndent = cmd.indent;
         this._choiceResult = undefined;
         this._interpreterRef = this;
         this.waitMode = "choice";
         return false;
       case 402: { // 选择分支
-        const st = this.branches["choice"];
+        const st = this.branches['choice:' + cmd.indent];
         if (st && st.taken === p[0]) return true;
         // Skip entire choice branch: advance to next 402/404 at same indent
         const ci = cmd.indent;
@@ -695,13 +712,13 @@ class Game_Interpreter {
           const nx = this.list[this.index];
           if (!nx) break;
           if (nx.indent < ci) break;
-          if (nx.indent === ci && (nx.code === 402 || nx.code === 404)) break;
+          if (nx.indent === ci && (nx.code === 402 || nx.code === 403 || nx.code === 404)) break;
           this.index++;
         }
         return true;
       }
       case 403: { // 取消分支
-        const st = this.branches["choice"];
+        const st = this.branches['choice:' + cmd.indent];
         if (st && st.cancelled) return true;
         const ci2 = cmd.indent;
         while (this.index < this.list.length) {
@@ -714,7 +731,7 @@ class Game_Interpreter {
         return true;
       }
       case 404:
-        delete this.branches["choice"];
+        delete this.branches['choice:' + cmd.indent];
         return true;
       /* ---- 流程 ---- */
       case 111: {
@@ -727,7 +744,13 @@ class Game_Interpreter {
         if (st && st.taken) { this.skipBranch("true"); return true; }
         return true;
       }
-      case 412: case 413: return true;           // 分支/循环结束
+      case 412: delete this.branches[cmd.indent]; return true;
+      case 413: {
+        for (let i = this.index - 2; i >= 0; i--) if (this.list[i].code === 112 && this.list[i].indent === cmd.indent) {
+          this.index = i + 1; break;
+        }
+        return true;
+      }
       case 112: return true;
       case 113: return this.jumpToLoopEnd(cmd.indent);
       case 115: this.terminate(); return true;
@@ -742,7 +765,7 @@ class Game_Interpreter {
       case 118: return true;                     // Label
       case 119: { // Jump to Label
         const li = this.list.findIndex((cc, i) =>
-          i > 0 && cc.code === 118 && cc.parameters[0] === p[0]);
+          cc.code === 118 && cc.parameters[0] === p[0]);
         if (li >= 0) this.index = li + 1;
         return true;
       }
@@ -757,13 +780,13 @@ class Game_Interpreter {
         return true;
       case 122: return this.commandVariables(p);
       case 123: {
-        const key = `${T.$gameMap.mapId},${this.eventId},${p[0]}`;
+        const key = `${this.mapId},${this.eventId},${p[0]}`;
         T.$gameSelfSwitches.setValue(key, p[1] === 0);
         T.$gameMap.refreshEvents();
         return true;
       }
       case 124:
-        if (p[0] === 0) T.$gameTimer.start(p[2]); else T.$gameTimer.stop();
+        if (p[0] === 0) T.$gameTimer.start(p[1]); else T.$gameTimer.stop();
         return true;
       /* ---- 持有物 ---- */
       case 125: {
@@ -813,16 +836,16 @@ class Game_Interpreter {
           this._asyncResolve = null;
           this._asyncPromise = promise;
           this.waitMode = "async";
-          promise.then(() => { this.waitMode = ""; this._asyncPromise = null; });
+          promise.then(() => { this.waitMode = ""; this._asyncPromise = null; }, () => {
+            this._asyncPromise = null; this.waitMode = ''; this.index--;
+            T.$gameMessage.add('地图加载失败，请确认后重试。'); this.waitMode = 'message';
+          });
         }
         return false;
       }
       case 202: return this.commandSetVehicleLocation(p);
-      case 204: { // G3-R3: 事件位置变更扩展（TNW 数据 [eventId,x,y,...]，与 202 同语义宽化；推定参数位）
-        const ch = this.character(p[0]);
-        if (ch && p[1] != null && p[2] != null) { ch.x = p[1]; ch.y = p[2]; }
-        return true;
-      }
+      case 203: return this.commandSetEventLocation(p);
+      case 204: return true; // 镜头卷动不改变事件或玩家坐标。
       case 205: { // 移动路线
         const ch = this.character(p[0]);
         if (ch) ch.forceMoveRoute(p[1]);
@@ -843,13 +866,13 @@ class Game_Interpreter {
         return true;
       }
       /* ---- 画面效果 ---- */
-      case 211: T.$gamePlayer._transparent = !!p[0]; return true;
+      case 211: T.$gamePlayer._transparent = p[0] === 0; return true;
       case 212: return true;                     // 集合队员(无跟随者渲染则忽略)
       case 216: case 217: return true;
       case 221: T.SceneManager.fadeOut(30); this.waitCount = 30; return true;
       case 222: T.SceneManager.fadeIn(30); this.waitCount = 30; return true;
-      case 223: T.$gameScreen.startTone(p.slice(0, 4), p[4]); return true;
-      case 224: T.$gameScreen.startFlash(p.slice(0, 3).concat([p[3] / 255]), p[4]); return true;
+      case 223: T.$gameScreen.startTone(p[0], p[1]); if (p[2]) this.waitCount = p[1]; return true;
+      case 224: T.$gameScreen.startFlash(p[0].slice(0, 3).concat([p[0][3] / 255]), p[1]); if (p[2]) this.waitCount = p[1]; return true;
       case 225: T.$gameScreen.shake(p[0], p[1], p[2]); return true;
       case 230: this.waitCount = Math.max(1, Math.round((p[0] || 1))); return true;
       case 231: {
@@ -860,7 +883,8 @@ class Game_Interpreter {
       }
       case 235: T.$gameScreen.erasePicture(p[0]); return true;
       case 240: T.AudioManager.playBgm({ name: p[0].name, volume: p[0].volume, pitch: p[0].pitch }); return true;
-      case 241: T.AudioManager.stopBgm(1); return true;
+      case 241: T.AudioManager.playBgm(p[0]); return true;
+      case 242: T.AudioManager.stopBgm(p[0]); return true;
       case 245: T.AudioManager.saveBgm(); return true;
       case 246: T.AudioManager.replaySavedBgm(); return true;
       case 249: T.AudioManager.playMe(p[0]); return true;
@@ -871,6 +895,7 @@ class Game_Interpreter {
       case 301: {
         const troopId = p[0] === 0 ? p[1] : T.$gameVariables.value(p[1]);
         this.processBattle(troopId, !!p[2], !!p[3]);
+        this._battleIndent = cmd.indent; this.waitMode = 'battle';
         return false;                            // 战斗期间挂起
       }
       case 354: {
@@ -882,19 +907,20 @@ class Game_Interpreter {
         }
         return true;
       }
-      case 601: if (this._battleResult === "win") return true; return "skip";
-      case 602: if (this._battleResult === "escape") return true; return "skip";
-      case 603: if (this._battleResult === "lose") return true; return "skip";
+      case 601: case 602: case 603: {
+        const result = this._battleBranches[cmd.indent] || this._battleResult;
+        if (result !== ['win','escape','lose'][c - 601]) this.skipIndentedBranch(cmd.indent);
+        return true;
+      }
       case 604: return true;
       case 302: {
         // 收集所有 302/605 商品行
-        const goods = [[p[0], p[1]]];
-        this._shopPurchaseOnly = !!p[2];
+        const goods = [p.slice(0, 4)];
+        this._shopPurchaseOnly = !!p[4];
         while (this.index < this.list.length) {
           const next = this.list[this.index];
           if (!next) break;
-          if (next.code === 605) { goods.push([next.parameters[0], next.parameters[1]]); this.index++; }
-          else if (next.code === 302) { goods.push([next.parameters[0], next.parameters[1]]); this._shopPurchaseOnly = !!next.parameters[2]; this.index++; }
+          if (next.code === 605) { goods.push(next.parameters.slice(0, 4)); this.index++; }
           else break;
         }
         this._shopGoods = goods;
@@ -907,23 +933,26 @@ class Game_Interpreter {
       case 605: return true;
       /* ---- 角色/敌人操作 ---- */
       case 311: return this.commandChangeHp(p);
+      case 313:
+        for (const a of this.actorTargets(p)) if (p[2] === 0) { if (p[3] === 1) a.die(); else a.addStateRaw(p[3]); }
+        else { a.removeStateRaw(p[3]); if (p[3] === 1) a.revive(); }
+        return true;
       case 314: {
-        if (p[0] === 0) { const a = T.getActor(p[1]); if (a) a.recoverAll(); }
-        else for (const a of $gameParty.allMembers()) a.recoverAll();
+        for (const a of this.actorTargets(p)) a.recoverAll();
         return true;
       }
       case 317: return this.commandChangeParam(p);
       case 318: { // 学会/遗忘技能
-        const targets = p[0] === 0 ? [T.getActor(p[1])] : $gameParty.allMembers();
+        const targets = this.actorTargets(p);
         for (const a of targets) {
           if (!a) continue;
-          if (p[2] === 0) a.learnedSkillIds = [...new Set([...(a.learnedSkillIds || []), p[3]])];
+          if (p[2] === 0) a.learnSkill(p[3]); else a.forgetSkill(p[3]);
         }
         return true;
       }
       case 319: { // 更换装备
         const a = T.getActor(p[0]);
-        if (a) a.changeEquip(p[1], p[2] || 0);
+        if (a) a.tradeEquip(p[1], p[2] || 0);
         return true;
       }
       case 320: { const a = T.getActor(p[0]); if (a) a.name = p[1]; return true; }
@@ -985,17 +1014,19 @@ class Game_Interpreter {
                  op === 3 ? v1 > v2 : op === 4 ? v1 < v2 : v1 !== v2;
         break;
       }
-      case 2: result = T.$gameSelfSwitches.value(`${T.$gameMap.mapId},${this.eventId},${p[1]}`); break;
+      case 2: result = T.$gameSelfSwitches.value(`${this.mapId},${this.eventId},${p[1]}`) === (p[2] === 0); break;
       case 3: result = T.$gameTimer._working && (p[2] === 0 ? T.$gameTimer.seconds() >= p[1] : T.$gameTimer.seconds() <= p[1]); break;
       case 4: {
         const a = T.getActor(p[1]);
         if (!a) break;
         const sub = p[2];
         if (sub === 0) result = $gameParty._actors.includes(p[1]);
-        else if (sub === 1) result = a.nickname === p[3];
-        else if (sub === 2) result = a.skills().some(s => s.id === p[3]);
-        else if (sub === 3) result = Object.values(a._equips).includes(p[3]);
-        else if (sub === 4) result = a.isStateAffected(p[3]);
+        else if (sub === 1) result = a.name === p[3];
+        else if (sub === 2) result = a.classId === p[3];
+        else if (sub === 3) result = a.knowsSkill(p[3]);
+        else if (sub === 4) result = a.equipAt(1) === T.$dataWeapons[p[3]];
+        else if (sub === 5) result = a.equippedItems().includes(T.$dataArmors[p[3]]);
+        else if (sub === 6) result = a.isStateAffected(p[3]);
         break;
       }
       case 5: {
@@ -1013,7 +1044,7 @@ class Game_Interpreter {
         else result = ch.direction() === p[2];
         break;
       }
-      case 7: result = p[2] === 0 ? $gameParty.gold() >= p[1] : $gameParty.gold() <= p[1]; break;
+      case 7: result = p[2] === 0 ? $gameParty.gold() >= p[1] : p[2] === 1 ? $gameParty.gold() <= p[1] : $gameParty.gold() < p[1]; break;
       /* MV 条件分支的物品/武器/防具格式只有 [类型,id]，没有“持有/没有”的第三参数。 */
       case 8: result = $gameParty.hasItem(T.$dataItems[p[1]]); break;
       case 9: result = $gameParty.itemCount(T.$dataWeapons[p[1]]) > 0; break;
@@ -1067,8 +1098,8 @@ class Game_Interpreter {
       case 0: return $gameParty.itemCount(T.$dataItems[arg1]);
       case 1: return $gameParty.itemCount(T.$dataWeapons[arg1]);
       case 2: return $gameParty.itemCount(T.$dataArmors[arg1]);
-      case 3: { const ac = T.getActor(arg1); return ac ? (arg2 === 0 ? ac.level : arg2 === 1 ? ac.exp : ac.hp) : 0; }
-      case 4: { const en = T.BattleScene ? T.BattleScene.enemyAt(arg1) : null; return en ? (arg2 === -1 ? en.hp : en.param(arg2)) : 0; }
+      case 3: { const ac = T.getActor(arg1); return ac ? (arg2 === 0 ? ac.level : arg2 === 1 ? ac.exp : arg2 === 2 ? ac.hp : arg2 === 3 ? ac.mp : ac.param(arg2 - 4)) : 0; }
+      case 4: { const en = T.BattleScene ? T.BattleScene.enemyAt(arg1) : null; return en ? (arg2 <= 0 ? en.hp : arg2 === 1 ? en.mp : en.param(arg2 - 2)) : 0; }
       case 5: { const ch = this.character(arg1); return ch ? (arg2 === 0 ? ch.x : arg2 === 1 ? ch.y : ch.direction()) : 0; }
       case 6: return arg1 === 0 ? $gameParty.gold() : arg1 === 1 ? $gameParty.steps() : 0;
       case 7: return arg1 === 0 ? T.$gameMap.mapId : 0;
@@ -1099,18 +1130,18 @@ class Game_Interpreter {
     return true;
   }
   commandChangeHp(p) {
-    const targets = p[0] === 0 ? [T.getActor(p[1])] : $gameParty.allMembers();
+    const targets = this.actorTargets(p);
     const amount = this.valueOperand(p[3] === 0 ? 0 : 1, p, 4);
     for (const a of targets) {
       if (!a) continue;
-      if (p[2] === 0) a.hp += amount; else a.hp -= amount;
-      if (a.hp <= 0 && !p[5]) a.die();
-      else a.refresh();
+      if (a.isDead()) continue;
+      a.hp = Math.max(p[5] ? 0 : 1, a.hp + (p[2] === 0 ? amount : -amount));
+      a.refresh();
     }
     return true;
   }
   commandChangeParam(p) {
-    const targets = p[0] === 0 ? [T.getActor(p[1])] : $gameParty.allMembers();
+    const targets = this.actorTargets(p);
     /* MZ 参数为 [对象类型, 对象ID, 参数ID, 运算, 操作数类型, 数值]。 */
     const amount = this.valueOperand(p[4] === 0 ? 0 : 1, p, 5);
     for (const a of targets) {
@@ -1120,6 +1151,10 @@ class Game_Interpreter {
       a._paramBonus[p[2]] = (a._paramBonus[p[2]] || 0) + (p[3] === 0 ? amount : -amount);
     }
     return true;
+  }
+  actorTargets(p) {
+    const id = p[0] === 0 ? p[1] : T.$gameVariables.value(p[1]);
+    return id === 0 ? $gameParty.allMembers() : T.$dataActors[id] ? [T.getActor(id)] : [];
   }
   processBattle(troopId, canEscape, canLose) {
     T.PendingBattle = {

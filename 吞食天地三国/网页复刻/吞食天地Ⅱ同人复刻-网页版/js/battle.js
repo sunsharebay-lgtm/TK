@@ -13,7 +13,7 @@ class Game_Troop {
   constructor(troopId) {
     this.troopId = troopId;
     const t = T.$dataTroops[troopId] || { members: [] };
-    this.members = t.members.map(m => new Game_Enemy(m.enemyId, m.x, m.y));
+    this.members = t.members.map(m => { const enemy = new Game_Enemy(m.enemyId, m.x, m.y); enemy.hidden = !!m.hidden; return enemy; });
     this.turnCount = 0;
     this.name = t.name || "";
     this._formation = -1;   // G2-R2: 敌方阵型（CE 121-132 脚本 $gameTroop.setFormation(N)）
@@ -61,7 +61,7 @@ class Scene_Battle {
     };
     T.BattleScene = this;
     /* 我方出战成员 */
-    this.partyMembers = $gameParty.battleMembers().filter(a => !a.isDead());
+    this.partyMembers = $gameParty.battleMembers();
     for (const a of this.partyMembers) a.onBattleStart();
     for (const e of this.troop.aliveMembers()) e.onBattleStart();
     this.partyBarRefHp = Math.max(1, ...this.partyMembers.map(a => a.hp));
@@ -116,11 +116,11 @@ class Scene_Battle {
   /* ---- 坐标 ---- */
   actorPos(a, iOffset = 0) {
     const idx = this.partyMembers.indexOf(a);
-    return { x: 430, y: 64 + idx * 72 + iOffset };
+    return { x: 304, y: 72 + idx * 64 + iOffset };
   }
   enemyScreenPos(e) {
     const idx = this.troop.members.indexOf(e);
-    return { x: 520, y: 64 + idx * 64 };
+    return { x: 472, y: 72 + idx * 64 };
   }
 
   update() {
@@ -174,6 +174,7 @@ class Scene_Battle {
     return order;
   }
   startRound() {
+    for (const a of this.partyMembers) { a.clearActions(); a._guarding = false; a._pendingAction = null; }
     this.roundActions = [];
     this.turnOrder = this.buildTurnOrder();
     this.actionIndex = 0;
@@ -221,8 +222,8 @@ class Scene_Battle {
       const name = sel[0];
       if (name === "逃跑") { this.tryEscape(); return; }
       if (name === "攻击") { a._pendingAction = { kind: "attack" }; this.beginSelectTargetEnemy(); }
-      else if (name === "防御") { a._pendingAction = { kind: "guard" }; this.nextActorOrResolve(); }
-      else if (name === "道具") { this.phase = "select-item"; this.itemList = $gameParty.allItems().filter(i => T.$dataItems.includes(i)); this.itemWin.index = 0; this.itemWin.itemMax = this.itemList.length; }
+      else if (name === "防御") { a._pendingAction = { kind: "guard" }; this.confirmActorAction(); }
+      else if (name === "道具") { this.phase = "select-item"; this.itemList = $gameParty.items().filter(i => i && [0,1].includes(i.occasion)); this.itemWin.index = 0; this.itemWin.topRow = 0; this.itemWin.itemMax = this.itemList.length; }
       else if (name === "总攻") { this.doTotalAssault(); return; }
       else if (name === "情报") { this.phase = "enemy-info"; this.targets = this.troop.aliveMembers(); this.targetIdx = 0; return; }
       else {
@@ -232,9 +233,11 @@ class Scene_Battle {
         this.skillList = a.usableSkills(stypeId);
         this.skillWin.itemMax = this.skillList.length;
         this.skillWin.index = 0;
+        this.skillWin.topRow = 0;
       }
     } else if (T.Input.triggered("cancel")) {
-      // 返回上一名角色
+      const previous = this.partyMembers.slice(0, this.partyMembers.indexOf(a)).filter(member => !member.isDead()).pop();
+      if (previous) { this.currentActor = previous; this._cmdsFor = null; }
     }
   }
   updateSkillType() {}
@@ -308,14 +311,13 @@ class Scene_Battle {
     this._cmdsFor = null;
   }
   issueTotalAssaultActions() {
-    const all = [...this.partyMembers.filter(a => !a.isDead()), ...this.troop.aliveMembers()];
-    for (const b of all) b.makeSpeed();
-    this.turnOrder = all.slice().sort((x, y) => y.turnAddSpeed - x.turnAddSpeed);
+    this.turnOrder = this.buildTurnOrder();
     this.actionIndex = 0;
     for (const ac of this.partyMembers.filter(m => !m.isDead())) {
       ac.setAction(0, T.$dataSkills[1], -1);
       ac._guarding = false;
       ac._actions[0].target = this.pickRandomAliveEnemy();
+      ac._actions[0].targets = null;
     }
   }
   updateSkillList() {
@@ -395,7 +397,7 @@ class Scene_Battle {
     if (this._actionFxLeft > 0) { this._actionFxLeft--; return; }
     while (this.actionIndex < this.turnOrder.length) {
       const b = this.turnOrder[this.actionIndex++];
-      if (b.isDead() || !b.appearOk()) continue;
+      if (!b.canMove() || !b.appearOk()) continue;
       this.subject = b;
       this.actionSeq = { user: b, t: 0, applied: false };
       this.phase = "action";
@@ -404,9 +406,12 @@ class Scene_Battle {
     // 回合结束
     this.troop.turnCount++;
     for (const b of [...this.partyMembers, ...this.troop.members]) b.onTurnEnd();
+    this.runTroopEvents(true);
     if ($gameParty.isAllDead()) { this.phase = "defeat"; this.phaseTimer = 90; return; }
     if (this.troop.isAllDead()) { this.processVictory(); return; }
     if (this.totalAssaultActive && !this._stopTotalAssault) {
+      this.runTroopEvents();
+      if (this.troop.isAllDead()) { this.processVictory(); return; }
       this.issueTotalAssaultActions();
       this.phase = "resolve";
       return;
@@ -456,12 +461,13 @@ class Scene_Battle {
     const act = a._actions[0];
     const item = act && act.item;
     if (!item) { if (a._guarding) { this.say(`${a.name} 摆出了防御态势。`); } return; }
-    if (item.id === 1) {                       // 普通攻击
+    if (item === T.$dataSkills[1]) {           // 道具和策略的编号空间彼此独立
       const t = act.target && !act.target.isDead() ? act.target : this.pickRandomAliveEnemy();
       if (!t) return;
       this.actionVisual = { user: a, target: t, hitT: 0 };
       this.applyItem(a, T.$dataSkills[1], t);
     } else if (T.$dataSkills.includes(item)) {
+      if (!a.canUse(item)) { this.say(`${a.name} 无法使用${item.name}，谋略点不足或计策已被封禁。`); return; }
       const scope = item.scope ?? item.damage?.scope;
       const targetOk = act.target && ([9, 10].includes(scope) ? act.target.isDead() : !act.target.isDead());
       const t = targetOk ? act.target : this.defaultTargetFor(item, a);
@@ -470,12 +476,14 @@ class Scene_Battle {
       a.paySkillCost(item);
       this.applyItem(a, item, act.targets && act.targets.length ? act.targets : t);
     } else if (T.$dataItems.includes(item)) {
+      if (!$gameParty.hasItem(item)) { this.say(`${item.name}已经用完了。`); return; }
       const scope = item.scope ?? item.damage?.scope;
       const targetOk = act.target && ([9, 10].includes(scope) ? act.target.isDead() : !act.target.isDead());
-      const t = targetOk ? act.target : a;
+      const t = targetOk ? act.target : this.defaultTargetFor(item, a);
+      if (!t && scope !== 0) return;
       this.actionVisual = { user: a, target: t, hitT: 0 };
       $gameParty.consumeItem(item);
-      this.applyItem(a, item, t);
+      this.applyItem(a, item, act.targets && act.targets.length ? act.targets : t);
     }
   }
   doEnemyAction(e) {
@@ -508,7 +516,7 @@ class Scene_Battle {
     if (!acts.length) return { skillId: 1 };
     const attacks = acts.filter(a => !a.itemId && a.skillId === 1);
     const tactics = acts.filter(a => a.itemId || a.skillId !== 1);
-    if (attacks.length && tactics.length && Math.random() >= this.enemyTacticRate(e)) return this.weightedEnemyAction(attacks);
+    if (tactics.length && Math.random() >= this.enemyTacticRate(e)) return attacks.length ? this.weightedEnemyAction(attacks) : { skillId: 1 };
     return this.weightedEnemyAction(tactics.length ? tactics : attacks);
   }
   weightedEnemyAction(acts) {
@@ -521,7 +529,7 @@ class Scene_Battle {
     if (action.itemId) return e.itemCount(T.$dataItems[action.itemId]) > 0;
     const skill = T.$dataSkills[action.skillId];
     if (!skill || skill.damage?.type === 4) return false;
-    return e.mp >= T.skillCost(skill);
+    return e.mp >= T.skillCost(skill) && !e.sealedSkills().includes(skill.id) && !e.sealedSkillTypes().includes(skill.stypeId);
   }
   enemyTacticRate(e) {
     return T.clamp((T.ENEMY_TACTIC_RATE_MIN || 0.1) + e.mat / 600,
@@ -573,7 +581,7 @@ class Scene_Battle {
       return dead[T.rand(dead.length)] || null;
     }
     if ([1, 2, 3, 4, 5, 6].includes(scope)) return enemyUser ? this.pickRandomAliveActor() : this.pickRandomAliveEnemy();
-    return this.subject;
+    return user;
   }
   pickRandomAliveEnemy() { const l = this.troop.aliveMembers(); return l[T.rand(l.length)] || null; }
   pickRandomAliveActor() { const l = this.partyMembers.filter(a => !a.isDead()); return l[T.rand(l.length)] || null; }
@@ -583,7 +591,9 @@ class Scene_Battle {
   applyAttack(user, target) { this.applyItem(user, T.$dataSkills[1], target); }
 
   applyItem(user, item, target) {
-    const explicitTargets = Array.isArray(target) ? target.filter(Boolean) : null;
+    const deadScope = [9,10].includes(item.scope);
+    const explicitTargets = Array.isArray(target) ? target.filter(t => t && !t.hidden &&
+      (deadScope ? t.isDead() : !t.isDead())) : null;
     const targets = explicitTargets || this.expandTargets(item, target, user);
     const dmg = item.damage || {};
     const multi = !!explicitTargets && targets.length > 1;
@@ -592,6 +602,7 @@ class Scene_Battle {
     const totalFactor = multi ? (isRecovery ? 1.25 : isDamage ? 1.5 : 1) : 1;
     const eachScale = totalFactor / Math.max(1, targets.length);
     for (const t of targets) this.applyToBattler(user, item, t, multi ? eachScale : 1);
+    for (const eff of item.effects || []) if (eff.code === 44) this.runBattleCommonEvent(eff.dataId, user);
     for (const t of targets) this.pushResultPopup(t);
     /* 动画与日志 */
     this.enqueueAnim(() => {
@@ -623,10 +634,12 @@ class Scene_Battle {
     const effects = item.effects || [];
     const healScope = [11, 14].includes(scope);
     const enemyUser = !!(user && user.isActor && !user.isActor());
+    if (scope === 0) return [];
     if ([1, 7, 9].includes(scope)) return target ? [target] : [];
     if (scope === 8) return (enemyUser ? this.troop.aliveMembers() : this.partyMembers.filter(x => !x.isDead()));
     if (scope === 2) return (enemyUser ? this.partyMembers.filter(x => !x.isDead()) : this.troop.aliveMembers());
     if (scope === 10) return enemyUser ? this.troop.members.filter(x => x.isDead()) : this.partyMembers.filter(x => x.isDead());
+    if (scope === 13) return enemyUser ? this.troop.members.filter(x => !x.hidden) : this.partyMembers.slice();
     if (healScope) return [target];
     if (effects.some(e => [21, 31].includes(e.code)) && [11, 14].includes(scope)) return [target];
     return [target];
@@ -636,7 +649,7 @@ class Scene_Battle {
     r.clear(); r.usedItem = item;
     const dmg = item.damage || {};
     /* 命中判定 */
-    const hitType = dmg.hitType ?? 0;
+    const hitType = item.hitType ?? dmg.hitType ?? 0;
     if (hitType === 1) {   // 物理可闪避
       if (Math.random() < Math.max(0.05, target.xparam(1) * 0.5)) {
         r.evaded = true;
@@ -655,9 +668,9 @@ class Scene_Battle {
         r.critical = true;
         v *= 3;
       }
-      const fullEnemyHeal = !(user.isActor && user.isActor()) && dmg.type === 3 &&
-        (item.id === 96 || item.name === "完复计");
-      if (!fullEnemyHeal) {
+      const fullHeal = dmg.type === 3 && item.name === "完复计";
+      if (fullHeal) v = target.mhp - target.hp;
+      if (!fullHeal) {
         const varr = (dmg.variance || 0) / 100;
         v = Math.round(v * (1 - varr + Math.random() * varr * 2));
       }
@@ -666,7 +679,7 @@ class Scene_Battle {
       v = Math.round(v * valueScale);
       v = (dmg.type === 1 || dmg.type === 2) ? Math.max(1, v) : Math.max(0, v);
       /* 防御减伤 */
-      if (target._guarding) v = Math.floor(v / 2);
+      if (target._guarding && [1,2].includes(dmg.type)) v = Math.max(1, Math.floor(v / 2));
       if (dmg.type === 1) {
         r.hpAffected = true; r.hpDamage += v;
         target.hp -= v;
@@ -682,7 +695,7 @@ class Scene_Battle {
         target.mp += v;
       }
       /* 攻击附带状态（武器特性）*/
-      if (item.id === 1) {
+      if (item === T.$dataSkills[1]) {
         for (const stId of user.attackStates()) {
           if (Math.random() < 0.3) target.addState(stId);
         }
@@ -690,7 +703,7 @@ class Scene_Battle {
     }
     /* 附加效果 */
     for (const eff of item.effects || []) {
-      this.applyEffect(user, target, eff, item, valueScale);
+      if (eff.code !== 44) this.applyEffect(user, target, eff, item, valueScale);
     }
     if (target.hp <= 0) {
       target.die();
@@ -718,7 +731,7 @@ class Scene_Battle {
       case 31: target.addBuff(eff.dataId, eff.value2 || 3, false); break;
       case 32: target.addBuff(eff.dataId, eff.value2 || 3, true); break;
       case 42: { // G3-R3: 永久成长（蛇胆/武力石等；此前为占位 break，道具无效）
-        const names = ["兵力", "谋点", "武力", "智力", "防御", "抗智", "速度", "统率"];
+        const names = ["兵力", "谋点", "武力", "防御", "智力", "抗计", "速度", "统率"];
         target.growParam(eff.dataId, eff.value1);
         this.say(`${target.name} 的${names[eff.dataId] || "能力"}提升了！`);
         break;
@@ -741,93 +754,44 @@ class Scene_Battle {
   execBattleEventList(listArg, user) {
     const prevFormation = T.$gameParty._formation;
     const prevTroopFormation = T.$gameTroop ? T.$gameTroop._formation : prevFormation;
-    const stack = [{ list: listArg || [], i: 0, skipping: false }];
-    outer: while (stack.length) {
-      const fr = stack[stack.length - 1];
-      const list = fr.list;
-      while (fr.i < list.length) {
-        const c = list[fr.i++];
-        if (!c) continue;
-        if (fr.skipping) { if (c.code === 411 || c.code === 412) fr.skipping = false; continue; }
-        switch (c.code) {
-          case 0:
-            stack.pop(); continue outer;
-          case 111: {
-            const p = c.parameters || [];
-            const script = p[0] === 12 ? (p[1] || "") : null;
-            const truthy = script ? !!this.evalCommonExpr(script) : true;
-            if (!truthy) fr.skipping = true;
-            break;
-          }
-          case 117: {
-            const sub = T.$dataCommonEvents[c.parameters[0]];
-            if (sub) stack.push({ list: sub.list || [], i: 0, skipping: false });
-            break;
-          }
-          case 355: {
-            /* G3-R1: 多行脚本——655 续行收集后一次执行（与地图解释器同语义） */
-            let scr = String((c.parameters || [])[0] || "");
-            while (fr.i < list.length) {
-              const nx = list[fr.i];
-              if (nx && nx.code === 655) { scr += "\n" + String((nx.parameters || [])[0] || ""); fr.i++; }
-              else break;
-            }
-            this.evalCommonScript(scr);
-            break;
-          }
-          case 655: break;
-          case 101: case 401: case 405: {
-            const p = c.parameters || [];
-            const raw = c.code === 101 ? p[4] : p[0];
-            const txt = String(raw || "").replace(/%1/g, user ? user.name : "");
-            if (txt) this.say(txt);
-            break;
-          }
-          case 121: T.$gameSwitches.setValue(c.parameters[0], c.parameters[1] !== 0); break;
-          case 122: { // G3-R4: 变量操作——标准参数位 [start,end,op,opt,value/script]
-            const p = c.parameters || [];
-            const st = p[0] != null ? p[0] : 0, en2 = p[1] != null ? p[1] : st;
-            const op = p[2] != null ? p[2] : 0, opt = p[3] != null ? p[3] : 0;
-            for (let v = st; v <= en2; v++) {
-              let val = 0;
-              if (opt === 0) val = p[4] != null ? p[4] : 0;
-              else if (opt === 1) val = T.$gameVariables.value(p[4]);
-              else if (opt === 2) val = T.randBetween(Math.min(p[4] || 0, p[5] || 0), Math.max(p[4] || 0, p[5] || 0));
-              else if (opt === 4) { try { val = Math.trunc(new Function(`with(T){return (${p[4]});}`)()); } catch (e) { val = 0; } }
-              const cur = T.$gameVariables.value(v);
-              let nv = cur;
-              if (op === 0) nv = val; else if (op === 1) nv = cur + val; else if (op === 2) nv = cur - val;
-              else if (op === 3) nv = cur * val; else if (op === 4) nv = val !== 0 ? Math.trunc(cur / val) : 0;
-              else if (op === 5) nv = val !== 0 ? cur % val : 0;
-              T.$gameVariables.setValue(v, nv);
-            }
-            break;
-          }
-          case 249: T.AudioManager.playSe({ name: c.parameters[0], volume: c.parameters[1] != null ? c.parameters[1] : 90, pitch: c.parameters[2] != null ? c.parameters[2] : 100 }); break;
-          /* G3-R4: 敌群事件页命令——出现/变身/消灭/恢复（索引 -1 = 全体） */
-          case 331: case 332: case 333: case 334: case 337: {
-            const p = c.parameters || [];
-            const idx = p[0] != null ? p[0] : -1;
-            const targets = idx === -1 ? this.troop.members : (this.troop.members[idx] ? [this.troop.members[idx]] : []);
-            for (const en of targets) {
-              if (c.code === 333) { en.die(); }  // 消灭（隐藏≠死亡：isDead=!hidden&&state1，故只用 die）
-              else if (c.code === 331) { en.appear(); if (en.isDead()) en.revive(); }
-              else if (c.code === 334) { en.appear(); if (en.isDead()) en.revive(); }
-              else if (c.code === 332) { const nd = T.$dataEnemies[p[1]]; if (nd && en.setup) { en.setup(nd); en.appear(); } }
-              else if (c.code === 337) { en.hp += Math.round((en.mhp || 0) * ((p[2] != null ? p[2] : 20) / 100)); }
-            }
-            break;
-          }
-          case 201: {
-            const t = c.parameters;
-            T._pendingBattleTransfer = { mapId: t[0], x: t[1], y: t[2], dir: t[3] != null ? t[3] : 2 };
-            this._EscapeGuard = true;
-            return;
-          }
+    const makeFrame = list => { const frame = new Game_Interpreter(); frame.setup(list); return frame; };
+    const stack = [makeFrame(listArg || [])];
+    let budget = 10000;
+    while (stack.length && budget-- > 0) {
+      const frame = stack[stack.length - 1];
+      if (!frame.list || frame.index >= frame.list.length) { stack.pop(); continue; }
+      const c = frame.list[frame.index++], p = c.parameters || [];
+      frame.currentIndent = c.indent;
+      if (c.code === 117) {
+        const ce = T.$dataCommonEvents[p[0]];
+        if (ce && stack.length < 8) stack.push(makeFrame(ce.list));
+      } else if (c.code === 101 || c.code === 230) {
+        // 战斗对白显示在战报；流程条件和数据操作复用地图解释器。
+      } else if (c.code === 401 || c.code === 405) {
+        if (p[0]) this.say(String(p[0]).replace(/%1/g, user ? user.name : ''));
+      } else if (c.code >= 331 && c.code <= 337) {
+        const enemies = p[0] === -1 ? this.troop.members : [this.enemyAt(p[0])].filter(Boolean);
+        for (const enemy of enemies) {
+          if (c.code === 331 || c.code === 332) {
+            const value = frame.valueOperand(p[2], p, 3) * (p[1] === 0 ? 1 : -1);
+            if (c.code === 331 && !enemy.isDead()) { enemy.hp = Math.max(p[4] ? 0 : 1, enemy.hp + value); enemy.refresh(); }
+            if (c.code === 332) enemy.mp += value;
+          } else if (c.code === 333) {
+            if (p[1] === 0) { if (p[2] === 1) enemy.die(); else enemy.addStateRaw(p[2]); }
+            else { enemy.removeStateRaw(p[2]); if (p[2] === 1) enemy.revive(); }
+          } else if (c.code === 334) enemy.recoverAll();
+          else if (c.code === 335) enemy.appear();
+          else if (c.code === 336 && T.$dataEnemies[p[1]]) {
+            enemy.enemyId = p[1]; enemy.setup(T.$dataEnemies[p[1]]); this._loadSprites();
+          } else if (c.code === 337) this.actionVisual = { user, target: enemy, hitT: 18 };
         }
-        if (this._EscapeGuard) return;
-      }
-      if (fr.i >= list.length && stack.length) stack.pop();
+      } else if (c.code === 340) {
+        this._EscapeGuard = true;
+      } else if (c.code === 201) {
+        const value = index => p[0] === 0 ? p[index] : T.$gameVariables.value(p[index]);
+        T._pendingBattleTransfer = { mapId: value(1), x: value(2), y: value(3), dir: p[4] || 2 };
+        this._EscapeGuard = true;
+      } else frame.executeCommand(c);
     }
     if (T.$gameParty._formation !== prevFormation && T.$gameParty.formationName()) {
       this.say(`摆出了${T.$gameParty.formationName()}！`);
@@ -838,21 +802,22 @@ class Scene_Battle {
     }
   }
   /* G3-R4: 敌群战斗事件页评估（MZ 语义：回合数/敌HP/武将HP/开关条件；每页执行一次） */
-  runTroopEvents() {
+  runTroopEvents(turnEnding = false) {
     const pages = (T.$dataTroops[this.troop.troopId] || {}).pages || [];
-    const turn = this.troop.turnCount + 1;
+    const turn = this.troop.turnCount;
+    this._battleEventTurns = this._battleEventTurns || {};
     for (let i = 0; i < pages.length; i++) {
       const pg = pages[i];
-      if (!pg || this._battleEventsDone.has(i)) continue;
+      if (!pg || this._battleEventsDone.has(i) || (pg.span === 1 && this._battleEventTurns[i] === turn)) continue;
       const c = pg.conditions || {};
-      let hit = false;
-      if (c.turnValid) hit = turn >= (c.turnA || 0) && turn <= (c.turnB == null ? (c.turnA || 0) : c.turnB);
-      else if (c.enemyValid) { const en = this.troop.members[c.enemyIndex]; hit = !!en && en.mhp > 0 && en.hp / en.mhp <= ((c.enemyHp || 0) / 100); }
-      else if (c.actorValid) { const ac = T.getActor(c.actorId); hit = !!ac && ac.mhp > 0 && ac.hp / ac.mhp <= ((c.actorHp || 0) / 100); }
-      else if (c.switchValid) hit = T.$gameSwitches.value(c.switchId);
-      else hit = true;
+      let hit = !c.turnEnding || turnEnding;
+      if (c.turnValid) hit = hit && (c.turnB === 0 ? turn === c.turnA : turn >= c.turnA && turn % c.turnB === c.turnA % c.turnB);
+      if (c.enemyValid) { const en = this.troop.members[c.enemyIndex]; hit = hit && !!en && en.hp / en.mhp <= c.enemyHp / 100; }
+      if (c.actorValid) { const ac = T.$dataActors[c.actorId] && T.getActor(c.actorId); hit = hit && !!ac && ac.hp / ac.mhp <= c.actorHp / 100; }
+      if (c.switchValid) hit = hit && T.$gameSwitches.value(c.switchId);
       if (hit) {
-        this._battleEventsDone.add(i);
+        if (!pg.span) this._battleEventsDone.add(i);
+        this._battleEventTurns[i] = turn;
         this.execBattleEventList(pg.list || [], this.partyMembers[0]);
       }
     }
@@ -895,6 +860,7 @@ class Scene_Battle {
   }
 
   processVictory() {
+    if (this.phase === 'victory') return;
     T.AudioManager.stopBgm(0.6);
     T.AudioManager.playMe({ name: "Victory1", volume: 90 });
     const exp = Math.max(1, Math.round(this.troop.expTotal() * (T.BATTLE_EXP_RATE || 1)));
@@ -928,6 +894,8 @@ class Scene_Battle {
   }
   finish() {
     const result = this.phase === "victory" ? "win" : this.phase === "escaped" ? "escape" : "lose";
+    for (const actor of this.partyMembers) actor.onBattleEnd();
+    T.BattleScene = null; T.$gameTroop = null;
     if (result === "lose" && !this.req.canLose) {
       T.SceneManager.gameOver();
       return;
@@ -947,7 +915,11 @@ class Scene_Battle {
     };
     T.BattleScene = null;
     T.$gameTroop = null;   // G2-R2: 战斗结束解绑敌群引用
-    if (this.interpreterRef) this.interpreterRef._battleResult = result;
+    if (this.interpreterRef) {
+      this.interpreterRef._battleResult = result;
+      this.interpreterRef._battleBranches[this.interpreterRef._battleIndent || 0] = result;
+      this.interpreterRef.waitMode = '';
+    }
     T.AudioManager.replaySavedBgm();
     T.SceneManager.popScene(true);
   }
@@ -1066,25 +1038,17 @@ class Scene_Battle {
     /* 技能/道具列表 */
     if (this.phase === "select-skill") {
       this.skillWin.draw(ctx);
-      const ih = this.skillWin.itemHeight();
-      let ly = this.skillWin.innerY + 4 - this.skillWin.topRow * ih;
-      for (let i = 0; i < this.skillList.length; i++) {
-        const s = this.skillList[i];
+      for (const { item: s, y: ly } of this.skillWin.visibleEntries(this.skillList)) {
         this.skillWin.drawText(ctx, s.name, this.skillWin.innerX + 10, ly);
         this.skillWin.drawText(ctx, `${T.skillCost(s)}`, this.skillWin.innerX + 420, ly, 80, "right");
-        ly += ih;
       }
       this.skillWin.drawCursorBox(ctx);
     }
     if (this.phase === "select-item") {
       this.itemWin.draw(ctx);
-      const ih = this.itemWin.itemHeight();
-      let ly = this.itemWin.innerY + 4 - this.itemWin.topRow * ih;
-      for (let i = 0; i < this.itemList.length; i++) {
-        const it = this.itemList[i];
+      for (const { item: it, y: ly } of this.itemWin.visibleEntries(this.itemList)) {
         this.itemWin.drawText(ctx, it.name, this.itemWin.innerX + 10, ly);
         this.itemWin.drawText(ctx, `×${$gameParty.itemCount(it)}`, this.itemWin.innerX + 420, ly, 80, "right");
-        ly += ih;
       }
       this.itemWin.drawCursorBox(ctx);
     }
@@ -1101,6 +1065,8 @@ class Scene_Battle {
     }
     /* 战斗文字：放在下方中央，不再与指令窗叠在一起 */
     if (this.logLines.length && !["select-skill", "select-item", "enemy-info"].includes(this.phase)) {
+      this.logWin.w = this.phase === 'actor-cmd' ? 440 : 680;
+      this.logWin.x = this.phase === 'actor-cmd' ? 12 : (T.SCREEN_W - this.logWin.w) / 2;
       this.logWin.draw(ctx);
       const recent = this.logLines.slice(-3);
       const av = this.actionVisual && this.actionVisual.user;
@@ -1129,9 +1095,9 @@ class Scene_Battle {
     ctx.save();
     for (let i = 0; i < this.partyMembers.length; i++) {
       const a = this.partyMembers[i];
-      const y = 58 + i * 58;
+      const y = 62 + i * 64;
       const isCurrent = this.currentActor === a && ["actor-cmd", "select-skill", "select-item"].includes(this.phase);
-      const isActing = this.messageActor === a;
+      const isActing = this.phase === 'action' && this._actionUser === a;
       const face = T.faceCache.get(a.faceName);
       if (face && face.img) {
         this.logWin.drawActorFace(ctx, a.faceName, a.faceIndex, 8, y, 34);
@@ -1154,11 +1120,14 @@ class Scene_Battle {
       ctx.fillStyle = isCurrent || isActing ? "#ffd24d" : "#fff";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(a.name, nx, y);
+      ctx.fillText(a.name, nx, y, 174);
       ctx.font = T.numFontStr(16);
       ctx.fillStyle = "#d8ffe0";
-      ctx.fillText(T.fmt(a.hp), nx, y + 24);
-      const bx = nx, bw = 170;
+      ctx.fillText(T.fmt(a.hp), nx, y + 22, 70);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#b8d5ff';
+      ctx.fillText(`谋${T.fmt(a.mp)}/${T.fmt(a.mmp)}`, nx + 174, y + 22, 98);
+      ctx.textAlign = 'left';
+      const bx = nx, bw = 174;
       ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.fillRect(bx - 1, y + 38, bw + 2, 12);
       ctx.fillStyle = a.hp / a.mhp > 0.5 ? "#40c060" : a.hp / a.mhp > 0.25 ? "#f0a040" : "#f06060";
@@ -1166,7 +1135,7 @@ class Scene_Battle {
       ctx.fillRect(bx, y + 39, fillW, 10);
       if (isCurrent && !isActing) {
         ctx.fillStyle = "#ffd24d";
-        ctx.fillRect(nx, y - 2, 320, 2);
+        ctx.fillRect(nx, y - 2, bw, 2);
       }
     }
     ctx.restore();
@@ -1175,21 +1144,22 @@ class Scene_Battle {
     ctx.save();
     for (let i = 0; i < this.troop.members.length; i++) {
       const en = this.troop.members[i];
-      const y = 58 + i * 56;
+      if (en.hidden) continue;
+      const y = 62 + i * 64;
       const dead = en.isDead();
       ctx.globalAlpha = dead ? 0.4 : 1;
-      const x = 650, bw = 140;
+      const x = T.SCREEN_W - 58 - 174, bw = 174;
       ctx.font = T.fontStr(20, true);
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "left";
+      ctx.fillStyle = this.phase === 'action' && this._actionUser === en ? '#ffd24d' : '#fff';
+      ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.fillText(en.name, x, y);
+      ctx.fillText(en.name, x + bw, y, bw);
       ctx.font = T.numFontStr(16);
       ctx.fillStyle = dead ? "#ff4040" : "#ffe0e0";
-      ctx.fillText(T.fmt(en.hp), x, y + 24);
-      ctx.textAlign = "right";
+      ctx.fillText(T.fmt(en.hp), x + bw, y + 22, 70);
+      ctx.textAlign = "left";
       ctx.fillStyle = "#b8d5ff";
-      ctx.fillText(`谋${T.fmt(en.mp)}/${T.fmt(en.mmp)}`, x + bw, y + 24);
+      ctx.fillText(`谋${T.fmt(en.mp)}/${T.fmt(en.mmp)}`, x, y + 22, 98);
       ctx.textAlign = "left";
       ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.fillRect(x - 1, y + 38, bw + 2, 12);
