@@ -188,3 +188,10 @@
 - 重新生成 `.site/`，`site_package_test.cjs` 检查 1742 文件、45.7 MiB 通过；差异检查通过。
 - 按“先推标签、后推 main”执行发布；线上完成以对应 Actions 成功与部署提交号、数据、脚本验收为准。
 - 推送期间远程主分支更新，已合并远程提交 `41ef77f`。合并检出全项目检查为 42/42 组通过，含图集像素；完成合并提交后重新按可达标签生成目录并通过版本回归，保留各项目新版本。
+
+## 2026-10-28 · 修复 YouTube 频道入口 v0.5.4
+
+- 原 `https://www.youtube.com/@sunsharebay` 返回 HTTP 404；改为用户提供的频道分享链接 `https://youtube.com/channel/UCurHjCw5_hnyCfZa721MENA?si=vtkTXzNTGbOqKIsx`，B站入口不变。
+- 新地址 HTTP 200，页面标题为「大海的科技宝箱 - YouTube」；Chrome 从本地首页点击后打开正确频道。`测试/game_center_test.js` 新增目标与安全属性检查，修复前失败、修复后通过。
+- 首页源码 SHA-256：`de44c30729ceb651ac21d37d2a61d69640bd4b511a9344d8c9d369a57e1b992d`；测试 SHA-256：`08a7cbfce63fbbd8ddcaa13d128a359c0c2c262e0d32504292e40eff3cd74349`。
+- 发布标签 `site/home/v0.5.4`；实际部署结果由对应 GitHub Actions 和部署提交标记确认。

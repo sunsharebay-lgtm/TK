@@ -36,6 +36,7 @@ assert.match(portal, /博主自用推荐！好的灵感需要低价稳定的 Tok
 assert.match(portal, /class=["']sponsor-direct["'][^>]*href=["']https:\/\/llapi\.org\/?["'][^>]*target=["']_blank["']/, '点击直达应链接到 llapi.org 并新窗口打开');
 assert.match(portal, /关于博主 \/ About Me/, '首页应显示博主介绍模块');
 assert.match(portal, /href="https:\/\/space\.bilibili\.com\/2053159491"/, 'B站入口必须保持已核实的个人空间地址');
+assert.match(portal, /<a\b[^>]*href="https:\/\/youtube\.com\/channel\/UCurHjCw5_hnyCfZa721MENA\?si=vtkTXzNTGbOqKIsx"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>YouTube\s*↗<\/a>/, 'YouTube 入口应打开用户提供的频道分享链接');
 assert.match(portal, /AI 博主，对 AI 和互联网的事、科技圈的事都挺感兴趣/, '首页应显示博主介绍文案');
 assert.match(portal, /QQ 兴趣群组/, '首页应显示 QQ 兴趣群组入口');
 assert.match(portal, /1103418249/, '首页应显示 QQ 群号方便复制');

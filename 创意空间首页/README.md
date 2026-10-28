@@ -52,3 +52,7 @@ node --test 测试/published_verifier_test.mjs
 `game_center_test.js` 会运行 `homepage_behavior_test.js`，直接执行首页脚本，覆盖正常数据、坏条目、链接范围、失败重试、请求和响应体超时。浏览器截图在 `测试/.artifacts/`；历史版本只保留源码快照。详细证据和发布交接见 [专项审查记录](文档/2026-10-27-首页源码审查.md)。
 
 上一轮统一补丁：`site/home/v0.5.2`（2026-10-27），内容与验收见 [统一发布记录](../docs/发布/2026-10-27/project.md)。本轮首页专项修复使用 `site/home/v0.5.3`，发布验收见本项目 `project.md` 末尾。
+
+## 2026-10-28 YouTube 频道入口
+
+YouTube 入口使用博主提供的频道 ID `UCurHjCw5_hnyCfZa721MENA`，替换已失效的 `@sunsharebay` 地址。
