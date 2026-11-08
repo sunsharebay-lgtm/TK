@@ -207,3 +207,21 @@ check('七星灯对全部友军生效，包含入战前阵亡武将', ({ T, batt
   b.applyItem(b.partyMembers[0],T.$dataItems[22],b.partyMembers[0]);
   for(const a of b.partyMembers){assert.equal(a.isDead(),false);assert.equal(a.hp,a.mhp);}
 });
+
+check('恢复兵力浮动绿字提示且胜利结算支持按键快速跳过', ({ T, battle }) => {
+  const b = battle();
+  const actor = b.partyMembers[0];
+  actor.result.clear();
+  actor.result.hpDamage = -250;
+  b.pushResultPopup(actor);
+  const p = b.lastPopups[b.lastPopups.length - 1];
+  assert.ok(p && p.text.includes('+250') && p.color === '#6fe388', '兵力恢复弹出绿色加血浮字');
+
+  b.processVictory();
+  assert.equal(b.phase, 'victory');
+  assert.equal(b.phaseTimer, 160);
+  b.phaseTimer = 135;
+  T.Input._down['ok'] = true; T.Input._prev['ok'] = false;
+  b.update();
+  assert.equal(b.phaseTimer, 0, '按键触发后立即完成结算跳转');
+});

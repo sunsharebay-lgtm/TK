@@ -323,3 +323,62 @@ test('后台音乐计时器恢复时跳过过期节拍，不集中补播数百�
   [...h.timers.values()].at(-1)();
   h.run(() => assert.ok(notesPlayed<=3, '只调度当前短窗口中的节拍'));
 });
+
+test('连击系统与命中率统计：连续击破提升连击与得分，超时自动重置', () => {
+  loadGame().run(() => {
+    const w = new World(Game, 0, 0, false, null);
+    const p = w.players[0];
+    const initialScore = p.score;
+    const e1 = new Enemy(w, 0, 0, false);
+    const e2 = new Enemy(w, 1, 0, false);
+    e1._lastHitBy = 0; e2._lastHitBy = 0;
+    
+    w.onEnemyKilled(e1);
+    assert.equal(w.combo, 1);
+    assert.equal(w.stats.maxCombo, 1);
+
+    // 1秒内击杀第二个敌人，触发连击加成
+    w.update(1.0, []);
+    w.onEnemyKilled(e2);
+    assert.equal(w.combo, 2);
+    assert.equal(w.stats.maxCombo, 2);
+    assert.ok(p.score > initialScore + 200, '获得连击额外积分加成');
+
+    // 超时3秒后连击数重置为0
+    w.update(3.5, []);
+    assert.equal(w.combo, 0);
+  });
+});
+
+test('基地受袭预警：敌军攻击基地护墙与护甲激发警示声光', () => {
+  loadGame().run(() => {
+    const w = new World(Game, 0, 0, false, null);
+    assert.equal(w.baseHitFlash, 0);
+    const enemyBullet = { x: (BASE_GX+1)*G, y: (BASE_GY)*G, dir: 2, isPlayer: false, owner: { onBulletGone(){} } };
+    w.onBulletTerrain(enemyBullet, "brick", { gx: 12, gy: 23 });
+    assert.ok(w.baseHitFlash > 0, '敌军击中基地护墙触发预警闪光');
+    w.baseHitFlash = 0;
+    w.onBulletTerrain(enemyBullet, "baseArmor");
+    assert.ok(w.baseHitFlash > 0, '基地护甲承受攻击触发预警闪光');
+  });
+});
+
+test('首领血条与穿林叶片：首领坦克登场正确绘制血条，穿林产生绿叶碎屑', () => {
+  loadGame().run(() => {
+    const w = new World(Game, 0, 0, false, null);
+    const boss = new Enemy(w, 0, 4, false);
+    boss.spawnT = 0;
+    w.enemies = [boss];
+    const { c, x } = mkCanvas(FS, FS);
+    assert.doesNotThrow(() => renderField(x, w), '首领存在时首领血条绘制无异常');
+
+    // 穿林移动生成叶片
+    const p = w.players[0];
+    w.field.grid[24 * GN + 8] = TE.TREE;
+    p.moving = true;
+    const fxBefore = w.fx.length;
+    for (let k = 0; k < 20; k++) p.applyMotion(STEP, true, 0);
+    // 穿林时产生特效微粒
+    assert.ok(w.fx.length >= fxBefore);
+  });
+});

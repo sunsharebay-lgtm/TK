@@ -14,7 +14,7 @@
       "fallbackVersion": "v1.6.1",
       "statusWhenMissing": "稳定版",
       "external": false,
-      "version": "v1.6.13",
+      "version": "v1.6.14",
       "status": "稳定版"
     },
     {
@@ -28,7 +28,7 @@
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
       "external": false,
-      "version": "v0.3.2",
+      "version": "v0.3.3",
       "status": "稳定版"
     },
     {
@@ -42,7 +42,7 @@
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
       "external": false,
-      "version": "v0.2.0",
+      "version": "v0.2.1",
       "status": "稳定版"
     },
     {

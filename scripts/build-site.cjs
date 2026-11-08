@@ -16,7 +16,7 @@ const files = [
   'index.html',
   '创意空间首页/index.html', '创意空间首页/game-catalog.json', '创意空间首页/deployment-meta.json', '创意空间首页/qq-group-qrcode.jpg',
   '坦克大战/tank-battle.html', '坦克大战/坦克大战.html', '坦克大战/assets/blender/tank-sprites-v2.png',
-  '吞食天地三国/index.html', '吞食天地三国/three-kingdoms.html', `${engine}/index.html`, `${engine}/js`, `${engine}/assets`,
+  '吞食天地三国/index.html', `${engine}/index.html`, `${engine}/js`, `${engine}/assets`,
   '超级玛丽/index.html', '墨水屏小站/index.html',
   'Mac软件资源库/index.html', 'Mac软件资源库/software-resources.json',
   '粉丝资源/index.html', '粉丝资源/resources.json', '粉丝资源/scripts', '粉丝资源/styles', '粉丝资源/资源',
@@ -27,4 +27,6 @@ for (const file of files) {
   fs.cpSync(from, to, { recursive: true, filter: source => !path.basename(source).startsWith('.') });
 }
 fs.writeFileSync(path.join(output, '.nojekyll'), '');
+// Preserve the historical URL without keeping or shipping the retired engine.
+fs.writeFileSync(path.join(output, '吞食天地三国/three-kingdoms.html'), '<!doctype html>\n<html lang="zh-CN"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./"><title>吞食天地三国</title><a href="./">进入当前网页版</a></html>\n');
 console.log('已生成 .site：七个项目的页面、数据与运行素材；旧兼容入口保留。');

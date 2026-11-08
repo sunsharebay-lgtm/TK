@@ -323,7 +323,7 @@ class Window_Message extends Window_Base {
         if (T.rand(4) === 0) T.AudioManager.playSe({ name: "Text", volume: 25 });
       }
       if (this.charIndex >= total) { this.charIndex = total; this.finishTyping(); }
-      if (T.Input.triggered("ok")) {
+      if (T.Input.triggered("ok") || T.Input.triggered("cancel")) {
         this.charIndex = total;
         this.finishTyping();
       }

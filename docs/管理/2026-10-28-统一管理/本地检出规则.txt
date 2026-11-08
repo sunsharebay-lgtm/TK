@@ -1,0 +1,7 @@
+/*
+!**/历史版本/
+!/坦克大战/测试/backup/
+!/吞食天地三国/three-kingdoms.html
+!/吞食天地三国/测试/three_kingdoms_smoke.js
+!/吞食天地三国/测试/three_kingdoms_test.js
+!/坦克大战/测试/blender_comparison.py

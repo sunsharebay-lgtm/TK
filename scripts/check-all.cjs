@@ -5,10 +5,14 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const jobs = [];
+// Retired single-file engine tests are retrieved with their historical version,
+// rather than treated as evidence for the current web engine.
+const retiredTests = new Set(['three_kingdoms_smoke.js', 'three_kingdoms_test.js']);
 for (const directory of ['创意空间首页/测试', '粉丝资源/测试', 'Mac软件资源库/测试', '墨水屏小站/测试', '超级玛丽/test', '吞食天地三国/测试', '坦克大战/测试']) {
   for (const name of fs.readdirSync(path.join(root, directory)).sort()) {
     if (!/(_test\.(js|mjs)|^harness\.js$|^three_kingdoms_smoke\.js$|^validate_maps\.js$)/.test(name)) continue;
     if (name === 'published_site_test.mjs') continue; // Needs a running HTTP site; separate release gate.
+    if (directory === '吞食天地三国/测试' && retiredTests.has(name)) continue;
     const file = `${directory}/${name}`;
     jobs.push([process.execPath, [file, ...(directory.startsWith('坦克大战') ? ['坦克大战/tank-battle.html'] : [])]]);
   }

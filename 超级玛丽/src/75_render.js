@@ -327,7 +327,11 @@ const RND={
     this.txt(ctx,LV.defs[G.levelIdx].name,152,8,7,'#f0efd4');
     this.txt(ctx,[0,1,2].map(i=>G.starMask&(1<<i)?'◆':'◇').join('  '),152,20,9,'#ffd875');
     this.txt(ctx,G.mode==='classic'?'剩余时间':'轻松探索',278,8,6,'#b8cdb8');
-    this.txt(ctx,G.mode==='classic'?U.pad(G.timeLeft,3):'不限时',278,18,9,G.timeLeft<=30&&G.mode==='classic'?'#ff997a':'#fff1ce');
+    const timeAlert = G.mode==='classic' && G.timeLeft<=50;
+    const timeColor = timeAlert
+      ? ((G.timeLeft<=20 ? Math.floor(G.tick/8)%2===0 : Math.floor(G.tick/16)%2===0) ? '#ff5050' : '#fff1ce')
+      : '#fff1ce';
+    this.txt(ctx,G.mode==='classic'?U.pad(G.timeLeft,3):'不限时',278,18,9,timeColor);
     this.txt(ctx,'生命',363,8,6,'#b8cdb8');
     this.txt(ctx,G.mode==='classic'?'× '+Math.max(0,G.lives):'∞',363,18,9,'#fff1ce');
     const progress=G.curArea===0?U.clamp(G.player.x/(G.area().flagCol*16),0,1):0;

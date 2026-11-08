@@ -38,7 +38,7 @@
 <header class="topbar"><div class="brand"><b>✦ 创意空间</b>像素冒险</div><div class="toolbar"><button id="pause" hidden>暂停</button><button id="mute" aria-label="切换声音">声音 开</button><button id="fs" title="全屏">全屏</button></div></header>
 <main id="overlay">
   <section id="title-panel" class="panel title-panel" aria-label="游戏主菜单">
-    <p class="eyebrow">PIXEL ADVENTURE · 0.2</p><h1>超级玛丽</h1><p class="subtitle">从绿野到熔岩，一场小小的大冒险。<br><strong>跳过险境，发现秘密，带回十二枚星币。</strong></p>
+    <p class="eyebrow">PIXEL ADVENTURE · 0.2.1</p><h1>超级玛丽</h1><p class="subtitle">从绿野到熔岩，一场小小的大冒险。<br><strong>跳过险境，发现秘密，带回十二枚星币。</strong></p>
     <div class="worlds"><span>01 绿野</span><i></i><span>02 地底</span><i></i><span>03 黄昏</span><i></i><span>04 城堡</span></div>
     <button id="start" class="primary">开始冒险 →</button><button id="help" class="secondary">操作与玩法</button>
     <div class="settings"><p class="setting-label"><span>选择旅程</span><span id="level-name">绿野平原</span></p><div class="levels"><button id="level-0">1-1<small>◇ ◇ ◇</small></button><button id="level-1">1-2<small>未解锁</small></button><button id="level-2">1-3<small>未解锁</small></button><button id="level-3">1-4<small>未解锁</small></button></div></div>
@@ -268,19 +268,24 @@ const A = {
   },
   freqOf(midi){ return 440*Math.pow(2,(midi-69)/12); },
 
-  sfx(name){
+  sfx(name,opt){
     if(!this.ctx)return;
+    const mult=(opt&&opt.mult)||1;
     switch(name){
       case 'jump': this.tone({f0:200,f1:640,t:.16,v:.2}); break;
       case 'bigjump': this.tone({f0:150,f1:480,t:.2,v:.22}); break;
       case 'bump': this.tone({type:'triangle',f0:130,f1:70,t:.09,v:.32}); break;
+      case 'skid':
+        this.noise({t:.12,v:.16,f:1200,ftype:'bandpass',q:2.2});
+        this.tone({type:'sawtooth',f0:360,f1:160,t:.10,v:.10});
+        break;
       case 'stomp':
-        this.noise({t:.09,v:.28,f:500});
-        this.tone({type:'sine',f0:260,f1:80,t:.12,v:.25});
+        this.noise({t:.09,v:.28,f:500*mult});
+        this.tone({type:'sine',f0:260*mult,f1:80*mult,t:.12,v:.25});
         break;
       case 'coin':
-        this.tone({f0:988,t:.05,v:.15});
-        this.tone({f0:1319,t:.32,v:.18,delay:.05});
+        this.tone({f0:988*mult,t:.05,v:.15});
+        this.tone({f0:1319*mult,t:.32,v:.18,delay:.05});
         break;
       case 'breakBlock':
         this.noise({t:.16,v:.3,f:900,ftype:'bandpass'});
@@ -1682,9 +1687,13 @@ class Goomba extends Foe{
   }
   onStomp(G,chain){
     this.squashT=26;this.dead=true;this.vx=0;
-    A.sfx('stomp');
+    const chainMult = 1 + Math.min(chain || 0, 7) * 0.08;
+    A.sfx('stomp', {mult: chainMult});
     const s=this.stompScore(chain||0);
     G.addScore(s,this.x,this.y);
+    if((chain || 0) >= 2){
+      for(let i=0;i<4;i++) G.sparkle(this.x+U.rand(0,this.w), this.y+U.rand(0,this.h), '#ffe080');
+    }
     return CFG.STOMP_BOUNCE;
   }
   draw(ctx,f){
@@ -1756,16 +1765,23 @@ class Koopa extends Foe{
       G.addScore(400,this.x,this.y);
       return CFG.STOMP_BOUNCE_HI;
     }
-    A.sfx('stomp');
+    const chainMult = 1 + Math.min(chain || 0, 7) * 0.08;
+    A.sfx('stomp', {mult: chainMult});
     if(this.winged){
       this.winged=false;this.state='walk';
       const s=this.stompScore(chain||0);
       G.addScore(s,this.x,this.y);
+      if((chain || 0) >= 2){
+        for(let i=0;i<4;i++) G.sparkle(this.x+U.rand(0,this.w), this.y+U.rand(0,this.h), '#ffe080');
+      }
       return CFG.STOMP_BOUNCE;
     }
     this.becomeShell();
     const s=this.stompScore(chain||0);
     G.addScore(s,this.x,this.y);
+    if((chain || 0) >= 2){
+      for(let i=0;i<4;i++) G.sparkle(this.x+U.rand(0,this.w), this.y+U.rand(0,this.h), '#ffe080');
+    }
     return CFG.STOMP_BOUNCE;
   }
   onTouch(G,p){
@@ -2058,6 +2074,7 @@ class FireBallEnt{
   boom(G){
     this.explodeT=8;
     G.sparkle(this.x+3,this.y+3,'#ffb040');
+    for(let i=0;i<3;i++) G.sparkle(this.x+U.rand(-1,5),this.y+U.rand(-1,5),'#ffe070');
   }
   draw(ctx,f){
     if(this.explodeT>0){
@@ -2188,6 +2205,7 @@ class Player{
     this.hidden=false;
     this.fireHeldPrev=false;
     this.landT=0;this.stretchT=0;
+    this.trails=[];this._wasSkid=false;
   }
   expBox(){ return {x:this.x-2,y:this.y-2,w:this.w+4,h:this.h+4}; }
   setForm(f){
@@ -2336,13 +2354,19 @@ class Player{
       if(Math.sign(this.vx)===-ax&&Math.abs(this.vx)>.35){
         this.vx=U.approach(this.vx,0,CFG.SKID);
         this.skid=true;
+        if(!this._wasSkid&&this.onGround){
+          A.sfx('skid');
+          this._wasSkid=true;
+        }
         if(this.onGround&&Math.floor(G.tick%5)===0)
           G.puff(this.x+this.w/2,this.y+this.h-2,false);
       }else{
         this.vx=U.approach(this.vx,ax*maxSpd,acc);
+        this._wasSkid=false;
       }
       this.face=ax;
     }else{
+      this._wasSkid=false;
       if(this.onGround&&!J.jump)this.vx=U.approach(this.vx,0,CFG.FRICTION);
     }
 
@@ -2416,6 +2440,22 @@ class Player{
     }
     this.fireHeldPrev=K.run;
 
+    if(this.trails&&this.trails.length){
+      for(const tr of this.trails)tr.life--;
+      this.trails=this.trails.filter(tr=>tr.life>0);
+    }
+    const highSpeed=this.onGround&&Math.abs(this.vx)>=CFG.MAX_RUN*.88;
+    if((highSpeed||this.starT>0)&&G.tick%4===0&&!this.dead&&!this.hidden){
+      const [pose,sizeKey]=this.poseName();
+      const pk=this.palName();
+      const key=sizeKey==='fire'?'big_'+pose+'_'+(pk==='fire'?'fire':pk):sizeKey+'_'+pose+'_'+pk;
+      this.trails.push({
+        x:this.x,y:this.y,w:this.w,h:this.h,face:this.face,
+        imgKey:key,fallback:sizeKey+'_'+pose+'_norm',
+        life:8,maxLife:8
+      });
+    }
+
     this.animDist+=Math.abs(this.vx)*(this.onGround?1:.4);
   }
   fireCount(){ return G.ents.filter(e=>e.type==='fireball'&&e.explodeT<=0).length; }
@@ -2466,6 +2506,21 @@ class Player{
     const cx=this.x+this.w/2;
     const ox=cx-dw/2+(dw>this.w+2?-this.face*0.5:0);
     const oy=this.y+this.h-dh+1;
+    if(this.trails&&this.trails.length){
+      for(const tr of this.trails){
+        const alpha=(tr.life/tr.maxLife)*(this.starT>0?.32:.18);
+        const timg=ART.H[tr.imgKey]||ART.H[tr.fallback]||ART.H['small_idle_norm'];
+        if(!timg)continue;
+        const tdw=timg.width/ART.SS,tdh=timg.height/ART.SS;
+        const tcx=tr.x+tr.w/2;
+        const tox=tcx-tdw/2+(tdw>tr.w+2?-tr.face*0.5:0);
+        const toy=tr.y+tr.h-tdh+1;
+        ctx.save();ctx.globalAlpha=alpha;
+        if(tr.face<0){ctx.translate(tcx*2,0);ctx.scale(-1,1);}
+        ctx.drawImage(timg,tr.face<0?(tcx-tdw/2):tox,toy,tdw,tdh);
+        ctx.restore();
+      }
+    }
     let sy=1,sx=1;
     if(this.landT>0){const k=this.landT/9;sy=1-.14*k;sx=1+.10*k;}
     else if(this.stretchT>0&&!this.onGround){const k=this.stretchT/9;sy=1+.10*k;sx=1-.08*k;}
@@ -2709,13 +2764,14 @@ const G={
       if(this.player.deadT>65||(this.player.deadT>18&&INP.press('confirm')))this.afterDeath();
       return;
     }
+    if(this._coinChainT > 0) this._coinChainT--;
     if(this.freeze>0){ this.freeze--; this.player.update(this); return; }
     for(const m of this.movers)m.update(this);
     const ar=this.area();
     if(this.curArea===0&&!this.cpReached&&ar.cpX>0&&this.player.x>ar.cpX&&this.player.onGround&&!this.player.dead){
       this.cpReached=true;
       this.notify('检查点已点亮 · 失误后从这里继续');
-      this.sparkle(this.player.x+5,this.player.y-4,'#7ee3ff');
+      for(let i=0;i<8;i++) this.sparkle(this.player.x+U.rand(-8,16),this.player.y+U.rand(-10,14),'#7ee3ff');
       A.sfx('select');
     }
     this.tryPipeEnter();
@@ -2910,9 +2966,18 @@ const G={
 
   getCoin(x,y){
     this.coins++;
+    if(!this._coinChainT) this._coinChainT = 0;
+    if(!this._coinChain) this._coinChain = 0;
+    if(this._coinChainT > 0){
+      this._coinChain = Math.min(this._coinChain + 1, 8);
+    } else {
+      this._coinChain = 0;
+    }
+    this._coinChainT = 45;
+    const pitchMult = 1 + this._coinChain * 0.035;
     this.addScore(200,null);
     this.sparkle(x+7,y,'#fff2b0');
-    A.sfx('coin');
+    A.sfx('coin', {mult: pitchMult});
     if(this.coins>=100){
       this.coins-=100;
       this.addLife();
@@ -3421,7 +3486,11 @@ const RND={
     this.txt(ctx,LV.defs[G.levelIdx].name,152,8,7,'#f0efd4');
     this.txt(ctx,[0,1,2].map(i=>G.starMask&(1<<i)?'◆':'◇').join('  '),152,20,9,'#ffd875');
     this.txt(ctx,G.mode==='classic'?'剩余时间':'轻松探索',278,8,6,'#b8cdb8');
-    this.txt(ctx,G.mode==='classic'?U.pad(G.timeLeft,3):'不限时',278,18,9,G.timeLeft<=30&&G.mode==='classic'?'#ff997a':'#fff1ce');
+    const timeAlert = G.mode==='classic' && G.timeLeft<=50;
+    const timeColor = timeAlert
+      ? ((G.timeLeft<=20 ? Math.floor(G.tick/8)%2===0 : Math.floor(G.tick/16)%2===0) ? '#ff5050' : '#fff1ce')
+      : '#fff1ce';
+    this.txt(ctx,G.mode==='classic'?U.pad(G.timeLeft,3):'不限时',278,18,9,timeColor);
     this.txt(ctx,'生命',363,8,6,'#b8cdb8');
     this.txt(ctx,G.mode==='classic'?'× '+Math.max(0,G.lives):'∞',363,18,9,'#fff1ce');
     const progress=G.curArea===0?U.clamp(G.player.x/(G.area().flagCol*16),0,1):0;

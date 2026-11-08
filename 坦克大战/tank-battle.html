@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0e17">
 <link rel="icon" href="data:,">
 <link rel="preload" href="assets/blender/tank-sprites-v2.png" as="image" type="image/png">
-<title>钢铁防线 · 坦克大战 v1.6.13</title>
+<title>钢铁防线 · 坦克大战 v1.6.14</title>
 <style>
 /* ============================================================
    钢铁防线 — 现代化坦克大战
@@ -490,7 +490,7 @@ kbd{
   <div class="tbtn" id="tPause">暂停</div>
 </div>
 
-<div id="footer">钢铁防线 v1.6.13 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
+<div id="footer">钢铁防线 v1.6.14 · Canvas 战斗引擎 · Blender 预渲染战术美术 · 原创芯片音源</div>
 
 <output id="diagnostics" hidden></output>
 
@@ -499,7 +499,7 @@ kbd{
 /* ============================================================
    P1 · 常量 / 工具 / 输入
    ============================================================ */
-const GAME_VERSION = "1.6.13";
+const GAME_VERSION = "1.6.14";
 // 每个周目走 6 关，每关都有独特「关卡特性」，让手感差异明显：
 // 序章(标准) → 冰原(滑行) → 沙漠(减速) → 熔岩(灼烧) → 密林(隐蔽) → 最终防线(浴血)。
 // 保留 16 张地图作为素材，其余地图可在测试模式与地狱绝境中使用。
@@ -793,6 +793,9 @@ const MobileUI = {
 };
 
 /* ---------------- 输入 ---------------- */
+function haptic(pat){
+  try{ if(typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(pat); }catch(e){}
+}
 const Input = {
   keys:Object.create(null), pressed:Object.create(null),
   // 两位玩家的方向/开火状态
@@ -1224,6 +1227,13 @@ const Snd = {
       case "select":
         this.tone({f:660, dur:0.06, v:0.10, type:"square"});
         this.tone({f:990, dur:0.09, v:0.10, type:"square", delay:0.06});
+        break;
+      case "warning":
+        this.tone({f:880, dur:0.07, v:0.14, type:"sawtooth"});
+        this.tone({f:587, dur:0.09, v:0.14, type:"sawtooth", delay:0.07});
+        break;
+      case "combo":
+        [659, 880, 1175].forEach((f, i) => this.tone({f: f * 1.05, dur: 0.09, v: 0.12, type: "triangle", delay: i * 0.05}));
         break;
     }
   },
@@ -3023,6 +3033,7 @@ class Bullet {
     this.age = 0;
     this.dmgMul = 1;   // 弹道强化(双炮)/削弱(电磁场)倍率
     this.fromBase = owner === world.baseOwner;   // 老鹰自卫炮弹可穿透自家围墙
+    if(this.isPlayer && this.w && this.w.stats) this.w.stats.shots++;
   }
   get bx(){ return this.x - 2; }
   get by(){ return this.y - 2; }
@@ -3233,11 +3244,17 @@ class Tank {
       const a = Math.atan2(DY[dir],DX[dir]) + (rnd()-0.5)*0.9;
       this.w.fx.push(new Spark(mx,my,a, 40+rnd()*70, this.isPlayer?"#ffe9a8":"#dfe7f2", 0.16));
     }
+    this.w.fx.push(new Smoke(mx, my, this.power >= 3 ? 3.2 : 2.0, 0.32));
+    if(this.isPlayer) haptic(8);
   }
   onBulletGone(){ this.bulletsOut = Math.max(0, this.bulletsOut-1); }
 
   takeHit(bullet){
     if(this.shield > 0 || this.spawnT > 0) return "shielded";
+    if(bullet && bullet.isPlayer && !this.isPlayer && this.w && this.w.stats){
+      this.w.stats.hits++;
+    }
+    if(this.isPlayer) haptic([30, 20, 30]);
     if(this.isPlayer && this.armor > 0){
       this.armor = Math.max(0, this.armor - 1);
       this.hitFlash = 0.14;
@@ -3323,8 +3340,15 @@ class Tank {
       this.dir = keep;
       this.slideV *= iceFx ? 0.985 : 0.955;
       if(!moved) this.slideV = 0;
+      else if(this.slideV > 0.08 && rnd() < 0.25){
+        this.w.fx.push(new Spark(this.cx - DX[this.slideDir]*10 + (rnd()-0.5)*8, this.cy - DY[this.slideDir]*10 + (rnd()-0.5)*8, Math.atan2(-DY[this.slideDir], -DX[this.slideDir]) + (rnd()-0.5)*0.8, 20+rnd()*30, "#d8f0ff", 0.16));
+      }
     } else {
       this.slideV = 0;
+    }
+    if(moved && rnd() < 0.20 && this.w.field.inTrees(this.x, this.y, TS, TS)){
+      const lx = this.x + rnd()*TS, ly = this.y + rnd()*TS;
+      this.w.fx.push(new Debris(lx, ly, pick(["#4ea852","#328038","#68c46c","#205824"]), (rnd()-0.5)*26, -14 - rnd()*20));
     }
     this.moving = moved;
     return moved;
@@ -3384,7 +3408,7 @@ class Tank {
     if(this.spawnT > 0){ this.renderSpawn(x); return; }
     const key = this.skinKey();
     const set = SPR.tanks[key] || SPR.tanks.basic;
-    const img = set[this.tread][this.dir];
+    const img = (set && set[this.tread]) ? set[this.tread][this.dir] : null;
     let px = Math.round(this.x), py = Math.round(this.y);
     if(this.wobble > 0){
       px -= Math.round(DX[this.dir]*this.wobble*1.6);
@@ -4058,7 +4082,7 @@ class World {
     this.endTimer = 0;
     this.baseHitFlash = 0;
     this.combo = 0; this.comboT = 0;
-    this.stats = { shots:0, hits:0 };
+    this.stats = { shots:0, hits:0, maxCombo:0 };
   }
   /* ---- 静电磁场 ---- */
   get fieldDebuff(){ return this.fieldLevel * 0.10; }
@@ -4140,6 +4164,9 @@ class World {
       }
       this.fx.push(new Ripple(x,y,"#e08a55",10,0.22));
       this.fx.push(new Smoke(x,y,3,0.5));
+      if(info && info.gx !== undefined && this.field.isBaseWall(info.gx, info.gy) && !b.isPlayer){
+        this.baseHitFlash = 0.45; Snd.sfx("warning"); haptic([45, 30, 45]); this.game.toast("⚠️ 基地护墙受损！速回防！");
+      }
     } else if(kind === "steel"){
       Snd.sfx("steel");
       for(let i=0;i<6;i++){
@@ -4162,6 +4189,8 @@ class World {
     } else if(kind === "baseArmor"){
       // 老鹰围墙护甲：抵消攻击
       Snd.sfx("steel");
+      this.baseHitFlash = 0.5;
+      Snd.sfx("warning");
       for(let i=0;i<7;i++){
         const a = Math.atan2(-DY[b.dir],-DX[b.dir]) + (rnd()-0.5)*1.9;
         this.fx.push(new Spark(x,y,a, 70+rnd()*120, "#ffd88a", 0.22));
@@ -4182,7 +4211,9 @@ class World {
     if(this.baseShieldT > 0){
       this.fx.push(new Ripple((BASE_GX+1)*G,(BASE_GY+1)*G,"#9adcff",16,0.28));
       this.game.toast("基地护盾生效");
+      this.baseHitFlash = 0.4;
       Snd.sfx("steel");
+      Snd.sfx("warning");
       return;
     }
     this.field.baseAlive = false;
@@ -4233,6 +4264,21 @@ class World {
     const sc = e.def.score;
     if(p){ p.score += sc; p.kills[e.typeIdx]++; }
     this.fx.push(new ScorePop(e.cx, e.cy - 6, sc, "#ffe9a8"));
+    if(this.comboT > 0){
+      this.combo++;
+    } else {
+      this.combo = 1;
+    }
+    this.comboT = 3.0;
+    if(!this.stats.maxCombo) this.stats.maxCombo = 0;
+    this.stats.maxCombo = Math.max(this.stats.maxCombo, this.combo);
+    if(this.combo >= 2){
+      const comboBonus = this.combo * 50;
+      if(p) p.score += comboBonus;
+      const col = this.combo >= 5 ? "#ff5b5b" : (this.combo >= 3 ? "#ffaa33" : "#55e0ff");
+      this.fx.push(new ScorePop(e.cx, e.cy - 18, `${this.combo} 连击! +${comboBonus}`, col));
+      Snd.sfx("combo");
+    }
     if(e.flash){
       // 若场上已有道具，先挂起本次掉落，待道具被拾取/消失后补生成。
       this.pendingItemDrops++;
@@ -4490,6 +4536,10 @@ class World {
     if(this.baseShieldT > 0) this.baseShieldT -= dt;
     if(this.shakeT > 0)  this.shakeT -= dt;
     if(this.baseHitFlash > 0) this.baseHitFlash -= dt;
+    if(this.comboT > 0){
+      this.comboT -= dt;
+      if(this.comboT <= 0){ this.combo = 0; }
+    }
 
     for(let i=0;i<this.players.length;i++){
       const p = this.players[i];
@@ -4794,6 +4844,19 @@ function renderField(x, W){
       x.restore();
     }
   }
+  // 基地受袭危险警示
+  if(W.baseHitFlash > 0 && f.baseAlive){
+    const bx = (BASE_GX+1)*G, by = (BASE_GY+1)*G;
+    const pulse = Math.sin(W.baseHitFlash * 25) * 0.5 + 0.5;
+    x.save();
+    x.globalCompositeOperation = "lighter";
+    x.strokeStyle = `rgba(255, 60, 60, ${0.45 + pulse * 0.45})`;
+    x.lineWidth = 3;
+    x.beginPath(); x.arc(bx, by, 28, 0, TAU); x.stroke();
+    x.fillStyle = `rgba(255, 40, 40, ${0.12 + pulse * 0.12})`;
+    x.beginPath(); x.arc(bx, by, 28, 0, TAU); x.fill();
+    x.restore();
+  }
 
   // 道具
   for(const p of W.powerups) p.render(x);
@@ -4806,6 +4869,37 @@ function renderField(x, W){
   for(const fx of W.fx) fx.render(x);
   // 树覆盖层
   for(const [px,py] of trees) x.drawImage(SPR.terrain.tree, px, py);
+
+  // 首领血条 (Boss Health Bar)
+  const boss = W.enemies.find(e => !e.dead && e.isBoss && e.spawnT <= 0);
+  if(boss){
+    x.save();
+    const bw = 240, bh = 8, bx = (FS - bw) / 2, by = 6;
+    x.fillStyle = "rgba(10, 15, 25, 0.88)";
+    x.fillRect(bx - 3, by - 2, bw + 6, bh + 14);
+    x.strokeStyle = "rgba(232, 74, 95, 0.85)";
+    x.lineWidth = 1.2;
+    x.strokeRect(bx - 3, by - 2, bw + 6, bh + 14);
+    const bTitle = "★ 重 装 首 领 坦 克 ★";
+    drawUiText(x, bTitle, bx + 42, by + 1, "#ffd54a", 1);
+    x.fillStyle = "rgba(40, 20, 25, 0.9)";
+    x.fillRect(bx, by + 10, bw, bh);
+    const hpPct = clamp(boss.hp / Math.max(1, boss.maxHp), 0, 1);
+    const hpGrad = x.createLinearGradient(bx, 0, bx + bw, 0);
+    hpGrad.addColorStop(0, "#e84a5f");
+    hpGrad.addColorStop(0.6, "#ff758c");
+    hpGrad.addColorStop(1, "#ffd54a");
+    x.fillStyle = hpGrad;
+    x.fillRect(bx, by + 10, bw * hpPct, bh);
+    x.fillStyle = "rgba(0, 0, 0, 0.35)";
+    for(let k = 1; k < boss.maxHp; k++){
+      const kx = bx + (bw / boss.maxHp) * k;
+      x.fillRect(kx, by + 10, 1, bh);
+    }
+    x.fillStyle = "rgba(255, 255, 255, 0.25)";
+    x.fillRect(bx, by + 10, bw * hpPct, 2);
+    x.restore();
+  }
 
   // 冻结覆盖
   if(W.freezeT > 0){
@@ -5611,6 +5705,14 @@ const Game = {
     }
     html += `<div class="tot">合计</div><div class="vv tot">${totalK}</div><div class="vv tot">${totalS}</div>`;
     html += `</div>`;
+    const accuracy = (W.stats && W.stats.shots > 0) ? Math.round((W.stats.hits / W.stats.shots) * 100) : 100;
+    const maxCombo = (W.stats && W.stats.maxCombo) || 0;
+    let bonusAcc = 0, bonusCombo = 0;
+    if(accuracy >= 70){ bonusAcc = 300; for(const p of W.players) p.score += bonusAcc; }
+    if(maxCombo >= 4){ bonusCombo = 500; for(const p of W.players) p.score += bonusCombo; }
+    html += `<div class="hint" style="margin-top:8px;color:#a8c4ff">🎯 命中率 <b>${accuracy}%</b> · 🔥 最高连击 <b>${maxCombo} 连击</b></div>`;
+    if(bonusAcc > 0) html += `<div class="hint" style="color:#6fd47a">🏅 神射手嘉奖：命中率卓越 +${bonusAcc} 分</div>`;
+    if(bonusCombo > 0) html += `<div class="hint" style="color:#ffd54a">⚡ 连击先锋：连击破纪录 +${bonusCombo} 分</div>`;
     html += `<div class="hint" style="margin-top:8px;color:#ffb347">第 ${this.loop+1} 周目 · ${this.hell ? "地狱绝境区域" : "主线战役"}</div>`;
     html += `<div class="hint" style="margin-top:10px">`;
     for(const p of W.players){

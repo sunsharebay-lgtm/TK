@@ -1,7 +1,10 @@
 # Mac 软件资源库 · 项目规则
 
-- 本文件夹是创意空间的独立平级项目，不属于 `粉丝资源/`；页面、数据、测试、文档与历史版本都必须留在本文件夹。
+- 本文件夹是创意空间的独立平级项目，不属于 `粉丝资源/`；当前页面、数据、测试与文档都必须留在本文件夹。
 - 首页入口为 `../Mac软件资源库/`，目录版本标签为 `resource/mac-software-library/vX.Y.Z`。
-- 更新 `index.html` 或 `software-resources.json` 前，先将被替换版本归档到 `历史版本/`，然后更新 `更新记录.md` 与 `project.md` 并运行 `node 测试/software_resources_test.js`。
+- 更新 `index.html` 或 `software-resources.json` 前，直接维护当前源码，更新 `更新记录.md` 与 `project.md` 并运行 `node 测试/software_resources_test.js`。
 - 软件交付必须遵守 README 中的授权边界：不提供破解、激活绕过、改包或来源不明安装包。
 - 跨项目结构变更以根目录 `AGENTS.md`、`项目关系与GitHub推送.md`、`docs/项目状态.md` 为准。
+- 工作方式：统一从创意空间项目接任务，按本目录边界维护；跨项目联动在同一任务内完成。
+- 发布节奏：先完成本地修改和验证，等待用户明确说“推送”再执行统一发布；目录独立不要求单独注册 Codex 项目。
+- 历史策略：本地只保留当前源码，不新增历史源码/中间版备份；旧 `历史版本/` 与退役实现按根 sparse checkout 规则排除，需要时从 GitHub 指定提交临时获取。旧文档的本地归档要求已失效。

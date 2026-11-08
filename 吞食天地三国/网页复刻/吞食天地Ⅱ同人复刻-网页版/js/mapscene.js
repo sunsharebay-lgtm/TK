@@ -302,6 +302,11 @@ class Scene_Map {
     if (bgm && bgm.name) T.AudioManager.playBgm(bgm);
     else T.AudioManager.stopBgm();
     if (T.$dataMap.bgs && T.$dataMap.bgs.name) T.AudioManager.playBgs(T.$dataMap.bgs);
+    // 地名展示
+    if (T.$dataMap && T.$dataMap.displayName) {
+      this.mapName = T.$dataMap.displayName;
+      this.mapNameTimer = 180;
+    }
     // 开场自动事件
     T.$gameMap.refreshEvents();
   }
@@ -317,6 +322,7 @@ class Scene_Map {
 
   update() {
     if (!this.created) return;
+    if (this.mapNameTimer > 0) this.mapNameTimer--;
     this.tilemap.update();
     T.$gameScreen.update();
     T.$gameTimer.update();
@@ -618,6 +624,32 @@ class Scene_Map {
     /* 屏幕效果 */
     this.applyTone(ctx);
     this.applyFlash(ctx);
+
+    /* 地名提示浮层 (Map Name Banner) */
+    if (this.mapName && this.mapNameTimer > 0) {
+      const alpha = this.mapNameTimer > 150
+        ? (180 - this.mapNameTimer) / 30
+        : (this.mapNameTimer < 30 ? this.mapNameTimer / 30 : 1);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+      ctx.font = T.fontStr(22, true);
+      const nw = ctx.measureText(this.mapName).width;
+      const pw = Math.max(150, nw + 44), ph = 38;
+      const px = (T.SCREEN_W - pw) / 2, py = 26;
+      ctx.fillStyle = "rgba(10, 14, 24, 0.88)";
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = "rgba(240, 195, 110, 0.8)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px, py, pw, ph);
+      ctx.strokeStyle = "rgba(240, 195, 110, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 3, py + 3, pw - 6, ph - 6);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff0c0";
+      ctx.fillText(this.mapName, T.SCREEN_W / 2, py + ph / 2 + 1);
+      ctx.restore();
+    }
 
     /* UI */
     this.goldWindow.draw(ctx);

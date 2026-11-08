@@ -128,9 +128,13 @@ class Goomba extends Foe{
   }
   onStomp(G,chain){
     this.squashT=26;this.dead=true;this.vx=0;
-    A.sfx('stomp');
+    const chainMult = 1 + Math.min(chain || 0, 7) * 0.08;
+    A.sfx('stomp', {mult: chainMult});
     const s=this.stompScore(chain||0);
     G.addScore(s,this.x,this.y);
+    if((chain || 0) >= 2){
+      for(let i=0;i<4;i++) G.sparkle(this.x+U.rand(0,this.w), this.y+U.rand(0,this.h), '#ffe080');
+    }
     return CFG.STOMP_BOUNCE;
   }
   draw(ctx,f){
@@ -202,16 +206,23 @@ class Koopa extends Foe{
       G.addScore(400,this.x,this.y);
       return CFG.STOMP_BOUNCE_HI;
     }
-    A.sfx('stomp');
+    const chainMult = 1 + Math.min(chain || 0, 7) * 0.08;
+    A.sfx('stomp', {mult: chainMult});
     if(this.winged){
       this.winged=false;this.state='walk';
       const s=this.stompScore(chain||0);
       G.addScore(s,this.x,this.y);
+      if((chain || 0) >= 2){
+        for(let i=0;i<4;i++) G.sparkle(this.x+U.rand(0,this.w), this.y+U.rand(0,this.h), '#ffe080');
+      }
       return CFG.STOMP_BOUNCE;
     }
     this.becomeShell();
     const s=this.stompScore(chain||0);
     G.addScore(s,this.x,this.y);
+    if((chain || 0) >= 2){
+      for(let i=0;i<4;i++) G.sparkle(this.x+U.rand(0,this.w), this.y+U.rand(0,this.h), '#ffe080');
+    }
     return CFG.STOMP_BOUNCE;
   }
   onTouch(G,p){
@@ -504,6 +515,7 @@ class FireBallEnt{
   boom(G){
     this.explodeT=8;
     G.sparkle(this.x+3,this.y+3,'#ffb040');
+    for(let i=0;i<3;i++) G.sparkle(this.x+U.rand(-1,5),this.y+U.rand(-1,5),'#ffe070');
   }
   draw(ctx,f){
     if(this.explodeT>0){

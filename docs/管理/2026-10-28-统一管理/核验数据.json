@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-28",
+  "local_head": "6044041f96149e9b1bc1842804e2bb85feabb0c6",
+  "remote_main": "163325fe14df6b85ff6addb5f39dd00caa0f3001",
+  "differences": [
+    {
+      "path": "Codex重装交接指南.md",
+      "remote_blob": "3c6fb230f6f93debf75a12d768b18854951a6159",
+      "local_sha256": "0b0e8125451a60434cd8199017c26370020944ac8263f3a3e9ccd07c3ea7d575",
+      "state": "differs"
+    },
+    {
+      "path": "Mac软件资源库/project.md",
+      "remote_blob": "d55db79841a3a0e8bf0d4125f21d3bbcd926590b",
+      "local_sha256": "d82c1b77ee2232d7b2552fc54d4a180b18afa2ad8a5fd5e5dfb74788ff099ac9",
+      "state": "differs"
+    },
+    {
+      "path": "Mac软件资源库/更新记录.md",
+      "remote_blob": "b485ca94e4f7015a96cf042965af4dafca7f7c3c",
+      "local_sha256": "f17da3d3880d2a29f1908bb99293d92ef9856fda7ce85d7cc2f4bfa4a1a4c12b",
+      "state": "differs"
+    },
+    {
+      "path": "docs/项目状态.md",
+      "remote_blob": "569dee0f29013e0a9f8abb1a9b66c44558ddbb47",
+      "local_sha256": "105d7632d5a817211410aab0f4ea253aef3ec0d73c4f93a3b18e77615c9c2157",
+      "state": "differs"
+    },
+    {
+      "path": "创意空间首页/README.md",
+      "remote_blob": "9882fa558446d597cb7098fb58cbf00628813e80",
+      "local_sha256": "e0bab15eb1195377b2a948dfad59341bb7605ba694caca5b95eb685798c0fcb4",
+      "state": "differs"
+    },
+    {
+      "path": "创意空间首页/game-catalog.json",
+      "remote_blob": "b3c09ed847b463f69bc405ee174d40efa17d205c",
+      "local_sha256": "2d4c6d0b3a1696be8455c370142c7f5e93006fe4a8e64b36312234f008f7cb38",
+      "state": "differs"
+    },
+    {
+      "path": "创意空间首页/project.md",
+      "remote_blob": "b54f533b90b623758c682e5702c71b96ebdbd5a6",
+      "local_sha256": "3d3878355d614501180f32bec14c53389fb3c6ce8ba729eb8c8fcae43a51bfc2",
+      "state": "differs"
+    },
+    {
+      "path": "创意空间首页/历史版本/创意空间首页-v0.5.2.html",
+      "remote_blob": "f0934f49e0b172476cfbaa48bb3d8e10249e4ec3",
+      "local_sha256": null,
+      "state": "remote-only"
+    },
+    {
+      "path": "创意空间首页/文档/2026-10-27-首页源码审查.md",
+      "remote_blob": "9f19fc798477d57885478c980f85747d6105d9e6",
+      "local_sha256": "c319115ff559554eba63ea72b8204929e23a622d4d193958d7cb761c06477a33",
+      "state": "differs"
+    },
+    {
+      "path": "创意空间首页/更新记录.md",
+      "remote_blob": "4a14e6ddd7aa7f2f0e127d8bb1c430b8bc04fd31",
+      "local_sha256": "e5d96dd31fd9910bea3c570628f3d35fe3e6dd8c100185637f48192626243902",
+      "state": "differs"
+    },
+    {
+      "path": "吞食天地三国/project.md",
+      "remote_blob": "9eaeff04cb2935a18c7be263f9742edc16f6363d",
+      "local_sha256": "e7306ff2a255b4bd0d016f6ba8f6f533a99204a4dda569cdf43ee307dd83eaa4",
+      "state": "differs"
+    },
+    {
+      "path": "吞食天地三国/文档/2026-10-27-源码审查与修复.md",
+      "remote_blob": "99139b6c620981d74b49e8179078eb578fa2f0fa",
+      "local_sha256": "74565273bc34b37e744925b983fc35f205b7bcab73988cd11fd02669b0ea55a8",
+      "state": "differs"
+    },
+    {
+      "path": "吞食天地三国/更新记录.md",
+      "remote_blob": "f36f716f8e8054e184332515b812f2b957944eb1",
+      "local_sha256": "b1717d58568f2c62204b5ff377c28985ba47ef66839f68acffde7795fb898af2",
+      "state": "differs"
+    },
+    {
+      "path": "坦克大战/AGENTS.md",
+      "remote_blob": "33e840b1d963ddee78d50675082869ccf5a94a7a",
+      "local_sha256": "c0b0c7ea5b7dfcaa79bf84859da340a0193f706e3fdea42b464550e65c664b9d",
+      "state": "differs"
+    },
+    {
+      "path": "坦克大战/历史版本/2026-10-27-before-release/tank-battle.html",
+      "remote_blob": "69d7ce56e1568ae68d42930b56dbc63c82b92e23",
+      "local_sha256": "3cd85cc690c62a77e5439a8b94c05f0e4a215b2d5bb68aa312070ae28c38629c",
+      "state": "differs"
+    },
+    {
+      "path": "墨水屏小站/AGENTS.md",
+      "remote_blob": "1f9660087dfe0e2c1de21edfecaf6cc744b50e82",
+      "local_sha256": "7fbe75a5e013f1202ee3a9de0d0f0b3f13c98af8fcfea58ecba92a564c5350c7",
+      "state": "differs"
+    },
+    {
+      "path": "墨水屏小站/project.md",
+      "remote_blob": "d551b417dae3cc1a1d5b27d878672ab5fbc6cb77",
+      "local_sha256": "1c9a9939d1f2d9b851031ff8a27f378f3d51fb0e2627476edefef2a5a26c4026",
+      "state": "differs"
+    },
+    {
+      "path": "墨水屏小站/更新记录.md",
+      "remote_blob": "6bc9f7cf595c6b1d79870f527fae5e85bec879e7",
+      "local_sha256": "6e2fe5bd8b219795b91b8de33e2bc8a3d00fb8f31fbfd5aeb8d4cdeead469a50",
+      "state": "differs"
+    },
+    {
+      "path": "超级玛丽/AGENTS.md",
+      "remote_blob": "b0e1a742b53634672688e6be00800d6caa4a4210",
+      "local_sha256": "463cafb6eabe7271b2c74d8480d95063661dbd584cb50845a3075050a65ed1b5",
+      "state": "differs"
+    },
+    {
+      "path": "超级玛丽/project.md",
+      "remote_blob": "176ff9e4772e71f772d37137283d54100c71f3b0",
+      "local_sha256": "1c5c3dcb9358ca4d103f9a4c4aa58f9d02d9e1372f96f7fb126588c99c9702d1",
+      "state": "differs"
+    },
+    {
+      "path": "超级玛丽/更新记录.md",
+      "remote_blob": "c2a8add318689762a5d492e1ea6ddf3cd67d80e5",
+      "local_sha256": "b05aa6ce95f108d360f45a4815dce98f3abc2c775d67362587f51e8248f25cea",
+      "state": "differs"
+    }
+  ],
+  "remote_file_count": 5001,
+  "identical_count": 4980,
+  "published_verification": "Passed: 16 pages, 13 scripts; expected 163325fe14df6b85ff6addb5f39dd00caa0f3001",
+  "actions_run": 40538762875,
+  "removed_local_paths": [
+    "超级玛丽/历史版本",
+    "墨水屏小站/历史版本",
+    "Mac软件资源库/历史版本",
+    "吞食天地三国/历史版本",
+    "坦克大战/历史版本",
+    "粉丝资源/历史版本",
+    "创意空间首页/历史版本",
+    "坦克大战/测试/backup",
+    "坦克大战/assets/blender/tank-sprites-v1.png"
+  ],
+  "cleanup_note": "Local historical snapshot 70338e41f9bc116ff422c1ab80a97657e3a079b4 was not an exact published blob; it was an older intermediate form of the now-published tank source and discarded at user request. No unique current source was discarded.",
+  "removed_artifacts_and_source_backups": [
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/.site",
+      "files": 1746,
+      "bytes": 47713022
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/创意空间首页/测试/.artifacts",
+      "files": 1748,
+      "bytes": 49434004
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/粉丝资源/测试/.artifacts",
+      "files": 18,
+      "bytes": 2983049
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/坦克大战/测试/.artifacts",
+      "files": 9,
+      "bytes": 4669589
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/吞食天地三国/测试/.artifacts",
+      "files": 12,
+      "bytes": 403810
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/Mac软件资源库/测试/.artifacts",
+      "files": 2,
+      "bytes": 5163896
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/docs/发布/2026-10-27/.artifacts",
+      "files": 4,
+      "bytes": 19972
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/墨水屏小站/测试/.artifacts",
+      "files": 2,
+      "bytes": 111519
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/墨水屏小站/原生版/墨屏小站原生测试/测试/.artifacts",
+      "files": 16,
+      "bytes": 3309266
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/超级玛丽/test/.artifacts",
+      "files": 12,
+      "bytes": 2871139
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/Codex恢复备份/2026-10-26-创意空间-review",
+      "files": 144,
+      "bytes": 2841674
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/Codex恢复备份/2026-10-27-创意空间-B站入口",
+      "files": 10,
+      "bytes": 131697
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/Codex恢复备份/2026-10-27-创意空间-发布",
+      "files": 152,
+      "bytes": 5483300
+    },
+    {
+      "path": "/Users/sun/Desktop/AI/创意空间/纯实验",
+      "files": 0,
+      "bytes": 0
+    }
+  ]
+}

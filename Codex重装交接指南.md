@@ -45,12 +45,12 @@
 ## 4. 核心规则（必须遵守）
 
 1. **一个创意一个文件夹**，文件夹名 = 创意名；该创意的所有文件都放进去。
-2. 每个创意项目都有 `更新记录.md` 和 `历史版本/`，随仓库上传；有新版本时在本项目 `更新记录.md` 末尾追加并把上一版源码归档到本项目 `历史版本/`。
+2. 每个创意保留当前源码和追加式 `更新记录.md`；历史源码只在 GitHub 保存，本地不检出、不新增备份。
 3. 新创意 → 在根目录新建同名文件夹，之后所有产物都放进去。
 4. 首页改动只改 `创意空间首页/index.html`；根目录 `index.html` 只是跳转占位。
 5. 根目录 `更新记录.md` 是**本地总记录**，已被 `.gitignore`（`/更新记录.md`）排除，**不推 GitHub**；不要 `git add -A` 后误提交它。
 6. 改动推送到 `main` 会自动触发 GitHub Pages 重新部署；各子项目用各自 namespace 标签记录发布版本，标签本身不触发部署。
-7. 每个子项目都是独立 Codex 本地项目，边界只在本文件夹，完整注册路径见第 6 节。
+7. Codex 只注册创意空间总项目，七个子目录保留业务边界；统一接任务与跨项目联动，见第 6.5 节。
 
 完整规则见 [AGENTS.md](AGENTS.md)。
 
@@ -69,7 +69,7 @@
 
 ### 5.2 坦克大战 `坦克大战/`
 
-- 主文件：`tank-battle.html`（单文件 Canvas + 本地图集，当前标签 `v1.6.12`）。
+- 主文件：`tank-battle.html`（单文件 Canvas + 本地图集，已发布标签 `v1.6.13`）。
 - `坦克大战.html`：旧中文入口兼容跳转。
 - 测试：`坦克大战/测试/`（`smoke_test.js`、`validate_maps.js` 等，多数传入 `tank-battle.html` 路径运行）。
 - 冒烟测试示例：`node 坦克大战/测试/smoke_test.js 坦克大战/tank-battle.html`
@@ -78,10 +78,10 @@
 
 - 当前主推进：**网页复刻**，目录 `吞食天地三国/网页复刻/吞食天地Ⅱ同人复刻-网页版/`（完整 MZ 兼容引擎，分片源码 + 文档）。
 - `吞食天地三国/index.html`：入口跳转页，直达网页复刻版。
-- `three-kingdoms.html`：早期 FC 风单文件版（历史保留，不再作为在线主入口）。
+- `three-kingdoms.html`：早期 FC 风单文件版（仅 GitHub 历史保留，本地不检出）。
 - 文档/交接：`吞食天地三国/网页复刻/吞食天地Ⅱ同人复刻-网页版/docs/HANDOFF-TAKEOVER.md`、该目录 `README.md`。
-- 测试：`吞食天地三国/测试/three_kingdoms_smoke.js`、`three_kingdoms_test.js`。
-- 冒烟/回归示例：`node 吞食天地三国/测试/three_kingdoms_smoke.js`、`node 吞食天地三国/测试/three_kingdoms_test.js`
+- 当前测试：`吞食天地三国/测试/current_engine_test.js`、`snapshot_recovery_test.js`、`engine_audit_test.js`；退役单文件测试不进默认门禁。
+- 冒烟/回归示例：`node 吞食天地三国/测试/current_engine_test.js`、`node --test 吞食天地三国/测试/engine_audit_test.js`。
 - 最近进展：见 `git log` 与网页复刻的 HANDOFF 文档（菜单、行走动画、八槽装备、伤害下限等）。
 
 ### 5.4 超级玛丽 `超级玛丽/`
@@ -108,7 +108,7 @@
 ### 5.7 粉丝资源 `粉丝资源/`
 
 - 数据源：`resources.json`，手动维护；每条使用固定两位 `number`，必须提供 `detailUrl`。
-- 长资料独立页：`资源/<资料名>/`；当前保留 `01`～`07` 七条粉丝资源；Mac 软件资源库已迁出，旧地址仅为兼容跳转。
+- 长资料独立页：`资源/<资料名>/`；当前保留 `01`～`07` 七条粉丝资源，Mac 软件资源库已迁出，旧地址仅保留兼容跳转。
 - 独立入口：`index.html`；首页读取本项目的 `resources.json` 做展示联动。
 - 测试：`测试/resources_test.js`。
 - 运行：`node 粉丝资源/测试/resources_test.js`
@@ -121,39 +121,22 @@
 - 首页卡片：版本号从 `game-catalog.json` 读；`game-catalog.json` 由生成脚本从 Git 标签生成（`game/<id>/vX.Y.Z` 或 `resource/<id>/vX.Y.Z`）。
 - 部署工作流 `.github/workflows/pages.yml`：只响应 `main` 推送和手动触发；生成目录、写入部署版本标记，并在 Pages 部署后执行线上验收。
 - 标签规范：坦克大战 `game/tank-battle/vX.Y.Z`；三国 RPG `game/three-kingdoms/vX.Y.Z`；超级玛丽 `game/super-mario/vX.Y.Z`；墨水屏小站 `game/idle-screen/vX.Y.Z`；创意空间首页 `site/home/vX.Y.Z`；Mac 软件资源库 `resource/mac-software-library/vX.Y.Z`；粉丝资源 `content/fan-resources/vX.Y.Z`。标签只记录版本，部署统一由 `main` 触发。不要创建全局旧式标签。
-- 定时汇报：`创意空间周报`（每周一 09:00）读取各子项目并更新 `docs/项目状态.md`；`总项目月报`（每月 1 日 09:00）汇总 `/Users/sun/Desktop/AI` 下所有项目。配置在 `~/.codex/automations/`。
+- 状态台账在每次工作收尾时更新。旧记录提及周报/月报自动化，但本轮未核验其运行状态；统一管理不依赖这些自动化，不恢复或新建定时任务。
 
-## 6.5 Codex 平级项目注册清单
+## 6.5 Codex 统一工作入口
 
-以下文件夹可在 Codex 中注册为独立本地项目，命名建议带「创意空间·」前缀：
+仅注册 `/Users/sun/Desktop/AI/创意空间`。用户已取消七个子项目的独立入口；重装后不要照旧清单重新添加。七个子目录及其规则保留，从总项目内按需求进入目标目录工作，跨目录联动在同一任务完成。
 
-- 创意空间·首页：`/Users/sun/Desktop/AI/创意空间/创意空间首页`
-- 创意空间·坦克大战：`/Users/sun/Desktop/AI/创意空间/坦克大战`
-- 创意空间·三国：`/Users/sun/Desktop/AI/创意空间/吞食天地三国`
-- 创意空间·超级玛丽：`/Users/sun/Desktop/AI/创意空间/超级玛丽`
-- 创意空间·墨水屏小站：`/Users/sun/Desktop/AI/创意空间/墨水屏小站`
-- 创意空间·Mac 软件资源库：`/Users/sun/Desktop/AI/创意空间/Mac软件资源库`
-- 创意空间·粉丝资源：`/Users/sun/Desktop/AI/创意空间/粉丝资源`
-
-每个子项目只在自己的文件夹开会话；总协调、跨项目建议和首页联动在创意空间任务里做；总项目（集团）位于 `/Users/sun/Desktop/AI`。
+先读 `docs/项目状态.md` 的最新检查点，再核对本地 HEAD、最新 origin/main、未提交差异与线上部署提交。历史独立发布工作树和旧分支只作来源证据，不自动恢复为新的主工作目录。
 
 ## 7. 推送 / 发版
 
-```bash
-cd "/Users/sun/Desktop/AI/创意空间"
-git add -A
-git commit -m "描述这次改动"
-git push origin main
-```
+用户已确认：本地完成与验证后，等待“推送”指令；收到指令后按 `docs/发布协议.md` 完成整个流程。
 
-发布稳定版（示例，三国）：
-
-```bash
-git tag game/three-kingdoms/v1.0.0
-git push origin game/three-kingdoms/v1.0.0
-```
-
-只有推 `main` 或手动触发才会部署；标签只作为版本记录。部署后必须通过线上验收。各项目自己的 `更新记录.md` 和 `历史版本/` 会一起推送；根目录 `更新记录.md` 不会。
+- 开工获取最新 `origin/main` 与标签，审阅本地差异；保留本地独有的当前工作，再处理基线衔接；不保留历史源码备份。
+- 只暂存这次确认的具体文件，检查暂存差异；不要直接全量暂存旧工作区。
+- 专项与全项目验证通过后，稳定版本先推相应 namespace 标签，再推 `main`，等 Actions 和线上提交验收均成功。
+- 各子项目记录随仓库管理；根目录 `更新记录.md` 仅本地保留。纯管理文档调整不抬升业务版本。
 
 ## 8. 重装 Codex 后的第一步
 
@@ -188,6 +171,29 @@ git push origin game/three-kingdoms/v1.0.0
 - 版本目录只使用当前 HEAD 可达的稳定标签，避免未合并分支/未来标签污染。`main` 手动发布限制与测试门禁均已写入工作流，但本轮没有执行 GitHub Actions 新部署。
 - 本轮恢复增量在 `/Users/sun/Desktop/AI/Codex恢复备份/2026-10-26-创意空间-review/`；它不是完整 Codex 安装备份。
 
+
+### 2026-10-27 · 粉丝资源恢复补充
+
+- 入口加载 `粉丝资源/scripts/catalog.js`（数据校验/搜索）与 `scripts/resources.js`（列表状态）；详情页共用 `scripts/copy.js`，所有页面加载 `styles/common.css`。发布必须带齐这些运行文件。
+- 基础回归：在粉丝资源目录执行 `node 测试/resources_test.js`、`node 测试/catalog_validation_test.js`、`node 测试/clipboard_test.js`、`node 测试/legacy_routes_test.js`、`node 测试/package_test.js`。
+- 浏览器回归：`node --test 测试/browser_test.cjs`，依赖安装到 `测试/.artifacts/browser/`，具体恢复命令见粉丝资源 README；不依赖历史缓存路径。
+- 本轮五组基础回归、21 项浏览器回归和35个尺寸/页面组合通过；共享打包白名单已收录 `粉丝资源/styles/`，隔离发布包验证8个页面及其依赖交付完整。最后一次统一门禁41/43，剩余失败位于首页版本目录与三国现行引擎，尚不能作为全仓发布成功的证明。
+- 修复前源码及 SHA 清单在 `粉丝资源/历史版本/2026-10-27-review-before/manifest.json`，当前源码 SHA 与详细交付边界见 `粉丝资源/project.md`。
+
+
+### 粉丝资源 v0.9.0：DSH 插件迁移包
+
+- 新增资源07「DSH 插件迁移包」，正文及复制指令在 `粉丝资源/资源/DSH插件迁移包/index.html`；唯一目录仍为 `粉丝资源/resources.json`，无须改首页源码。
+- 原包通过夸克永久分享提供，使用方式为解压后让目标 Agent 读取 `AGENT.md`，按六步说明完成后重启 DSH。包内容与原文件SHA见粉丝资源 `project.md`。
+- 本项目基础回归五组、浏览器22项通过；测试中的目录总数按数据读取，添加后续资源时不应把总数重新固定写死。
+
+## 2026-10-28 · 统一管理恢复要点
+
+- 最新关系与执行流程见 `项目关系与GitHub推送.md`，核验与基线处理见 `docs/管理/2026-10-28-统一管理/project.md`。
+- 本机有效交接总纲是 `/Users/sun/Desktop/AI/00_交接总纲.md`；旧 `/Users/sun/Desktop/pgcs/` 本轮检查不存在。
+- 本轮没有保留源码或管理文档备份；临时备份已按用户要求撤掉。历史源码从 GitHub 指定提交/标签获取。重新克隆后应用 `docs/管理/2026-10-28-统一管理/本地检出规则.txt`：`git sparse-checkout set --no-cone --no-sparse-index --stdin < docs/管理/2026-10-28-统一管理/本地检出规则.txt`。
+- 本轮不修改技能和应用配置、不重新注册子项目、不创建自动化；保留既有代码、素材和历史记录。
+
 ## 11. 坦克大战 v1.6.13 源码审查修复
 
 - 坦克大战本轮完整修复与 27 个专项行为场景见 `坦克大战/测试/源码审查-2026-10-27.md`；交付与源文件哈希见该项目 `project.md` 最新发布章节。
@@ -196,16 +202,4 @@ git push origin game/three-kingdoms/v1.0.0
 - 截图与带源码 SHA-256 的机器报告在项目测试的 `.artifacts/`（忽略）。系统 Python 无 Pillow 时先发现 Codex 自带 Python，不要依赖固定缓存路径或改动系统环境。
 - 发布标签为 `game/tank-battle/v1.6.13`，前一线上源码在 `坦克大战/历史版本/坦克大战-v1.6.12.html`；部署仍由 `main` 唯一触发。手机视口模拟通过不等于真机性能验收。
 
-
-### 粉丝资源 v0.8.0 恢复要点
-
-- 入口依次加载 `粉丝资源/scripts/catalog.js`、`scripts/resources.js`；详情页共用 `scripts/copy.js`；所有页面使用 `styles/common.css`。共享打包清单必须收录 styles/，否则发布后缺失公共交互样式。
-- 本项目基础回归为 `resources_test.js`、`catalog_validation_test.js`、`clipboard_test.js`、`legacy_routes_test.js`、`package_test.js`；浏览器回归用 `node --test 测试/browser_test.cjs`，依赖恢复见粉丝资源 README。
-- 本次以远程 main 已验收的 v0.7.1 为基线，在隔离工作树发布 v0.8.0；专项审查前的源码快照与当前校验值见 `粉丝资源/project.md`。
-
-
-### 粉丝资源 v0.9.0：DSH 插件迁移包
-
-- 新增资源07「DSH 插件迁移包」，正文及复制指令在 `粉丝资源/资源/DSH插件迁移包/index.html`；唯一目录仍为 `粉丝资源/resources.json`，无须改首页源码。
-- 原包通过夸克永久分享提供，使用方式为解压后让目标 Agent 读取 `AGENT.md`，按六步说明完成后重启 DSH。包内容与原文件SHA见粉丝资源 `project.md`。
-- 本项目基础回归五组、浏览器22项通过；测试中的目录总数按数据读取，添加后续资源时不应把总数重新固定写死。
+以上历史归档路径仅在 GitHub 保留；本地不重新复制源码。

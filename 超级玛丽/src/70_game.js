@@ -225,13 +225,14 @@ const G={
       if(this.player.deadT>65||(this.player.deadT>18&&INP.press('confirm')))this.afterDeath();
       return;
     }
+    if(this._coinChainT > 0) this._coinChainT--;
     if(this.freeze>0){ this.freeze--; this.player.update(this); return; }
     for(const m of this.movers)m.update(this);
     const ar=this.area();
     if(this.curArea===0&&!this.cpReached&&ar.cpX>0&&this.player.x>ar.cpX&&this.player.onGround&&!this.player.dead){
       this.cpReached=true;
       this.notify('检查点已点亮 · 失误后从这里继续');
-      this.sparkle(this.player.x+5,this.player.y-4,'#7ee3ff');
+      for(let i=0;i<8;i++) this.sparkle(this.player.x+U.rand(-8,16),this.player.y+U.rand(-10,14),'#7ee3ff');
       A.sfx('select');
     }
     this.tryPipeEnter();
@@ -426,9 +427,18 @@ const G={
 
   getCoin(x,y){
     this.coins++;
+    if(!this._coinChainT) this._coinChainT = 0;
+    if(!this._coinChain) this._coinChain = 0;
+    if(this._coinChainT > 0){
+      this._coinChain = Math.min(this._coinChain + 1, 8);
+    } else {
+      this._coinChain = 0;
+    }
+    this._coinChainT = 45;
+    const pitchMult = 1 + this._coinChain * 0.035;
     this.addScore(200,null);
     this.sparkle(x+7,y,'#fff2b0');
-    A.sfx('coin');
+    A.sfx('coin', {mult: pitchMult});
     if(this.coins>=100){
       this.coins-=100;
       this.addLife();

@@ -21,6 +21,7 @@ class Player{
     this.hidden=false;
     this.fireHeldPrev=false;
     this.landT=0;this.stretchT=0;
+    this.trails=[];this._wasSkid=false;
   }
   expBox(){ return {x:this.x-2,y:this.y-2,w:this.w+4,h:this.h+4}; }
   setForm(f){
@@ -169,13 +170,19 @@ class Player{
       if(Math.sign(this.vx)===-ax&&Math.abs(this.vx)>.35){
         this.vx=U.approach(this.vx,0,CFG.SKID);
         this.skid=true;
+        if(!this._wasSkid&&this.onGround){
+          A.sfx('skid');
+          this._wasSkid=true;
+        }
         if(this.onGround&&Math.floor(G.tick%5)===0)
           G.puff(this.x+this.w/2,this.y+this.h-2,false);
       }else{
         this.vx=U.approach(this.vx,ax*maxSpd,acc);
+        this._wasSkid=false;
       }
       this.face=ax;
     }else{
+      this._wasSkid=false;
       if(this.onGround&&!J.jump)this.vx=U.approach(this.vx,0,CFG.FRICTION);
     }
 
@@ -249,6 +256,22 @@ class Player{
     }
     this.fireHeldPrev=K.run;
 
+    if(this.trails&&this.trails.length){
+      for(const tr of this.trails)tr.life--;
+      this.trails=this.trails.filter(tr=>tr.life>0);
+    }
+    const highSpeed=this.onGround&&Math.abs(this.vx)>=CFG.MAX_RUN*.88;
+    if((highSpeed||this.starT>0)&&G.tick%4===0&&!this.dead&&!this.hidden){
+      const [pose,sizeKey]=this.poseName();
+      const pk=this.palName();
+      const key=sizeKey==='fire'?'big_'+pose+'_'+(pk==='fire'?'fire':pk):sizeKey+'_'+pose+'_'+pk;
+      this.trails.push({
+        x:this.x,y:this.y,w:this.w,h:this.h,face:this.face,
+        imgKey:key,fallback:sizeKey+'_'+pose+'_norm',
+        life:8,maxLife:8
+      });
+    }
+
     this.animDist+=Math.abs(this.vx)*(this.onGround?1:.4);
   }
   fireCount(){ return G.ents.filter(e=>e.type==='fireball'&&e.explodeT<=0).length; }
@@ -299,6 +322,21 @@ class Player{
     const cx=this.x+this.w/2;
     const ox=cx-dw/2+(dw>this.w+2?-this.face*0.5:0);
     const oy=this.y+this.h-dh+1;
+    if(this.trails&&this.trails.length){
+      for(const tr of this.trails){
+        const alpha=(tr.life/tr.maxLife)*(this.starT>0?.32:.18);
+        const timg=ART.H[tr.imgKey]||ART.H[tr.fallback]||ART.H['small_idle_norm'];
+        if(!timg)continue;
+        const tdw=timg.width/ART.SS,tdh=timg.height/ART.SS;
+        const tcx=tr.x+tr.w/2;
+        const tox=tcx-tdw/2+(tdw>tr.w+2?-tr.face*0.5:0);
+        const toy=tr.y+tr.h-tdh+1;
+        ctx.save();ctx.globalAlpha=alpha;
+        if(tr.face<0){ctx.translate(tcx*2,0);ctx.scale(-1,1);}
+        ctx.drawImage(timg,tr.face<0?(tcx-tdw/2):tox,toy,tdw,tdh);
+        ctx.restore();
+      }
+    }
     let sy=1,sx=1;
     if(this.landT>0){const k=this.landT/9;sy=1-.14*k;sx=1+.10*k;}
     else if(this.stretchT>0&&!this.onGround){const k=this.stretchT/9;sy=1+.10*k;sx=1-.08*k;}

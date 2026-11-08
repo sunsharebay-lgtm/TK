@@ -64,19 +64,24 @@ const A = {
   },
   freqOf(midi){ return 440*Math.pow(2,(midi-69)/12); },
 
-  sfx(name){
+  sfx(name,opt){
     if(!this.ctx)return;
+    const mult=(opt&&opt.mult)||1;
     switch(name){
       case 'jump': this.tone({f0:200,f1:640,t:.16,v:.2}); break;
       case 'bigjump': this.tone({f0:150,f1:480,t:.2,v:.22}); break;
       case 'bump': this.tone({type:'triangle',f0:130,f1:70,t:.09,v:.32}); break;
+      case 'skid':
+        this.noise({t:.12,v:.16,f:1200,ftype:'bandpass',q:2.2});
+        this.tone({type:'sawtooth',f0:360,f1:160,t:.10,v:.10});
+        break;
       case 'stomp':
-        this.noise({t:.09,v:.28,f:500});
-        this.tone({type:'sine',f0:260,f1:80,t:.12,v:.25});
+        this.noise({t:.09,v:.28,f:500*mult});
+        this.tone({type:'sine',f0:260*mult,f1:80*mult,t:.12,v:.25});
         break;
       case 'coin':
-        this.tone({f0:988,t:.05,v:.15});
-        this.tone({f0:1319,t:.32,v:.18,delay:.05});
+        this.tone({f0:988*mult,t:.05,v:.15});
+        this.tone({f0:1319*mult,t:.32,v:.18,delay:.05});
         break;
       case 'breakBlock':
         this.noise({t:.16,v:.3,f:900,ftype:'bandpass'});

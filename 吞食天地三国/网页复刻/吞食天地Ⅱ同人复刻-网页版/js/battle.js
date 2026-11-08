@@ -149,7 +149,8 @@ class Scene_Battle {
       case "action": this.updateActionSeq(); break;
       case "resolve": this.resolveNext(); break;
       case "victory": case "defeat": case "escaped":
-        if (--this.phaseTimer <= 0) this.finish();
+        if (this.phaseTimer <= 140 && (T.Input.triggered("ok") || T.Input.triggered("cancel"))) this.phaseTimer = 0;
+        if (--this.phaseTimer <= 0) { this.phaseTimer = 0; this.finish(); }
         break;
       case "anim":
         this.animQueue.shift()();
@@ -622,6 +623,8 @@ class Scene_Battle {
     const popupY = Math.max(42, pos.y - 10);
     if (r.hpDamage > 0) {
       this.lastPopups.push({ x: pos.x + 16, y: popupY, text: `-${T.fmt(r.hpDamage)}`, t: 46, color: "#ff7070" });
+    } else if (r.hpDamage < 0) {
+      this.lastPopups.push({ x: pos.x + 16, y: popupY, text: `+${T.fmt(-r.hpDamage)}`, t: 46, color: "#6fe388" });
     } else if (r.evaded) {
       this.lastPopups.push({ x: pos.x + 16, y: popupY, text: "闪避", t: 36, color: "#a0d0ff" });
     } else if (r.critical) {
@@ -667,6 +670,8 @@ class Scene_Battle {
       if (dmg.critical && Math.random() < this.critChance(user, target)) {
         r.critical = true;
         v *= 3;
+        if (T.$gameScreen) T.$gameScreen.shake(5, 4, 12);
+        T.AudioManager.playSe({ name: "Blow2", volume: 90 });
       }
       const fullHeal = dmg.type === 3 && item.name === "完复计";
       if (fullHeal) v = target.mhp - target.hp;
@@ -927,6 +932,9 @@ class Scene_Battle {
   /* ---- 绘制 ---- */
   async draw(ctx) {
     void this.async;
+    const shx = T.$gameScreen ? T.$gameScreen.shakeOffsetX() : 0;
+    ctx.save();
+    if (shx) ctx.translate(shx, 0);
     ctx.fillStyle = "#101020";
     ctx.fillRect(0, 0, T.SCREEN_W, T.SCREEN_H);
     /* 背景图 */
@@ -1090,6 +1098,7 @@ class Scene_Battle {
       this.helpWin.draw(ctx);
       this.helpWin.drawText(ctx, "战 斗 胜 利", this.helpWin.innerX, this.helpWin.innerY + 10, this.helpWin.innerW, "center");
     }
+    ctx.restore();
   }
   drawPartyStatus(ctx) {
     ctx.save();
