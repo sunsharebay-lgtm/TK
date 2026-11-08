@@ -156,3 +156,7 @@ efebb17f80735a88b98a7cbf59522454d11ed1daa3a2acb47a4a889e0560f48d  测试/run_all
 
 ### 当前文件 SHA-256
 - `tank-battle.html`：`aa7ee9123d40293d0b1fa906459e3b41207baf3100ecce40def2b1eae203c403`
+
+### 2026-11-08 · 发布上线确认
+- 用户确认推送；标签 `game/tank-battle/v1.6.14` 与 main `d707395` 已推送到远端。
+- [Actions 42457308524](https://github.com/sunsharebay-lgtm/TK/actions/runs/42457308524) 成功；线上验证 16 页面 / 13 脚本通过，首页版本目录正确显示为 `v1.6.14`。

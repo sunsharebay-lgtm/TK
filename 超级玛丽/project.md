@@ -161,3 +161,7 @@
 
 ### 当前成品 SHA-256
 - `index.html`：`2d39b4883979219cb9e8fb170f26f08cd88898d793e4b5859dea158fa5c5b234`
+
+### 2026-11-08 · 发布上线确认
+- 用户确认推送；标签 `game/super-mario/v0.2.1` 与 main `d707395` 已推送到远端。
+- [Actions 42457308524](https://github.com/sunsharebay-lgtm/TK/actions/runs/42457308524) 成功；线上验证通过，首页版本目录正确显示为 `v0.2.1`。

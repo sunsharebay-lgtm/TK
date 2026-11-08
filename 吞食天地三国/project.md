@@ -186,3 +186,7 @@
 - `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/battle.js`：`49b3bdb2f95bf0db9df95e38f8de5a14b2dbce2213a8dbc0ef0b31fb5db34a59`
 - `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/windows.js`：`be3c8aefc6afebe08f0e97f409f9c0381f4785dda4cba0813673ce6175a242e5`
 - `网页复刻/吞食天地Ⅱ同人复刻-网页版/js/mapscene.js`：`b78a4824e52cd9bc3e4b1cddb2b11be1b17b2ea31634126e7b142b673f0fc92b`
+
+### 2026-11-08 · 发布上线确认
+- 用户确认推送；标签 `game/three-kingdoms/v0.3.3` 与 main `d707395` 已推送到远端。
+- [Actions 42457308524](https://github.com/sunsharebay-lgtm/TK/actions/runs/42457308524) 成功；线上验证通过，首页版本目录正确显示为 `v0.3.3`。
