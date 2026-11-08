@@ -619,6 +619,7 @@
       border: none;
       cursor: pointer;
       font-family: Arial, Helvetica, sans-serif;
+      padding: 6px 10px;
     }
     .list-empty {
       font-size: 20px;
@@ -1433,7 +1434,7 @@
   function updateQuote() {
     var q = getQuoteOfDay();
     document.getElementById('quote-body').textContent = q.text;
-    document.getElementById('quote-author').textContent = '- ' + q.author;
+    document.getElementById('quote-author').textContent = '—— ' + q.author;
     fitQuote();
   }
 

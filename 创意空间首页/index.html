@@ -461,6 +461,17 @@
       gap: 8px;
     }
 
+    .resource-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      font-size: 10px;
+      border-radius: 3px;
+      background: rgba(255, 179, 71, .18);
+      color: var(--amber);
+      border: 1px solid rgba(255, 179, 71, .4);
+      vertical-align: middle;
+    }
     .resource-card {
       display: grid;
       grid-template-columns: 24px max-content minmax(0, 1fr) auto;
@@ -1108,6 +1119,12 @@
         titleLink.href = resolveResourceUrl(item.detailUrl);
         titleLink.textContent = item.title;
         title.appendChild(titleLink);
+        if (item.status) {
+          const badge = document.createElement('span');
+          badge.className = 'resource-badge';
+          badge.textContent = item.status;
+          title.appendChild(badge);
+        }
         main.appendChild(title);
       }
 

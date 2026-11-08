@@ -23,7 +23,7 @@ python3 -m http.server 8643 --bind 127.0.0.1
 
 `https://sunsharebay-lgtm.github.io/TK/墨水屏小站/`
 
-源码从外部仓库 `sunsharebay-lgtm/idle-screen` 迁入创意空间后统一维护；当前网页发布版本为 `v0.4.1`（迁入版本为 `v0.4.0`）。
+源码从外部仓库 `sunsharebay-lgtm/idle-screen` 迁入创意空间后统一维护；当前网页发布版本为 `v0.4.2`（迁入版本为 `v0.4.0`）。
 
 ## 项目文档
 
@@ -44,7 +44,7 @@ python3 -m http.server 8643 --bind 127.0.0.1
 
 - 2026-10-26 视觉复核补充：修复窄屏时钟裁切、日期卡溢出、天气文字覆盖操作按钮；4 种视口 × 2 种样式的真实浏览器边界检查通过。
 
-本轮补丁发布：`game/idle-screen/v0.4.1`（2026-10-27），内容与验收见 [统一发布记录](../docs/发布/2026-10-27/project.md)。
+本轮补丁发布：`game/idle-screen/v0.4.2`（2026-10-27），内容与验收见 [统一发布记录](../docs/发布/2026-10-27/project.md)。
 
 ## 统一管理（2026-10-28）
 

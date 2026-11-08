@@ -27,6 +27,12 @@
     const title = document.createElement('h3');
     title.className = 'resource-title';
     title.textContent = item.title;
+    if (item.status) {
+      const badge = document.createElement('span');
+      badge.className = 'resource-badge';
+      badge.textContent = item.status;
+      title.appendChild(badge);
+    }
     const summary = document.createElement('p');
     summary.className = 'resource-summary';
     summary.textContent = item.summary;

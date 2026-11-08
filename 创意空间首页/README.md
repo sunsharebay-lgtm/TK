@@ -22,7 +22,7 @@
 
 目录生成只使用当前部署提交可达的稳定标签。新增标签或模板有变化时，先运行 `node scripts/generate-game-catalog.cjs`，再运行 `node 测试/version_catalog_test.js`；本地 JSON 与部署生成结果必须一致。`node 测试/catalog_history_test.js` 在临时 Git 仓库中验证未合并标签、旧提交与异地执行，不修改主仓库历史。
 
-YouTube 入口使用用户提供的频道 ID `UCurHjCw5_hnyCfZa721MENA`。2026-10-28 已修复旧 `@sunsharebay` 404，并以 `site/home/v0.5.4` 发布；线上点击验收已通过。
+YouTube 入口使用用户提供的频道 ID `UCurHjCw5_hnyCfZa721MENA`。2026-10-28 已修复旧 `@sunsharebay` 404，并以 `site/home/v0.5.5` 发布；线上点击验收已通过。
 
 手机资源卡允许长标题换行，资源主内容宽度以卡片为准。B站入口已于 2026-10-27 根据用户提供的链接核实并补齐：[大海的科技宝箱](https://space.bilibili.com/2053159491)，UID `2053159491`。QQ 群号支持点击选中后手动复制。
 

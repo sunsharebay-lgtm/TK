@@ -623,6 +623,12 @@
           copy.addEventListener('click', () => copyText(item.shareUrl, copy));
           actions.appendChild(copy);
         }
+        if (item.homebrew) {
+          const copyBrew = makeElement('button', 'action copy-btn', '复制 Brew 命令');
+          copyBrew.type = 'button';
+          copyBrew.addEventListener('click', () => copyText(item.homebrew, copyBrew));
+          actions.appendChild(copyBrew);
+        }
         if (item.officialUrl) {
           const official = makeElement('a', 'action-link', '打开官方地址 ↗');
           official.href = item.officialUrl;

@@ -56,7 +56,7 @@
       "statusWhenMissing": "开发版",
       "statusWhenTagged": "稳定版",
       "external": false,
-      "version": "v0.4.1",
+      "version": "v0.4.2",
       "status": "稳定版"
     },
     {
@@ -71,7 +71,7 @@
       "statusWhenTagged": "稳定版",
       "catalogLabel": "RESOURCE",
       "external": false,
-      "version": "v0.6.1",
+      "version": "v0.6.2",
       "status": "稳定版"
     }
   ]

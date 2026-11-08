@@ -17,3 +17,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
 }
+
+.resource-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  font-size: 10px;
+  border-radius: 3px;
+  background: rgba(255, 179, 71, .15);
+  color: var(--amber);
+  border: 1px solid rgba(255, 179, 71, .35);
+  vertical-align: middle;
+}
